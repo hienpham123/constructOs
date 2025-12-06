@@ -64,7 +64,17 @@ export const useMaterialStore = create<MaterialState>((set) => ({
       const transactionsData = Array.isArray(response) 
         ? response 
         : (response.data || []);
-      const transactions = transactionsData.map(normalizeMaterialTransaction);
+      const transactions = transactionsData
+        .map((item: any, index: number) => {
+          try {
+            const normalized = normalizeMaterialTransaction(item);
+            return normalized;
+          } catch (error) {
+            console.error(`Error normalizing item ${index}:`, error, item);
+            return null;
+          }
+        })
+        .filter((t: any) => t !== null && t !== undefined);
       const total = Array.isArray(response) ? transactions.length : (response.total || 0);
       set({ transactions, transactionsTotal: total, isLoading: false });
     } catch (error: any) {

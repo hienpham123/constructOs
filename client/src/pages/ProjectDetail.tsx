@@ -7,7 +7,6 @@ import {
   Grid,
   Chip,
   LinearProgress,
-  Button,
   Tabs,
   Tab,
   List,
@@ -15,6 +14,7 @@ import {
   ListItemText,
   Checkbox,
 } from '@mui/material';
+import { Button } from '../components/common';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useProjectStore } from '../stores/projectStore';
 import { formatDate, formatDateTime } from '../utils/dateFormat';
@@ -74,15 +74,15 @@ export default function ProjectDetail() {
             <Grid container spacing={2}>
               <Grid item xs={6}>
                 <Typography variant="body2" color="text.secondary">
-                  Mã dự án
+                  Chủ đầu tư
                 </Typography>
-                <Typography variant="body1">{selectedProject.code}</Typography>
+                <Typography variant="body1">{selectedProject.investor || (selectedProject as any).client}</Typography>
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="body2" color="text.secondary">
-                  Khách hàng
+                  Đầu mối
                 </Typography>
-                <Typography variant="body1">{selectedProject.client}</Typography>
+                <Typography variant="body1">{selectedProject.contactPerson || (selectedProject as any).contact_person || '-'}</Typography>
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="body2" color="text.secondary">
@@ -192,7 +192,7 @@ export default function ProjectDetail() {
               <LinearProgress
                 variant="determinate"
                 value={selectedProject.progress}
-                sx={{ height: 20, borderRadius: 2, mb: 1 }}
+                sx={{ height: 20, borderRadius: 0, mb: 1 }}
               />
               <Typography variant="h4" align="center">
                 {selectedProject.progress}%

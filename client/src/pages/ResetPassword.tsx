@@ -5,12 +5,12 @@ import {
   Box,
   Paper,
   TextField,
-  Button,
   Typography,
   Alert,
   InputAdornment,
   IconButton,
 } from '@mui/material';
+import { Button } from '../components/common';
 import ConstructionIcon from '@mui/icons-material/Construction';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';

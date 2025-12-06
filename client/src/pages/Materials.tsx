@@ -1,46 +1,45 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-  Button,
   Chip,
   LinearProgress,
-  IconButton,
-  Tooltip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import { useMaterialStore } from '../stores/materialStore';
 import { useProjectStore } from '../stores/projectStore';
-import MaterialForm from '../components/forms/MaterialForm';
-import TransactionForm from '../components/forms/TransactionForm';
-import PurchaseRequestForm from '../components/forms/PurchaseRequestForm';
 import DeleteConfirmDialog from '../components/DeleteConfirmDialog';
 import { formatDate } from '../utils/dateFormat';
+import { DataTable, Button } from '../components/common';
+import type { Material } from '../types';
 
 interface MaterialsProps {
   tab?: 'list' | 'transactions' | 'purchase-requests';
 }
 
 export default function Materials({ tab = 'list' }: MaterialsProps) {
-  const { materials, materialsTotal, transactions, transactionsTotal, purchaseRequests, purchaseRequestsTotal, isLoading, fetchMaterials, fetchTransactions, fetchPurchaseRequests, deleteMaterial, deleteTransaction, deletePurchaseRequest, updatePurchaseRequest } = useMaterialStore();
+  const navigate = useNavigate();
+  // Use separate selectors to ensure re-render
+  const transactions = useMaterialStore((state) => state.transactions);
+  const transactionsTotal = useMaterialStore((state) => state.transactionsTotal);
+  const materials = useMaterialStore((state) => state.materials);
+  const materialsTotal = useMaterialStore((state) => state.materialsTotal);
+  const purchaseRequests = useMaterialStore((state) => state.purchaseRequests);
+  const purchaseRequestsTotal = useMaterialStore((state) => state.purchaseRequestsTotal);
+  const isLoading = useMaterialStore((state) => state.isLoading);
+  const fetchMaterials = useMaterialStore((state) => state.fetchMaterials);
+  const fetchTransactions = useMaterialStore((state) => state.fetchTransactions);
+  const fetchPurchaseRequests = useMaterialStore((state) => state.fetchPurchaseRequests);
+  const deleteMaterial = useMaterialStore((state) => state.deleteMaterial);
+  const deleteTransaction = useMaterialStore((state) => state.deleteTransaction);
+  const deletePurchaseRequest = useMaterialStore((state) => state.deletePurchaseRequest);
+  const updatePurchaseRequest = useMaterialStore((state) => state.updatePurchaseRequest);
   const { fetchProjects } = useProjectStore();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [formOpen, setFormOpen] = useState(false);
-  const [transactionFormOpen, setTransactionFormOpen] = useState(false);
-  const [purchaseRequestFormOpen, setPurchaseRequestFormOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [transactionDeleteOpen, setTransactionDeleteOpen] = useState(false);
   const [purchaseRequestDeleteOpen, setPurchaseRequestDeleteOpen] = useState(false);
@@ -59,7 +58,16 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
     if (tab === 'purchase-requests') {
       fetchPurchaseRequests(rowsPerPage, page);
     }
-  }, [fetchMaterials, fetchTransactions, fetchPurchaseRequests, fetchProjects, rowsPerPage, page, tab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rowsPerPage, page, tab]);
+
+  // Fetch all materials once when switching to transactions or purchase-requests tab
+  useEffect(() => {
+    if ((tab === 'transactions' || tab === 'purchase-requests') && materials.length < 100) {
+      fetchMaterials(1000, 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
 
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
@@ -154,281 +162,263 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
         <Typography variant="h4">{getTitle()}</Typography>
         {tab === 'list' && (
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setSelectedMaterialState(null); setFormOpen(true); }}>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/materials/add')}>
             Thêm vật tư
           </Button>
         )}
         {tab === 'transactions' && (
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
-            setSelectedTransaction(null);
-            setTransactionFormOpen(true);
-          }}>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/materials/transactions/add')}>
             Thêm giao dịch
           </Button>
         )}
         {tab === 'purchase-requests' && (
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
-            setSelectedPurchaseRequest(null);
-            setPurchaseRequestFormOpen(true);
-          }}>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/materials/purchase-requests/add')}>
             Thêm đề xuất mua hàng
           </Button>
         )}
       </Box>
 
       {tab === 'list' && (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Mã vật tư</TableCell>
-                <TableCell>Tên vật tư</TableCell>
-                <TableCell>Danh mục</TableCell>
-                <TableCell>Tồn kho</TableCell>
-                <TableCell>Đơn giá</TableCell>
-                <TableCell>Trạng thái</TableCell>
-                <TableCell>Thao tác</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {materials.map((material) => (
-                  <TableRow key={material.id} hover>
-                    <TableCell>{material.code}</TableCell>
-                    <TableCell>{material.name}</TableCell>
-                    <TableCell>{material.category}</TableCell>
-                    <TableCell>
-                      {material.currentStock} {material.unit}
-                    </TableCell>
-                    <TableCell>{formatCurrency(material.unitPrice)}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={getStatusLabel(material.status)}
-                        color={getStatusColor(material.status) as any}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Tooltip title="Chỉnh sửa">
-                        <IconButton size="small" onClick={() => { setSelectedMaterialState(material); setFormOpen(true); }}>
-                          <EditIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Xóa">
-                        <IconButton size="small" onClick={() => { setSelectedMaterialState(material); setDeleteOpen(true); }} color="error">
-                          <DeleteIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))}
-            </TableBody>
-          </Table>
-          <TablePagination
-            component="div"
-            count={materialsTotal}
-            page={page}
-            onPageChange={handleChangePage}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-            labelRowsPerPage="Số dòng mỗi trang:"
-          />
-        </TableContainer>
+        <DataTable<Material>
+          columns={[
+            {
+              label: 'Tên vật tư',
+              field: 'name',
+              width: 250,
+              minWidth: 200,
+            },
+            {
+              label: 'Chủng loại',
+              field: 'type',
+              width: 150,
+              minWidth: 120,
+              render: (value, row) => value || (row as any).category || '-',
+            },
+            {
+              label: 'Tồn kho',
+              field: 'currentStock',
+              width: 150,
+              minWidth: 120,
+              render: (value, row) => `${value} ${row.unit}`,
+            },
+            {
+              label: 'Đơn giá nhập',
+              field: 'importPrice',
+              width: 180,
+              minWidth: 150,
+              render: (value, row) => formatCurrency(value || (row as any).unitPrice || 0),
+            },
+            {
+              label: 'Trạng thái',
+              field: 'status',
+              width: 150,
+              minWidth: 120,
+              render: (value) => (
+                <Chip
+                  label={getStatusLabel(value)}
+                  color={getStatusColor(value) as any}
+                  size="small"
+                />
+              ),
+            },
+          ]}
+          data={materials}
+          actions={{
+            onEdit: (material) => {
+              navigate(`/materials/edit/${material.id}`);
+            },
+            onDelete: (material) => {
+              setSelectedMaterialState(material);
+              setDeleteOpen(true);
+            },
+          }}
+          pagination={{
+            count: materialsTotal,
+            page,
+            rowsPerPage,
+            onPageChange: handleChangePage,
+            onRowsPerPageChange: handleChangeRowsPerPage,
+          }}
+          minWidth={800}
+          emptyMessage="Không có vật tư nào"
+        />
       )}
 
       {tab === 'transactions' && (
-        <>
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Ngày</TableCell>
-                  <TableCell>Vật tư</TableCell>
-                  <TableCell>Loại</TableCell>
-                  <TableCell>Số lượng</TableCell>
-                  <TableCell>Dự án</TableCell>
-                  <TableCell>Lý do</TableCell>
-                  <TableCell>Người thực hiện</TableCell>
-                  <TableCell>Thao tác</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {transactions.map((transaction) => (
-                    <TableRow key={transaction.id} hover>
-                      <TableCell>
-                        {formatDate(transaction.performedAt)}
-                      </TableCell>
-                      <TableCell>{transaction.materialName}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={getTransactionTypeLabel(transaction.type)}
-                          color={transaction.type === 'import' ? 'success' : 'default'}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {transaction.quantity} {transaction.unit}
-                      </TableCell>
-                      <TableCell>{transaction.projectName || '-'}</TableCell>
-                      <TableCell>{transaction.reason}</TableCell>
-                      <TableCell>{transaction.performedBy || '-'}</TableCell>
-                      <TableCell>
-                        <Tooltip title="Chỉnh sửa">
-                          <IconButton
-                            size="small"
-                            onClick={() => {
-                              setSelectedTransaction(transaction);
-                              setTransactionFormOpen(true);
-                            }}
-                          >
-                            <EditIcon />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Xóa">
-                          <IconButton
-                            size="small"
-                            onClick={() => {
-                              setSelectedTransaction(transaction);
-                              setTransactionDeleteOpen(true);
-                            }}
-                            color="error"
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-            <TablePagination
-              component="div"
-              count={transactionsTotal}
-              page={page}
-              onPageChange={handleChangePage}
-              rowsPerPage={rowsPerPage}
-              onRowsPerPageChange={handleChangeRowsPerPage}
-              labelRowsPerPage="Số dòng mỗi trang:"
-            />
-          </TableContainer>
-        </>
+        <DataTable
+          columns={[
+            {
+              label: 'Ngày',
+              field: 'performedAt',
+              width: 150,
+              minWidth: 120,
+              render: (value) => formatDate(value),
+            },
+            {
+              label: 'Vật tư',
+              field: 'materialName',
+              width: 200,
+              minWidth: 150,
+            },
+            {
+              label: 'Loại',
+              field: 'type',
+              width: 120,
+              minWidth: 100,
+              render: (value) => (
+                <Chip
+                  label={getTransactionTypeLabel(value)}
+                  color={value === 'import' ? 'success' : 'default'}
+                  size="small"
+                />
+              ),
+            },
+            {
+              label: 'Số lượng',
+              field: 'quantity',
+              width: 120,
+              minWidth: 100,
+              render: (value, row) => `${value} ${row.unit}`,
+            },
+            {
+              label: 'Dự án',
+              field: 'projectName',
+              width: 200,
+              minWidth: 150,
+              render: (value) => value || '-',
+            },
+            {
+              label: 'Lý do',
+              field: 'reason',
+              width: 200,
+              minWidth: 150,
+            },
+            {
+              label: 'Người thực hiện',
+              field: 'performedBy',
+              width: 150,
+              minWidth: 120,
+              render: (value) => value || '-',
+            },
+          ]}
+          data={transactions.filter((t) => t && t.id)}
+          actions={{
+            onEdit: (transaction) => {
+              navigate(`/materials/transactions/edit/${transaction.id}`);
+            },
+            onDelete: (transaction) => {
+              setSelectedTransaction(transaction);
+              setTransactionDeleteOpen(true);
+            },
+          }}
+          pagination={{
+            count: transactionsTotal,
+            page,
+            rowsPerPage,
+            onPageChange: handleChangePage,
+            onRowsPerPageChange: handleChangeRowsPerPage,
+          }}
+          minWidth={1000}
+          emptyMessage="Chưa có giao dịch nào"
+        />
       )}
 
       {tab === 'purchase-requests' && (
         <>
           <Box display="flex" justifyContent="flex-end" mb={2}>
           </Box>
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Ngày đề xuất</TableCell>
-                  <TableCell>Vật tư</TableCell>
-                  <TableCell>Số lượng</TableCell>
-                  <TableCell>Lý do</TableCell>
-                  <TableCell>Trạng thái</TableCell>
-                  <TableCell>Thao tác</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {purchaseRequests.map((request) => (
-                    <TableRow key={request.id} hover>
-                      <TableCell>
-                        {formatDate(request.requestedAt)}
-                      </TableCell>
-                      <TableCell>{request.materialName}</TableCell>
-                      <TableCell>
-                        {request.quantity} {request.unit}
-                      </TableCell>
-                      <TableCell>{request.reason}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={getRequestStatusLabel(request.status)}
-                          color={request.status === 'approved' ? 'success' : request.status === 'pending' ? 'warning' : 'default'}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {request.status === 'pending' && (
-                          <>
-                            <Tooltip title="Duyệt">
-                              <IconButton
-                                size="small"
-                                onClick={async () => {
-                                  await updatePurchaseRequest(request.id, 'approved');
-                                  if (tab === 'purchase-requests') {
-                                    fetchPurchaseRequests(rowsPerPage, page);
-                                  }
-                                }}
-                                sx={{ color: 'success.main' }}
-                              >
-                                <CheckIcon />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Từ chối">
-                              <IconButton
-                                size="small"
-                                onClick={async () => {
-                                  await updatePurchaseRequest(request.id, 'rejected');
-                                  if (tab === 'purchase-requests') {
-                                    fetchPurchaseRequests(rowsPerPage, page);
-                                  }
-                                }}
-                                sx={{ color: 'error.main' }}
-                              >
-                                <CloseIcon />
-                              </IconButton>
-                            </Tooltip>
-                          </>
-                        )}
-                        <Tooltip title="Xem chi tiết">
-                          <IconButton
-                            size="small"
-                            onClick={() => {
-                              setSelectedPurchaseRequest(request);
-                              setPurchaseRequestFormOpen(true);
-                            }}
-                          >
-                            <EditIcon />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Xóa">
-                          <IconButton
-                            size="small"
-                            onClick={() => {
-                              setSelectedPurchaseRequest(request);
-                              setPurchaseRequestDeleteOpen(true);
-                            }}
-                            color="error"
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-            <TablePagination
-              component="div"
-              count={purchaseRequestsTotal}
-              page={page}
-              onPageChange={handleChangePage}
-              rowsPerPage={rowsPerPage}
-              onRowsPerPageChange={handleChangeRowsPerPage}
-              labelRowsPerPage="Số dòng mỗi trang:"
-            />
-          </TableContainer>
+          <DataTable
+            columns={[
+              {
+                label: 'Ngày đề xuất',
+                field: 'requestedAt',
+                width: 150,
+                minWidth: 120,
+                render: (value) => formatDate(value),
+              },
+              {
+                label: 'Vật tư',
+                field: 'materialName',
+                width: 200,
+                minWidth: 150,
+              },
+              {
+                label: 'Số lượng',
+                field: 'quantity',
+                width: 120,
+                minWidth: 100,
+                render: (value, row) => `${value} ${row.unit}`,
+              },
+              {
+                label: 'Lý do',
+                field: 'reason',
+                width: 200,
+                minWidth: 150,
+              },
+              {
+                label: 'Trạng thái',
+                field: 'status',
+                width: 150,
+                minWidth: 120,
+                render: (value) => (
+                  <Chip
+                    label={getRequestStatusLabel(value)}
+                    color={value === 'approved' ? 'success' : value === 'pending' ? 'warning' : 'default'}
+                    size="small"
+                  />
+                ),
+              },
+            ]}
+            data={purchaseRequests}
+            actions={{
+              customActions: (request) =>
+                request.status === 'pending'
+                  ? [
+                      {
+                        label: 'Duyệt',
+                        icon: <CheckIcon fontSize="small" />,
+                        onClick: async () => {
+                          await updatePurchaseRequest(request.id, 'approved');
+                          if (tab === 'purchase-requests') {
+                            fetchPurchaseRequests(rowsPerPage, page);
+                          }
+                        },
+                        color: 'success' as const,
+                      },
+                      {
+                        label: 'Từ chối',
+                        icon: <CloseIcon fontSize="small" />,
+                        onClick: async () => {
+                          await updatePurchaseRequest(request.id, 'rejected');
+                          if (tab === 'purchase-requests') {
+                            fetchPurchaseRequests(rowsPerPage, page);
+                          }
+                        },
+                        color: 'error' as const,
+                      },
+                    ]
+                  : [],
+              onEdit: (request) => {
+                navigate(`/materials/purchase-requests/edit/${request.id}`);
+              },
+              onDelete: (request) => {
+                setSelectedPurchaseRequest(request);
+                setPurchaseRequestDeleteOpen(true);
+              },
+              editLabel: 'Xem chi tiết',
+            }}
+            pagination={{
+              count: purchaseRequestsTotal,
+              page,
+              rowsPerPage,
+              onPageChange: handleChangePage,
+              onRowsPerPageChange: handleChangeRowsPerPage,
+            }}
+            minWidth={900}
+            emptyMessage="Không có đề xuất mua hàng nào"
+          />
         </>
       )}
-
-      <MaterialForm
-        open={formOpen}
-        onClose={() => {
-          setFormOpen(false);
-          setSelectedMaterialState(null);
-        }}
-        material={selectedMaterial}
-      />
 
       <DeleteConfirmDialog
         open={deleteOpen}
@@ -442,18 +432,6 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
           }
         }}
         itemName={selectedMaterial?.name}
-      />
-
-      <TransactionForm
-        open={transactionFormOpen}
-        onClose={() => {
-          setTransactionFormOpen(false);
-          setSelectedTransaction(null);
-          if (tab === 'transactions') {
-            fetchTransactions(rowsPerPage, page);
-          }
-        }}
-        transaction={selectedTransaction}
       />
 
       <DeleteConfirmDialog
@@ -474,18 +452,6 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
         }}
         title="Xóa giao dịch"
         message={`Bạn có chắc chắn muốn xóa giao dịch này?`}
-      />
-
-      <PurchaseRequestForm
-        open={purchaseRequestFormOpen}
-        onClose={() => {
-          setPurchaseRequestFormOpen(false);
-          setSelectedPurchaseRequest(null);
-          if (tab === 'purchase-requests') {
-            fetchPurchaseRequests(rowsPerPage, page);
-          }
-        }}
-        purchaseRequest={selectedPurchaseRequest}
       />
 
       <DeleteConfirmDialog

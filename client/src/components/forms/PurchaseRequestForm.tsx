@@ -8,7 +8,6 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Button,
   Grid,
   Autocomplete,
   MenuItem,
@@ -16,6 +15,7 @@ import {
   InputLabel,
   Select,
 } from '@mui/material';
+import { Button } from '../common';
 import { PurchaseRequest } from '../../types';
 import { useMaterialStore } from '../../stores/materialStore';
 import { useAuthStore } from '../../stores/authStore';
@@ -129,7 +129,7 @@ export default function PurchaseRequestForm({ open, onClose, purchaseRequest }: 
                 render={({ field }) => (
                   <Autocomplete
                     options={materials}
-                    getOptionLabel={(option) => option ? `${option.code} - ${option.name}` : ''}
+                    getOptionLabel={(option) => option ? option.name : ''}
                     value={materials.find((m) => m.id === field.value) || null}
                     onChange={(_, newValue) => field.onChange(newValue?.id || '')}
                     disabled={!!purchaseRequest}
@@ -147,8 +147,8 @@ export default function PurchaseRequestForm({ open, onClose, purchaseRequest }: 
                       const searchValue = inputValue.toLowerCase();
                       return options.filter(
                         (option) =>
-                          option.code.toLowerCase().includes(searchValue) ||
-                          option.name.toLowerCase().includes(searchValue)
+                          option.name.toLowerCase().includes(searchValue) ||
+                          (option.type || (option as any).category || '').toLowerCase().includes(searchValue)
                       );
                     }}
                     isOptionEqualToValue={(option, value) => option.id === value.id}

@@ -10,7 +10,6 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Button,
   Grid,
   MenuItem,
   FormControl,
@@ -19,6 +18,7 @@ import {
   FormControlLabel,
   Checkbox,
 } from '@mui/material';
+import { Button } from '../common';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -31,9 +31,9 @@ import { normalizeNumber } from '../../utils/normalize';
 
 const projectSchema = z.object({
   name: z.string().min(1, 'Tên dự án là bắt buộc'),
-  code: z.string().min(1, 'Mã dự án là bắt buộc'),
   description: z.string().optional(),
-  client: z.string().min(1, 'Khách hàng là bắt buộc'),
+  investor: z.string().min(1, 'Chủ đầu tư là bắt buộc'),
+  contactPerson: z.string().optional(),
   location: z.string().min(1, 'Địa điểm là bắt buộc'),
   startDate: z.any().refine((val) => val !== null && val !== undefined, {
     message: 'Ngày bắt đầu là bắt buộc',
@@ -42,7 +42,7 @@ const projectSchema = z.object({
     message: 'Ngày kết thúc là bắt buộc',
   }),
   budget: z.number().min(0, 'Ngân sách phải >= 0'),
-  status: z.enum(['planning', 'in_progress', 'on_hold', 'completed', 'cancelled']),
+  status: z.enum(['quoting', 'contract_signed_in_progress', 'completed', 'on_hold', 'design_consulting', 'in_progress', 'design_appraisal', 'preparing_acceptance', 'failed']),
   progress: z.number().min(0).max(100, 'Tiến độ phải từ 0-100'),
 });
 
@@ -70,14 +70,14 @@ export default function ProjectForm({ open, onClose, project }: ProjectFormProps
     resolver: zodResolver(projectSchema),
     defaultValues: {
       name: '',
-      code: '',
       description: '',
-      client: '',
+      investor: '',
+      contactPerson: '',
       location: '',
       startDate: null,
       endDate: null,
       budget: 0,
-      status: 'planning',
+      status: 'quoting',
       progress: 0,
     },
   });
@@ -116,27 +116,27 @@ export default function ProjectForm({ open, onClose, project }: ProjectFormProps
 
       reset({
         name: project.name || '',
-        code: project.code || '',
         description: project.description || '',
-        client: project.client || '',
+        investor: project.investor || (project as any).client || '',
+        contactPerson: project.contactPerson || (project as any).contact_person || '',
         location: project.location || '',
         startDate: parseDate(project.startDate || (project as any).start_date),
         endDate: parseDate(project.endDate || (project as any).end_date),
         budget: normalizeNumber(project.budget || (project as any).budget),
-        status: project.status || 'planning',
+        status: project.status || 'quoting',
         progress: calculatedProgress,
       });
     } else {
       reset({
         name: '',
-        code: '',
         description: '',
-        client: '',
+        investor: '',
+        contactPerson: '',
         location: '',
         startDate: null,
         endDate: null,
         budget: 0,
-        status: 'planning',
+        status: 'quoting',
         progress: 0,
       });
       setAutoCalculateProgress(false);
@@ -162,9 +162,9 @@ export default function ProjectForm({ open, onClose, project }: ProjectFormProps
     try {
       const projectData = {
         name: data.name,
-        code: data.code,
         description: data.description || '',
-        client: data.client,
+        investor: data.investor,
+        contactPerson: data.contactPerson || '',
         location: data.location,
         startDate: data.startDate ? dayjs(data.startDate).format('YYYY-MM-DD') : '',
         endDate: data.endDate ? dayjs(data.endDate).format('YYYY-MM-DD') : '',
@@ -197,23 +197,7 @@ export default function ProjectForm({ open, onClose, project }: ProjectFormProps
           <DialogTitle>{project ? 'Chỉnh sửa dự án' : 'Thêm dự án mới'}</DialogTitle>
           <DialogContent>
             <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12} sm={6}>
-                <Controller
-                  name="code"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label="Mã dự án"
-                      error={!!errors.code}
-                      helperText={errors.code?.message}
-                      required
-                    />
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12}>
                 <Controller
                   name="name"
                   control={control}
@@ -246,16 +230,31 @@ export default function ProjectForm({ open, onClose, project }: ProjectFormProps
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Controller
-                  name="client"
+                  name="investor"
                   control={control}
                   render={({ field }) => (
                     <TextField
                       {...field}
                       fullWidth
-                      label="Khách hàng"
-                      error={!!errors.client}
-                      helperText={errors.client?.message}
+                      label="Chủ đầu tư"
+                      error={!!errors.investor}
+                      helperText={errors.investor?.message}
                       required
+                    />
+                  )}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Controller
+                  name="contactPerson"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label="Đầu mối"
+                      error={!!errors.contactPerson}
+                      helperText={errors.contactPerson?.message}
                     />
                   )}
                 />
@@ -354,11 +353,15 @@ export default function ProjectForm({ open, onClose, project }: ProjectFormProps
                         {...field}
                         label="Trạng thái"
                       >
-                        <MenuItem value="planning">Lập kế hoạch</MenuItem>
-                        <MenuItem value="in_progress">Đang thi công</MenuItem>
-                        <MenuItem value="on_hold">Tạm dừng</MenuItem>
+                        <MenuItem value="quoting">Đang báo giá</MenuItem>
+                        <MenuItem value="contract_signed_in_progress">Đã ký hợp đồng và đang triển khai</MenuItem>
                         <MenuItem value="completed">Hoàn thành</MenuItem>
-                        <MenuItem value="cancelled">Đã hủy</MenuItem>
+                        <MenuItem value="on_hold">Tạm dừng</MenuItem>
+                        <MenuItem value="design_consulting">Đang tư vấn thiết kế</MenuItem>
+                        <MenuItem value="in_progress">Đang thi công</MenuItem>
+                        <MenuItem value="design_appraisal">Đang thẩm định thiết kế</MenuItem>
+                        <MenuItem value="preparing_acceptance">Chuẩn bị nghiệm thu thi công</MenuItem>
+                        <MenuItem value="failed">Trượt</MenuItem>
                       </Select>
                     </FormControl>
                   )}

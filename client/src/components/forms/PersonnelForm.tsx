@@ -9,7 +9,6 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Button,
   Grid,
   MenuItem,
   FormControl,
@@ -17,6 +16,7 @@ import {
   Select,
   Autocomplete,
 } from '@mui/material';
+import { Button } from '../common';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -261,7 +261,7 @@ export default function PersonnelForm({ open, onClose, personnel }: PersonnelFor
                 render={({ field }) => (
                   <Autocomplete
                     options={projects}
-                    getOptionLabel={(option) => option ? `${option.code} - ${option.name}` : ''}
+                    getOptionLabel={(option) => option ? option.name : ''}
                     value={projects.find((p) => p.id === field.value) || null}
                     onChange={(_, newValue) => field.onChange(newValue?.id || '')}
                     renderInput={(params) => (
@@ -275,8 +275,8 @@ export default function PersonnelForm({ open, onClose, personnel }: PersonnelFor
                       const searchValue = inputValue.toLowerCase();
                       return options.filter(
                         (option) =>
-                          option.code.toLowerCase().includes(searchValue) ||
-                          option.name.toLowerCase().includes(searchValue)
+                          option.name.toLowerCase().includes(searchValue) ||
+                          (option.investor || (option as any).client || '').toLowerCase().includes(searchValue)
                       );
                     }}
                     isOptionEqualToValue={(option, value) => option.id === value.id}

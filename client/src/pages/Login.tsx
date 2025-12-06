@@ -5,12 +5,12 @@ import {
   Box,
   Paper,
   TextField,
-  Button,
   Typography,
   Alert,
   InputAdornment,
   IconButton,
 } from '@mui/material';
+import { Button } from '../components/common';
 import ConstructionIcon from '@mui/icons-material/Construction';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
@@ -57,7 +57,7 @@ export default function Login() {
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           Hệ thống quản lý công ty xây dựng
         </Typography>
-        <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
+        <Paper elevation={0} sx={{ p: 4, width: '100%', border: '1px solid #e5e7eb', borderRadius: 0 }}>
           <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
             {error && (
               <Alert severity="error" sx={{ mb: 2 }}>

@@ -4,9 +4,9 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-  Button,
   Alert,
 } from '@mui/material';
+import { Button } from './common';
 import { useAuthStore } from '../stores/authStore';
 
 interface DeleteConfirmDialogProps {

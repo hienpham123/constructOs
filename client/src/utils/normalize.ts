@@ -1,45 +1,4 @@
 /**
- * Normalize EquipmentUsage data from API
- */
-export const normalizeUsage = (data: any): any => {
-  if (!data) return null;
-  
-  return {
-    id: data.id || '',
-    equipmentId: data.equipmentId || data.equipment_id || '',
-    equipmentName: data.equipmentName || data.equipment_name || '',
-    projectId: data.projectId || data.project_id || undefined,
-    projectName: data.projectName || data.project_name || undefined,
-    userId: data.userId || data.user_id || '',
-    userName: data.user_name || data.userName || '',
-    startTime: data.startTime || data.start_time || '',
-    endTime: data.endTime || data.end_time || undefined,
-    fuelConsumption: normalizeNumber(data.fuelConsumption || data.fuel_consumption),
-    notes: data.notes || '',
-  };
-};
-
-/**
- * Normalize MaintenanceSchedule data from API
- */
-export const normalizeMaintenanceSchedule = (data: any): any => {
-  if (!data) return null;
-  
-  return {
-    id: data.id || '',
-    equipmentId: data.equipmentId || data.equipment_id || '',
-    equipmentName: data.equipmentName || data.equipment_name || '',
-    type: data.type || 'routine',
-    scheduledDate: data.scheduledDate || data.scheduled_date || '',
-    completedDate: data.completedDate || data.completed_date || undefined,
-    status: data.status || 'scheduled',
-    description: data.description || '',
-    cost: normalizeNumber(data.cost),
-    technician: data.technician || undefined,
-  };
-};
-
-/**
  * Normalize number value - parse string to number, handle decimals
  */
 export const normalizeNumber = (value: any): number => {
@@ -62,16 +21,12 @@ export const normalizeMaterial = (data: any): any => {
   
   return {
     id: data.id || data.material_id,
-    code: data.code || '',
     name: data.name || '',
-    category: data.category || '',
+    type: data.type || '',
     unit: data.unit || '',
     currentStock: normalizeNumber(data.currentStock || data.current_stock),
-    minStock: normalizeNumber(data.minStock || data.min_stock),
-    maxStock: normalizeNumber(data.maxStock || data.max_stock),
-    unitPrice: normalizeNumber(data.unitPrice || data.unit_price),
+    importPrice: normalizeNumber(data.importPrice || data.import_price || data.unit_price),
     supplier: data.supplier || '',
-    location: data.location || '',
     barcode: data.barcode || undefined,
     qrCode: data.qr_code || data.qrCode || undefined,
     status: data.status || 'available',
@@ -88,43 +43,19 @@ export const normalizeProject = (data: any): any => {
   return {
     id: data.id,
     name: data.name || '',
-    code: data.code || '',
     description: data.description || '',
-    client: data.client || '',
+    investor: data.investor || data.client || '',
+    contactPerson: data.contactPerson || data.contact_person || '',
     location: data.location || '',
     startDate: data.startDate || data.start_date || '',
     endDate: data.endDate || data.end_date || '',
-    status: data.status || 'planning',
+    status: data.status || 'quoting',
     progress: normalizeNumber(data.progress),
     budget: normalizeNumber(data.budget),
     actualCost: normalizeNumber(data.actualCost || data.actual_cost),
     managerId: data.managerId || data.manager_id || '',
     managerName: data.managerName || data.manager_name || '',
     stages: data.stages || [],
-    documents: data.documents || [],
-    createdAt: data.created_at || data.createdAt || '',
-  };
-};
-
-/**
- * Normalize Contract data from API
- */
-export const normalizeContract = (data: any): any => {
-  if (!data) return null;
-  
-  return {
-    id: data.id,
-    code: data.code || '',
-    name: data.name || '',
-    type: data.type || 'construction',
-    client: data.client || '',
-    projectId: data.projectId || data.project_id || undefined,
-    projectName: data.projectName || data.project_name || undefined,
-    value: normalizeNumber(data.value),
-    startDate: data.startDate || data.start_date || '',
-    endDate: data.endDate || data.end_date || '',
-    status: data.status || 'draft',
-    signedDate: data.signedDate || data.signed_date || undefined,
     documents: data.documents || [],
     createdAt: data.created_at || data.createdAt || '',
   };
@@ -153,60 +84,88 @@ export const normalizePersonnel = (data: any): any => {
 };
 
 /**
- * Normalize Equipment data from API
- */
-export const normalizeEquipment = (data: any): any => {
-  if (!data) return null;
-  
-  return {
-    id: data.id,
-    code: data.code || '',
-    name: data.name || '',
-    type: data.type || 'excavator',
-    brand: data.brand || '',
-    model: data.model || '',
-    serialNumber: data.serialNumber || data.serial_number || '',
-    purchaseDate: data.purchaseDate || data.purchase_date || '',
-    status: data.status || 'available',
-    currentProjectId: data.currentProjectId || data.current_project_id || undefined,
-    currentProjectName: data.currentProjectName || data.current_project_name || undefined,
-    currentUserId: data.currentUserId || data.current_user_id || undefined,
-    currentUser: (data.current_user_name && data.current_user_name !== null && data.current_user_name !== '') 
-      ? data.current_user_name 
-      : undefined, // Only use name from JOIN, don't fallback to ID
-    lastMaintenanceDate: data.lastMaintenanceDate || data.last_maintenance_date || undefined,
-    nextMaintenanceDate: data.nextMaintenanceDate || data.next_maintenance_date || undefined,
-    totalHours: normalizeNumber(data.totalHours || data.total_hours || 0),
-    createdAt: data.created_at || data.createdAt || '',
-  };
-};
-
-/**
- * Normalize SiteLog data from API
- */
-export const normalizeSiteLog = (data: any): any => {
-  if (!data) return null;
-  
-  return {
-    id: data.id,
-    projectId: data.projectId || data.project_id || '',
-    projectName: data.projectName || data.project_name || '',
-    date: data.date || '',
-    weather: data.weather || '',
-    workDescription: data.workDescription || data.work_description || '',
-    issues: data.issues || '',
-    photos: data.photos || [],
-    createdBy: data.created_by_name || data.createdBy || data.created_by || '',
-    createdAt: data.created_at || data.createdAt || '',
-    updatedAt: data.updated_at || data.updatedAt || '',
-  };
-};
-
-/**
  * Normalize MaterialTransaction data from API
  */
 export const normalizeMaterialTransaction = (data: any): any => {
   if (!data) return null;
+  
+  // Handle attachments: can be array, JSON string, or single string (backward compatibility)
+  let attachments: string[] | undefined = undefined;
+  if (data.attachments) {
+    if (Array.isArray(data.attachments)) {
+      attachments = data.attachments.map((att: string) => {
+        // Convert filename to full URL if it's just a filename
+        if (att && !att.startsWith('http://') && !att.startsWith('https://') && !att.startsWith('blob:')) {
+          // Get base URL without /api suffix for static files
+          const apiUrl = import.meta.env?.VITE_API_URL || 'http://localhost:2222/api';
+          const baseUrl = apiUrl.replace('/api', '') || 'http://localhost:2222';
+          return `${baseUrl}/uploads/transactions/${att}`;
+        }
+        return att;
+      });
+    } else if (typeof data.attachments === 'string') {
+      try {
+        const parsed = JSON.parse(data.attachments);
+        const attArray = Array.isArray(parsed) ? parsed : [parsed];
+        attachments = attArray.map((att: string) => {
+          if (att && !att.startsWith('http://') && !att.startsWith('https://') && !att.startsWith('blob:')) {
+            // Get base URL without /api suffix for static files
+          const apiUrl = import.meta.env?.VITE_API_URL || 'http://localhost:2222/api';
+          const baseUrl = apiUrl.replace('/api', '') || 'http://localhost:2222';
+            return `${baseUrl}/uploads/transactions/${att}`;
+          }
+          return att;
+        });
+      } catch {
+        const att = data.attachments;
+        if (att && !att.startsWith('http://') && !att.startsWith('https://') && !att.startsWith('blob:')) {
+          // Get base URL without /api suffix for static files
+          const apiUrl = import.meta.env?.VITE_API_URL || 'http://localhost:2222/api';
+          const baseUrl = apiUrl.replace('/api', '') || 'http://localhost:2222';
+          attachments = [`${baseUrl}/uploads/transactions/${att}`];
+        } else {
+          attachments = [att];
+        }
+      }
+    }
+  } else if (data.attachment) {
+    // Backward compatibility: convert single attachment to array
+    // attachment can be JSON string (array of filenames) or single filename/URL
+    let att = data.attachment;
+    if (typeof att === 'string') {
+      // Try to parse as JSON first (in case it's a JSON string array)
+      try {
+        const parsed = JSON.parse(att);
+        if (Array.isArray(parsed)) {
+          // It's a JSON array of filenames
+          attachments = parsed.map((filename: string) => {
+            if (filename && !filename.startsWith('http://') && !filename.startsWith('https://') && !filename.startsWith('blob:')) {
+              // Get base URL without /api suffix for static files
+          const apiUrl = import.meta.env?.VITE_API_URL || 'http://localhost:2222/api';
+          const baseUrl = apiUrl.replace('/api', '') || 'http://localhost:2222';
+              return `${baseUrl}/uploads/transactions/${filename}`;
+            }
+            return filename;
+          });
+        } else {
+          // Single value from JSON
+          att = parsed;
+        }
+      } catch {
+        // Not JSON, treat as single filename/URL
+      }
+    }
+    
+    // If attachments not set yet, handle as single attachment
+    if (!attachments) {
+      if (att && !att.startsWith('http://') && !att.startsWith('https://') && !att.startsWith('blob:')) {
+        const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:2222';
+        attachments = [`${baseUrl}/uploads/transactions/${att}`];
+      } else {
+        attachments = [att];
+      }
+    }
+  }
   
   return {
     id: data.id,
@@ -218,6 +177,7 @@ export const normalizeMaterialTransaction = (data: any): any => {
     projectId: data.projectId || data.project_id || undefined,
     projectName: data.projectName || data.project_name || undefined,
     reason: data.reason || '',
+    attachments: attachments,
     performedBy: data.performed_by_name || data.performedBy || data.performed_by || '',
     performedAt: data.performedAt || data.performed_at || '',
   };

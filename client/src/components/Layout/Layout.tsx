@@ -71,11 +71,10 @@ export default function Layout() {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.enteringScreen,
           }),
-          backgroundColor: '#ffffff',
+          backgroundColor: '#e3f2fd',
           color: 'text.primary',
-          boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)',
-          borderBottom: '1px solid',
-          borderColor: 'divider',
+          boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.1), 0px 1px 2px rgba(0, 0, 0, 0.06)',
+          borderBottom: '1px solid #bbdefb',
         }}
       >
         <Toolbar>
@@ -104,16 +103,17 @@ export default function Layout() {
             <Box
               sx={{
                 position: 'relative',
-                borderRadius: 2,
-                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                borderRadius: 0,
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
                 '&:hover': {
-                  backgroundColor: 'rgba(0, 0, 0, 0.06)',
+                  backgroundColor: 'rgba(255, 255, 255, 1)',
                 },
                 marginRight: 1,
                 marginLeft: 1,
                 width: '100%',
                 maxWidth: { md: '300px' },
                 transition: 'background-color 0.2s',
+                border: '1px solid #bbdefb',
               }}
             >
               <Box
@@ -227,7 +227,7 @@ export default function Layout() {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.enteringScreen,
           }),
-          backgroundColor: (theme) => theme.palette.mode === 'light' ? theme.palette.grey[50] : theme.palette.grey[900],
+          backgroundColor: '#f5f7fa',
           minHeight: 'calc(100vh - 64px)',
         }}
       >

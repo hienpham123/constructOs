@@ -67,6 +67,8 @@ export const getProjects = async (req: Request, res: Response) => {
           actualCost: project.actual_cost,
           managerId: project.manager_id,
           createdAt: project.created_at,
+          investor: project.investor || project.client || '',
+          contactPerson: project.contact_person || null,
           stages: stagesWithChecklists,
           documents,
           managerName,
@@ -139,6 +141,8 @@ export const getProjectById = async (req: Request, res: Response) => {
       actualCost: project.actual_cost,
       managerId: project.manager_id,
       createdAt: project.created_at,
+      investor: project.investor || project.client || '',
+      contactPerson: project.contact_person || null,
       stages: stagesWithChecklists,
       documents,
       managerName,
@@ -155,21 +159,27 @@ export const createProject = async (req: Request, res: Response) => {
     const id = uuidv4();
     const createdAt = toMySQLDateTime();
     
+    // Generate unique code from UUID (first 8 chars) to satisfy NOT NULL UNIQUE constraint
+    const code = id.substring(0, 8).toUpperCase();
+    const investor = projectData.investor || projectData.client || '';
+    
     await query(
       `INSERT INTO projects (
-        id, code, name, description, client, location, start_date, end_date,
+        id, code, name, description, client, investor, contact_person, location, start_date, end_date,
         status, progress, budget, actual_cost, manager_id, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
-        projectData.code,
+        code, // code - use first 8 chars of UUID for unique constraint
         projectData.name,
         projectData.description || null,
-        projectData.client,
+        investor, // client - use investor value for backward compatibility
+        investor,
+        projectData.contactPerson || null,
         projectData.location,
         toMySQLDate(projectData.startDate),
         toMySQLDate(projectData.endDate),
-        projectData.status || 'planning',
+        projectData.status || 'quoting',
         projectData.progress || 0,
         projectData.budget || 0,
         projectData.actualCost || 0,
@@ -192,6 +202,8 @@ export const createProject = async (req: Request, res: Response) => {
       actualCost: createdProject.actual_cost,
       managerId: createdProject.manager_id,
       createdAt: createdProject.created_at,
+      investor: createdProject.investor || createdProject.client || '',
+      contactPerson: createdProject.contact_person || null,
       stages: [],
       documents: [],
       managerName: '',
@@ -220,15 +232,15 @@ export const updateProject = async (req: Request, res: Response) => {
     
     await query(
       `UPDATE projects SET
-        code = ?, name = ?, description = ?, client = ?, location = ?,
+        name = ?, description = ?, investor = ?, contact_person = ?, location = ?,
         start_date = ?, end_date = ?, status = ?, progress = ?,
         budget = ?, actual_cost = ?, manager_id = ?, updated_at = ?
       WHERE id = ?`,
       [
-        projectData.code,
         projectData.name,
         projectData.description || null,
-        projectData.client,
+        projectData.investor || projectData.client || '',
+        projectData.contactPerson || null,
         projectData.location,
         toMySQLDate(projectData.startDate),
         toMySQLDate(projectData.endDate),
@@ -258,6 +270,17 @@ export const updateProject = async (req: Request, res: Response) => {
     );
     
     const updatedProject = updated[0];
+    
+    // Get manager name
+    let managerName = '';
+    if (updatedProject.manager_id) {
+      const manager = await query<any[]>(
+        'SELECT name FROM users WHERE id = ?',
+        [updatedProject.manager_id]
+      );
+      managerName = manager.length > 0 ? manager[0].name : '';
+    }
+    
     res.json({
       ...updatedProject,
       startDate: updatedProject.start_date,
@@ -265,8 +288,11 @@ export const updateProject = async (req: Request, res: Response) => {
       actualCost: updatedProject.actual_cost,
       managerId: updatedProject.manager_id,
       createdAt: updatedProject.created_at,
+      investor: updatedProject.investor || updatedProject.client || '',
+      contactPerson: updatedProject.contact_person || null,
       stages,
       documents,
+      managerName,
     });
   } catch (error: any) {
     console.error('Error updating project:', error);

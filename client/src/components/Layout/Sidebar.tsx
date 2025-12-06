@@ -18,17 +18,12 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import ConstructionIcon from '@mui/icons-material/Construction';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import PeopleIcon from '@mui/icons-material/People';
-import BuildIcon from '@mui/icons-material/Build';
-import DescriptionIcon from '@mui/icons-material/Description';
-import AssignmentIcon from '@mui/icons-material/Assignment';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import HistoryIcon from '@mui/icons-material/History';
-import ScheduleIcon from '@mui/icons-material/Schedule';
 import IconButton from '@mui/material/IconButton';
 
 const drawerWidth = 280;
@@ -55,18 +50,6 @@ const menuItems: MenuItem[] = [
     ],
   },
   { text: 'Nhân sự', icon: <PeopleIcon />, path: '/personnel' },
-  {
-    text: 'Thiết bị',
-    icon: <BuildIcon />,
-    path: '/equipment',
-    submenu: [
-      { text: 'Danh sách thiết bị', icon: <ListAltIcon />, path: '/equipment/list' },
-      { text: 'Lịch sử sử dụng', icon: <HistoryIcon />, path: '/equipment/usage' },
-      { text: 'Lịch bảo trì', icon: <ScheduleIcon />, path: '/equipment/maintenance' },
-    ],
-  },
-  { text: 'Hợp đồng', icon: <DescriptionIcon />, path: '/contracts' },
-  { text: 'Nhật ký công trường', icon: <AssignmentIcon />, path: '/site-logs' },
 ];
 
 interface SidebarProps {
@@ -88,7 +71,6 @@ export default function Sidebar({
   const [internalCollapsed, setInternalCollapsed] = useState(false);
   const [openSubmenus, setOpenSubmenus] = useState<{ [key: string]: boolean }>({
     '/materials': true, // Default open
-    '/equipment': true, // Default open
   });
   const navigate = useNavigate();
   const location = useLocation();
@@ -145,7 +127,7 @@ export default function Sidebar({
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Toolbar
         sx={{
-          background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
+          background: '#1e293b',
           color: 'white',
           display: 'flex',
           alignItems: 'center',
@@ -153,7 +135,7 @@ export default function Sidebar({
           gap: 2,
           minHeight: '64px !important',
           cursor: !open ? 'pointer' : 'default',
-          boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.15)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
         }}
         onClick={!open ? handleCollapse : undefined}
       >
@@ -198,7 +180,7 @@ export default function Sidebar({
           },
           '&::-webkit-scrollbar-thumb': {
             backgroundColor: (theme) => alpha(theme.palette.text.secondary, 0.2),
-            borderRadius: '3px',
+            borderRadius: 0,
             '&:hover': {
               backgroundColor: (theme) => alpha(theme.palette.text.secondary, 0.3),
             },
@@ -223,17 +205,16 @@ export default function Sidebar({
                     mx: 1,
                     borderRadius: 0,
                     backgroundColor: itemActive && !hasSubmenu
-                      ? 'rgba(25, 118, 210, 0.2)'
+                      ? 'rgba(25, 118, 210, 0.15)'
                       : 'transparent',
-                    borderLeft: itemActive && !hasSubmenu ? '4px solid' : '4px solid transparent',
-                    borderColor: itemActive && !hasSubmenu ? '#42a5f5' : 'transparent',
-                    color: itemActive && !hasSubmenu ? '#42a5f5' : 'rgba(255, 255, 255, 0.7)',
+                    borderLeft: itemActive && !hasSubmenu ? '3px solid' : '3px solid transparent',
+                    borderColor: itemActive && !hasSubmenu ? '#1976d2' : 'transparent',
+                    color: itemActive && !hasSubmenu ? '#ffffff' : 'rgba(255, 255, 255, 0.7)',
                     '&:hover': {
                       backgroundColor: itemActive && !hasSubmenu
-                        ? 'rgba(25, 118, 210, 0.25)'
-                        : 'rgba(255, 255, 255, 0.08)',
-                      color: itemActive && !hasSubmenu ? '#42a5f5' : 'rgba(255, 255, 255, 0.9)',
-                      transform: 'translateX(4px)',
+                        ? 'rgba(25, 118, 210, 0.2)'
+                        : 'rgba(255, 255, 255, 0.06)',
+                      color: itemActive && !hasSubmenu ? '#ffffff' : 'rgba(255, 255, 255, 0.9)',
                       transition: 'all 0.2s ease-in-out',
                     },
                     transition: 'all 0.2s ease-in-out',
@@ -280,17 +261,16 @@ export default function Sidebar({
                             mx: 1,
                             borderRadius: 0,
                             backgroundColor: subActive
-                              ? 'rgba(25, 118, 210, 0.2)'
+                              ? 'rgba(25, 118, 210, 0.15)'
                               : 'transparent',
-                            borderLeft: subActive ? '4px solid' : '4px solid transparent',
-                            borderColor: subActive ? '#42a5f5' : 'transparent',
-                            color: subActive ? '#42a5f5' : 'rgba(255, 255, 255, 0.6)',
+                            borderLeft: subActive ? '3px solid' : '3px solid transparent',
+                            borderColor: subActive ? '#1976d2' : 'transparent',
+                            color: subActive ? '#ffffff' : 'rgba(255, 255, 255, 0.6)',
                             '&:hover': {
                               backgroundColor: subActive
-                                ? 'rgba(25, 118, 210, 0.25)'
-                                : 'rgba(255, 255, 255, 0.06)',
-                              color: subActive ? '#42a5f5' : 'rgba(255, 255, 255, 0.8)',
-                              transform: 'translateX(4px)',
+                                ? 'rgba(25, 118, 210, 0.2)'
+                                : 'rgba(255, 255, 255, 0.04)',
+                              color: subActive ? '#ffffff' : 'rgba(255, 255, 255, 0.8)',
                               transition: 'all 0.2s ease-in-out',
                             },
                             transition: 'all 0.2s ease-in-out',
@@ -346,11 +326,11 @@ export default function Sidebar({
                 easing: theme.transitions.easing.sharp,
                 duration: theme.transitions.duration.enteringScreen,
               }),
-            borderRight: 'none',
+            borderRight: '1px solid #e5e7eb',
             backgroundColor: '#1e293b',
             color: 'rgba(255, 255, 255, 0.9)',
             overflowX: 'hidden',
-            boxShadow: '4px 0px 24px rgba(0, 0, 0, 0.12)',
+            boxShadow: 'none',
             borderRadius: 0,
           },
         }}

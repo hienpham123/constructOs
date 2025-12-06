@@ -4,6 +4,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { toMySQLDateTime, normalizeProject } from '../utils/dataHelpers.js';
 import type { Material, MaterialTransaction, PurchaseRequest } from '../types/index.js';
 import type { AuthRequest } from '../middleware/auth.js';
+import { getTransactionAttachmentUrl } from '../middleware/upload.js';
+import fs from 'fs';
+import path from 'path';
 
 export const getMaterials = async (req: Request, res: Response) => {
   try {
@@ -64,31 +67,36 @@ export const createMaterial = async (req: Request, res: Response) => {
     const id = uuidv4();
     const createdAt = toMySQLDateTime();
     
-    // Calculate status based on stock (trigger will also do this, but we do it here too)
+    // Calculate status based on stock
     let status = 'available';
-    if (materialData.currentStock <= materialData.minStock) {
-      status = 'low_stock';
-    } else if (materialData.currentStock === 0) {
+    if (materialData.currentStock === 0) {
       status = 'out_of_stock';
+    } else if (materialData.currentStock <= 10) { // Default low stock threshold
+      status = 'low_stock';
     }
+    
+    // Generate unique code from UUID (first 8 chars) to satisfy NOT NULL UNIQUE constraint
+    const code = id.substring(0, 8).toUpperCase();
     
     await query(
       `INSERT INTO materials (
-        id, code, name, category, unit, current_stock, min_stock, max_stock,
-        unit_price, supplier, location, barcode, qr_code, status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        id, code, name, category, type, unit, current_stock, min_stock, max_stock, 
+        unit_price, import_price, supplier, location, barcode, qr_code, status, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
-        materialData.code,
+        code, // code - use first 8 chars of UUID for unique constraint
         materialData.name,
-        materialData.category,
+        materialData.type || '', // category - use type value for backward compatibility
+        materialData.type || '',
         materialData.unit,
         materialData.currentStock || 0,
-        materialData.minStock || 0,
-        materialData.maxStock || 0,
-        materialData.unitPrice || 0,
+        0, // min_stock
+        0, // max_stock
+        materialData.importPrice || 0, // unit_price - use importPrice for backward compatibility
+        materialData.importPrice || 0,
         materialData.supplier || null,
-        materialData.location || null,
+        null, // location
         materialData.barcode || null,
         materialData.qrCode || null,
         status,
@@ -127,28 +135,24 @@ export const updateMaterial = async (req: Request, res: Response) => {
     
     // Calculate status
     let status = 'available';
-    if (materialData.currentStock <= materialData.minStock) {
-      status = 'low_stock';
-    } else if (materialData.currentStock === 0) {
+    if (materialData.currentStock === 0) {
       status = 'out_of_stock';
+    } else if (materialData.currentStock <= 10) { // Default low stock threshold
+      status = 'low_stock';
     }
     
     await query(
       `UPDATE materials SET
-        code = ?, name = ?, category = ?, unit = ?, current_stock = ?, min_stock = ?, max_stock = ?,
-        unit_price = ?, supplier = ?, location = ?, barcode = ?, qr_code = ?, status = ?, updated_at = ?
+        name = ?, type = ?, unit = ?, current_stock = ?,
+        import_price = ?, supplier = ?, barcode = ?, qr_code = ?, status = ?, updated_at = ?
       WHERE id = ?`,
       [
-        materialData.code,
         materialData.name,
-        materialData.category,
+        materialData.type,
         materialData.unit,
         materialData.currentStock,
-        materialData.minStock,
-        materialData.maxStock,
-        materialData.unitPrice,
+        materialData.importPrice,
         materialData.supplier || null,
-        materialData.location || null,
         materialData.barcode || null,
         materialData.qrCode || null,
         status,
@@ -239,7 +243,7 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
     if (!transactionData.materialId) {
       return res.status(400).json({ error: 'Vật tư là bắt buộc' });
     }
-    if (!transactionData.type || !['import', 'export', 'adjustment'].includes(transactionData.type)) {
+    if (!transactionData.type || !['import', 'export'].includes(transactionData.type)) {
       return res.status(400).json({ error: 'Loại giao dịch không hợp lệ' });
     }
     if (!transactionData.quantity || transactionData.quantity <= 0) {
@@ -265,10 +269,11 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Không tìm thấy vật tư' });
     }
     
-    const currentStock = material[0].current_stock || 0;
+    const currentStock = parseFloat(material[0].current_stock) || 0;
+    const transactionQuantity = parseFloat(transactionData.quantity) || 0;
     
     // Validate stock for export
-    if (transactionData.type === 'export' && currentStock < transactionData.quantity) {
+    if (transactionData.type === 'export' && currentStock < transactionQuantity) {
       return res.status(400).json({ 
         error: `Không đủ tồn kho. Tồn kho hiện tại: ${currentStock} ${material[0].unit || ''}` 
       });
@@ -306,14 +311,14 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
     // Calculate new stock
     let newStock = currentStock;
     if (transactionData.type === 'import') {
-      newStock += transactionData.quantity;
+      newStock += transactionQuantity;
     } else if (transactionData.type === 'export') {
-      newStock -= transactionData.quantity;
+      newStock -= transactionQuantity;
     } else if (transactionData.type === 'adjustment') {
       // For adjustment, we set the stock to the quantity value
       // But typically adjustment should be a delta, so we'll treat it as a direct set
       // If you want adjustment to be relative, change this logic
-      newStock = transactionData.quantity;
+      newStock = transactionQuantity;
     }
     
     // Ensure stock doesn't go negative (safety check)
@@ -326,12 +331,37 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
     const id = uuidv4();
     const performedAt = toMySQLDateTime();
     
+    // Handle attachments: extract filenames from URLs and convert to JSON string for storage
+    let attachmentValue = null;
+    if (transactionData.attachments && Array.isArray(transactionData.attachments) && transactionData.attachments.length > 0) {
+      // Extract filenames from URLs (remove base URL, keep only filename)
+      const filenames = transactionData.attachments.map((url: string) => {
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+          // Extract filename from URL
+          const urlParts = url.split('/');
+          return urlParts[urlParts.length - 1];
+        }
+        // If already a filename, return as is
+        return url;
+      });
+      attachmentValue = JSON.stringify(filenames);
+    } else if (transactionData.attachment) {
+      // Backward compatibility
+      const att = transactionData.attachment;
+      if (att.startsWith('http://') || att.startsWith('https://')) {
+        const urlParts = att.split('/');
+        attachmentValue = urlParts[urlParts.length - 1];
+      } else {
+        attachmentValue = att;
+      }
+    }
+    
     // Insert transaction - use userId from JWT for performed_by
     await query(
       `INSERT INTO material_transactions (
         id, material_id, material_name, type, quantity, unit,
-        project_id, project_name, reason, performed_by, performed_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        project_id, project_name, reason, attachment, performed_by, performed_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         transactionData.materialId,
@@ -342,6 +372,7 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
         projectId,
         projectName,
         transactionData.reason,
+        attachmentValue,
         userId, // Use userId from JWT token, not the name
         performedAt,
       ]
@@ -534,122 +565,178 @@ export const updateTransaction = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Không tìm thấy giao dịch' });
     }
     
-    // Validate and normalize project if provided
-    let projectId = null;
-    let projectName = null;
+    // Use existing values as defaults for partial updates
+    const existingTransaction = existing[0];
     
-    if (transactionData.projectId) {
-      const normalized = await normalizeProject(
-        transactionData.projectId,
-        transactionData.projectName,
-        query
-      );
-      
-      if (!normalized.projectId) {
-        return res.status(400).json({ error: 'Dự án không hợp lệ' });
+    // Validate and normalize project if provided
+    let projectId = existingTransaction.project_id;
+    let projectName = existingTransaction.project_name;
+    
+    if (transactionData.projectId !== undefined) {
+      if (transactionData.projectId) {
+        const normalized = await normalizeProject(
+          transactionData.projectId,
+          transactionData.projectName,
+          query
+        );
+        
+        if (!normalized.projectId) {
+          return res.status(400).json({ error: 'Dự án không hợp lệ' });
+        }
+        
+        // Double check project exists
+        const projectCheck = await query<any[]>(
+          'SELECT id, name FROM projects WHERE id = ?',
+          [normalized.projectId]
+        );
+        
+        if (projectCheck.length === 0) {
+          return res.status(400).json({ error: 'Dự án không tồn tại' });
+        }
+        
+        projectId = normalized.projectId;
+        projectName = normalized.projectName || projectCheck[0].name;
+      } else {
+        projectId = null;
+        projectName = null;
       }
-      
-      // Double check project exists
-      const projectCheck = await query<any[]>(
-        'SELECT id, name FROM projects WHERE id = ?',
-        [normalized.projectId]
-      );
-      
-      if (projectCheck.length === 0) {
-        return res.status(400).json({ error: 'Dự án không tồn tại' });
-      }
-      
-      projectId = normalized.projectId;
-      projectName = normalized.projectName || projectCheck[0].name;
     }
+    
+    // Handle attachments: extract filenames from URLs and convert to JSON string for storage
+    let attachmentValue = existingTransaction.attachment;
+    if (transactionData.attachments !== undefined) {
+      if (transactionData.attachments && Array.isArray(transactionData.attachments) && transactionData.attachments.length > 0) {
+        // Extract filenames from URLs (remove base URL, keep only filename)
+        const filenames = transactionData.attachments.map((url: string) => {
+          if (url.startsWith('http://') || url.startsWith('https://')) {
+            // Extract filename from URL
+            const urlParts = url.split('/');
+            return urlParts[urlParts.length - 1];
+          }
+          // If already a filename, return as is
+          return url;
+        });
+        attachmentValue = JSON.stringify(filenames);
+      } else {
+        attachmentValue = null;
+      }
+    } else if (transactionData.attachment !== undefined) {
+      // Backward compatibility
+      const att = transactionData.attachment;
+      if (att && att.startsWith('http://') || att.startsWith('https://')) {
+        const urlParts = att.split('/');
+        attachmentValue = urlParts[urlParts.length - 1];
+      } else {
+        attachmentValue = att || null;
+      }
+    }
+    
+    // Use provided values or fall back to existing values
+    const materialId = transactionData.materialId !== undefined ? transactionData.materialId : existingTransaction.material_id;
+    const materialName = transactionData.materialName !== undefined ? transactionData.materialName : existingTransaction.material_name;
+    const type = transactionData.type !== undefined ? transactionData.type : existingTransaction.type;
+    const quantity = transactionData.quantity !== undefined ? transactionData.quantity : existingTransaction.quantity;
+    const unit = transactionData.unit !== undefined ? transactionData.unit : existingTransaction.unit;
+    const reason = transactionData.reason !== undefined ? transactionData.reason : existingTransaction.reason;
     
     // Update transaction - use userId from JWT for performed_by
     await query(
       `UPDATE material_transactions SET
         material_id = ?, material_name = ?, type = ?, quantity = ?, unit = ?,
-        project_id = ?, project_name = ?, reason = ?, performed_by = ?
+        project_id = ?, project_name = ?, reason = ?, attachment = ?, performed_by = ?
       WHERE id = ?`,
       [
-        transactionData.materialId,
-        transactionData.materialName,
-        transactionData.type,
-        transactionData.quantity,
-        transactionData.unit,
+        materialId,
+        materialName,
+        type,
+        quantity,
+        unit,
         projectId,
         projectName,
-        transactionData.reason,
+        reason,
+        attachmentValue,
         userId, // Use userId from JWT token
         id,
       ]
     );
     
-    // Recalculate material stock if material changed
-    if (transactionData.materialId !== existing[0].material_id) {
+    // Recalculate material stock if material or quantity/type changed
+    const materialChanged = transactionData.materialId !== undefined && transactionData.materialId !== existingTransaction.material_id;
+    const quantityChanged = transactionData.quantity !== undefined && transactionData.quantity !== existingTransaction.quantity;
+    const typeChanged = transactionData.type !== undefined && transactionData.type !== existingTransaction.type;
+    
+    if (materialChanged || quantityChanged || typeChanged) {
       // Update old material stock (revert)
       const oldMaterial = await query<any[]>(
         'SELECT * FROM materials WHERE id = ?',
-        [existing[0].material_id]
+        [existingTransaction.material_id]
       );
       
       if (oldMaterial.length > 0) {
-        let oldStock = oldMaterial[0].current_stock;
-        if (existing[0].type === 'import') {
-          oldStock -= existing[0].quantity;
-        } else if (existing[0].type === 'export') {
-          oldStock += existing[0].quantity;
+        let oldStock = parseFloat(oldMaterial[0].current_stock) || 0;
+        const oldQuantity = parseFloat(existingTransaction.quantity) || 0;
+        if (existingTransaction.type === 'import') {
+          oldStock -= oldQuantity;
+        } else if (existingTransaction.type === 'export') {
+          oldStock += oldQuantity;
         }
         await query(
           'UPDATE materials SET current_stock = ? WHERE id = ?',
-          [oldStock, existing[0].material_id]
+          [oldStock, existingTransaction.material_id]
         );
       }
       
-      // Update new material stock
-      const newMaterial = await query<any[]>(
-        'SELECT * FROM materials WHERE id = ?',
-        [transactionData.materialId]
-      );
-      
-      if (newMaterial.length > 0) {
-        let newStock = newMaterial[0].current_stock;
-        if (transactionData.type === 'import') {
-          newStock += transactionData.quantity;
-        } else if (transactionData.type === 'export') {
-          newStock -= transactionData.quantity;
-        }
-        await query(
-          'UPDATE materials SET current_stock = ? WHERE id = ?',
-          [newStock, transactionData.materialId]
+      // Update new material stock (only if material changed)
+      if (materialChanged) {
+        const newMaterial = await query<any[]>(
+          'SELECT * FROM materials WHERE id = ?',
+          [materialId]
         );
-      }
-    } else {
-      // Same material, recalculate stock based on difference
-      const material = await query<any[]>(
-        'SELECT * FROM materials WHERE id = ?',
-        [transactionData.materialId]
-      );
-      
-      if (material.length > 0) {
-        let stock = material[0].current_stock;
         
-        // Revert old transaction
-        if (existing[0].type === 'import') {
-          stock -= existing[0].quantity;
-        } else if (existing[0].type === 'export') {
-          stock += existing[0].quantity;
+        if (newMaterial.length > 0) {
+          let newStock = parseFloat(newMaterial[0].current_stock) || 0;
+          const parsedQuantity = parseFloat(quantity) || 0;
+          if (type === 'import') {
+            newStock += parsedQuantity;
+          } else if (type === 'export') {
+            newStock -= parsedQuantity;
+          }
+          await query(
+            'UPDATE materials SET current_stock = ? WHERE id = ?',
+            [newStock, materialId]
+          );
         }
-        
-        // Apply new transaction
-        if (transactionData.type === 'import') {
-          stock += transactionData.quantity;
-        } else if (transactionData.type === 'export') {
-          stock -= transactionData.quantity;
-        }
-        
-        await query(
-          'UPDATE materials SET current_stock = ? WHERE id = ?',
-          [stock, transactionData.materialId]
+      } else {
+        // Same material, recalculate stock based on difference
+        const material = await query<any[]>(
+          'SELECT * FROM materials WHERE id = ?',
+          [materialId]
         );
+        
+        if (material.length > 0) {
+          let stock = parseFloat(material[0].current_stock) || 0;
+          const oldQuantity = parseFloat(existingTransaction.quantity) || 0;
+          const parsedQuantity = parseFloat(quantity) || 0;
+          
+          // Revert old transaction
+          if (existingTransaction.type === 'import') {
+            stock -= oldQuantity;
+          } else if (existingTransaction.type === 'export') {
+            stock += oldQuantity;
+          }
+          
+          // Apply new transaction
+          if (type === 'import') {
+            stock += parsedQuantity;
+          } else if (type === 'export') {
+            stock -= parsedQuantity;
+          }
+          
+          await query(
+            'UPDATE materials SET current_stock = ? WHERE id = ?',
+            [stock, materialId]
+          );
+        }
       }
     }
     
@@ -674,7 +761,7 @@ export const deleteTransaction = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
-    // Get transaction to revert stock change
+    // Get transaction to revert stock change and get attachments
     const existing = await query<any[]>(
       'SELECT * FROM material_transactions WHERE id = ?',
       [id]
@@ -686,6 +773,39 @@ export const deleteTransaction = async (req: Request, res: Response) => {
     
     const transaction = existing[0];
     
+    // Delete attached files before deleting transaction
+    if (transaction.attachment) {
+      try {
+        let filenames: string[] = [];
+        
+        // Parse attachment - could be JSON string (array) or single filename string
+        if (transaction.attachment.startsWith('[')) {
+          // JSON array string
+          filenames = JSON.parse(transaction.attachment);
+        } else {
+          // Single filename string
+          filenames = [transaction.attachment];
+        }
+        
+        // Delete each file
+        for (const filename of filenames) {
+          try {
+            const filePath = path.join(process.cwd(), 'uploads', 'transactions', filename);
+            if (fs.existsSync(filePath)) {
+              fs.unlinkSync(filePath);
+              console.log(`Deleted file: ${filename}`);
+            }
+          } catch (fileError: any) {
+            console.error(`Error deleting file ${filename}:`, fileError);
+            // Continue deleting other files even if one fails
+          }
+        }
+      } catch (parseError: any) {
+        console.error('Error parsing attachment:', parseError);
+        // Continue with transaction deletion even if file deletion fails
+      }
+    }
+    
     // Revert material stock
     const material = await query<any[]>(
       'SELECT * FROM materials WHERE id = ?',
@@ -693,11 +813,12 @@ export const deleteTransaction = async (req: Request, res: Response) => {
     );
     
     if (material.length > 0) {
-      let stock = material[0].current_stock;
+      let stock = parseFloat(material[0].current_stock) || 0;
+      const transactionQuantity = parseFloat(transaction.quantity) || 0;
       if (transaction.type === 'import') {
-        stock -= transaction.quantity;
+        stock -= transactionQuantity;
       } else if (transaction.type === 'export') {
-        stock += transaction.quantity;
+        stock += transactionQuantity;
       }
       
       await query(
@@ -706,12 +827,100 @@ export const deleteTransaction = async (req: Request, res: Response) => {
       );
     }
     
+    // Delete transaction from database
     await query('DELETE FROM material_transactions WHERE id = ?', [id]);
     
     res.status(204).send();
   } catch (error: any) {
     console.error('Error deleting transaction:', error);
     res.status(500).json({ error: 'Không thể xóa giao dịch' });
+  }
+};
+
+// Upload transaction files
+export const uploadTransactionFiles = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Không có quyền truy cập' });
+    }
+
+    if (!req.files || (Array.isArray(req.files) && req.files.length === 0)) {
+      return res.status(400).json({ error: 'Không có file được tải lên' });
+    }
+
+    // Handle multer files - can be array or object with fieldname keys
+    let files: Express.Multer.File[] = [];
+    if (Array.isArray(req.files)) {
+      files = req.files;
+    } else {
+      // If it's an object, extract all files from all fields
+      Object.keys(req.files).forEach((key) => {
+        const fieldFiles = (req.files as { [fieldname: string]: Express.Multer.File[] })[key];
+        if (Array.isArray(fieldFiles)) {
+          files.push(...fieldFiles);
+        } else {
+          files.push(fieldFiles);
+        }
+      });
+    }
+    
+    const fileUrls = files.map((file) => getTransactionAttachmentUrl(file.filename));
+
+    res.json({
+      message: 'Tải lên file thành công',
+      files: fileUrls,
+      filenames: files.map((f) => f.filename),
+    });
+  } catch (error: any) {
+    console.error('Error uploading transaction files:', error);
+    res.status(500).json({ 
+      error: 'Không thể tải lên file',
+      message: error.message 
+    });
+  }
+};
+
+// Delete transaction file
+export const deleteTransactionFile = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Không có quyền truy cập' });
+    }
+
+    const { filename } = req.params;
+    
+    if (!filename) {
+      return res.status(400).json({ error: 'Tên file không hợp lệ' });
+    }
+
+    // Extract filename from URL if needed
+    let actualFilename = filename;
+    if (filename.includes('/')) {
+      const parts = filename.split('/');
+      actualFilename = parts[parts.length - 1];
+    }
+
+    // Path to the file
+    const filePath = path.join(process.cwd(), 'uploads', 'transactions', actualFilename);
+
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'File không tồn tại' });
+    }
+
+    // Delete the file
+    fs.unlinkSync(filePath);
+
+    res.json({
+      message: 'Xóa file thành công',
+      filename: actualFilename,
+    });
+  } catch (error: any) {
+    console.error('Error deleting transaction file:', error);
+    res.status(500).json({ 
+      error: 'Không thể xóa file',
+      message: error.message 
+    });
   }
 };
 

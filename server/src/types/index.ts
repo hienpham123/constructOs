@@ -14,13 +14,13 @@ export interface User {
 export interface Project {
   id: string;
   name: string;
-  code: string;
   description: string;
-  client: string;
+  investor: string; // Chủ đầu tư (đổi từ client)
+  contactPerson?: string; // Đầu mối
   location: string;
   startDate: string;
   endDate: string;
-  status: 'planning' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
+  status: 'quoting' | 'contract_signed_in_progress' | 'completed' | 'on_hold' | 'design_consulting' | 'in_progress' | 'design_appraisal' | 'preparing_acceptance' | 'failed';
   progress: number; // 0-100
   budget: number;
   actualCost: number;
@@ -59,32 +59,16 @@ export interface ProjectDocument {
   uploadedAt: string;
 }
 
-export interface SiteLog {
-  id: string;
-  projectId: string;
-  projectName: string;
-  date: string;
-  weather: string;
-  workDescription: string;
-  issues: string;
-  photos: string[];
-  createdBy: string;
-  createdAt: string;
-}
 
 // Material Management
 export interface Material {
   id: string;
-  code: string;
   name: string;
-  category: string;
+  type: string; // Chủng loại
   unit: string; // kg, m3, m2, etc.
   currentStock: number;
-  minStock: number; // Cảnh báo khi xuống dưới mức này
-  maxStock: number;
-  unitPrice: number;
+  importPrice: number; // Đơn giá nhập (đổi từ unitPrice)
   supplier: string;
-  location: string; // Vị trí trong kho
   barcode?: string;
   qrCode?: string;
   status: 'available' | 'low_stock' | 'out_of_stock';
@@ -95,12 +79,13 @@ export interface MaterialTransaction {
   id: string;
   materialId: string;
   materialName: string;
-  type: 'import' | 'export' | 'adjustment';
+  type: 'import' | 'export';
   quantity: number;
   unit: string;
   projectId?: string;
   projectName?: string;
   reason: string;
+  attachments?: string[]; // Mảng URL hoặc path đến các file đính kèm
   performedBy: string;
   performedAt: string;
 }
@@ -150,71 +135,6 @@ export interface Attendance {
   status: 'present' | 'absent' | 'late' | 'early_leave';
 }
 
-// Equipment Management
-export interface Equipment {
-  id: string;
-  code: string;
-  name: string;
-  type: 'excavator' | 'crane' | 'truck' | 'concrete_mixer' | 'generator' | 'other';
-  brand: string;
-  model: string;
-  serialNumber: string;
-  purchaseDate: string;
-  status: 'available' | 'in_use' | 'maintenance' | 'broken';
-  currentProjectId?: string;
-  currentProjectName?: string;
-  currentUser?: string;
-  lastMaintenanceDate?: string;
-  nextMaintenanceDate?: string;
-  totalHours: number;
-  createdAt: string;
-}
-
-export interface EquipmentUsage {
-  id: string;
-  equipmentId: string;
-  equipmentName: string;
-  projectId: string;
-  projectName: string;
-  userId: string;
-  userName: string;
-  startTime: string;
-  endTime?: string;
-  fuelConsumption?: number;
-  notes?: string;
-}
-
-export interface MaintenanceSchedule {
-  id: string;
-  equipmentId: string;
-  equipmentName: string;
-  type: 'routine' | 'repair' | 'inspection';
-  scheduledDate: string;
-  completedDate?: string;
-  status: 'scheduled' | 'in_progress' | 'completed' | 'overdue';
-  description: string;
-  cost?: number;
-  technician?: string;
-}
-
-// Contract Management
-export interface Contract {
-  id: string;
-  code: string;
-  name: string;
-  type: 'construction' | 'supply' | 'service' | 'labor';
-  client: string;
-  projectId?: string;
-  projectName?: string;
-  value: number;
-  startDate: string;
-  endDate: string;
-  status: 'draft' | 'pending' | 'active' | 'completed' | 'terminated';
-  documents: string[];
-  signedDate?: string;
-  createdAt: string;
-}
-
 // Financial Reports
 export interface FinancialReport {
   id: string;
@@ -227,7 +147,6 @@ export interface FinancialReport {
   breakdown: {
     materialCost: number;
     laborCost: number;
-    equipmentCost: number;
     otherCost: number;
   };
   createdAt: string;
@@ -242,21 +161,6 @@ export interface DashboardStats {
   totalProfit: number;
   totalPersonnel: number;
   activePersonnel: number;
-  totalEquipment: number;
-  equipmentInUse: number;
   lowStockMaterials: number;
-  overdueMaintenance: number;
   recentProjects: Project[];
-  recentSiteLogs: SiteLog[];
-  upcomingMaintenance: MaintenanceSchedule[];
-  alerts: Alert[];
-}
-
-export interface Alert {
-  id: string;
-  type: 'warning' | 'error' | 'info';
-  title: string;
-  message: string;
-  relatedId?: string;
-  createdAt: string;
 }

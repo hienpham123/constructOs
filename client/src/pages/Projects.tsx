@@ -3,35 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-  Button,
   Chip,
   LinearProgress,
-  IconButton,
-  Tooltip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
 import { useProjectStore } from '../stores/projectStore';
-import ProjectForm from '../components/forms/ProjectForm';
 import DeleteConfirmDialog from '../components/DeleteConfirmDialog';
-import { formatDate } from '../utils/dateFormat';
+import { DataTable, Button } from '../components/common';
+import type { Project } from '../types';
 
 export default function Projects() {
   const navigate = useNavigate();
   const { projects, projectsTotal, isLoading, fetchProjects, deleteProject } = useProjectStore();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [formOpen, setFormOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<any>(null);
 
@@ -58,13 +43,20 @@ export default function Projects() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case 'quoting':
+        return 'default';
+      case 'contract_signed_in_progress':
       case 'in_progress':
         return 'primary';
       case 'completed':
         return 'success';
       case 'on_hold':
         return 'warning';
-      case 'cancelled':
+      case 'design_consulting':
+      case 'design_appraisal':
+      case 'preparing_acceptance':
+        return 'info';
+      case 'failed':
         return 'error';
       default:
         return 'default';
@@ -73,29 +65,35 @@ export default function Projects() {
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'planning':
-        return 'Lập kế hoạch';
-      case 'in_progress':
-        return 'Đang thi công';
-      case 'on_hold':
-        return 'Tạm dừng';
+      case 'quoting':
+        return 'Đang báo giá';
+      case 'contract_signed_in_progress':
+        return 'Đã ký HĐ - Đang thi công';
       case 'completed':
         return 'Hoàn thành';
-      case 'cancelled':
-        return 'Đã hủy';
+      case 'on_hold':
+        return 'Tạm dừng';
+      case 'design_consulting':
+        return 'Tư vấn thiết kế';
+      case 'in_progress':
+        return 'Đang thi công';
+      case 'design_appraisal':
+        return 'Thẩm định thiết kế';
+      case 'preparing_acceptance':
+        return 'Chuẩn bị nghiệm thu';
+      case 'failed':
+        return 'Thất bại';
       default:
         return status;
     }
   };
 
   const handleAdd = () => {
-    setSelectedProject(null);
-    setFormOpen(true);
+    navigate('/projects/add');
   };
 
   const handleEdit = (project: any) => {
-    setSelectedProject(project);
-    setFormOpen(true);
+    navigate(`/projects/edit/${project.id}`);
   };
 
   const handleDelete = (project: any) => {
@@ -127,170 +125,105 @@ export default function Projects() {
         </Button>
       </Box>
 
-      <TableContainer
-        component={Paper}
-        sx={{
-          borderRadius: 3,
-          boxShadow: '0px 4px 16px rgba(0, 0, 0, 0.08)',
-          overflow: 'hidden',
+      <DataTable<Project>
+        columns={[
+          {
+            label: 'Tên dự án',
+            field: 'name',
+            width: 250,
+            minWidth: 200,
+            render: (value) => (
+              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                {value}
+              </Typography>
+            ),
+          },
+          {
+            label: 'Chủ đầu tư',
+            field: 'investor',
+            width: 200,
+            minWidth: 150,
+          },
+          {
+            label: 'Đầu mối',
+            field: 'contactPerson',
+            width: 150,
+            minWidth: 120,
+          },
+          {
+            label: 'Địa điểm',
+            field: 'location',
+            width: 200,
+            minWidth: 150,
+          },
+          {
+            label: 'Tiến độ',
+            field: 'progress',
+            width: 180,
+            minWidth: 150,
+            render: (value) => (
+              <Box display="flex" alignItems="center" gap={1}>
+                <Box sx={{ width: 100 }}>
+                  <LinearProgress
+                    variant="determinate"
+                    value={value}
+                    sx={{
+                      height: 8,
+                      borderRadius: 0,
+                      backgroundColor: 'rgba(0, 0, 0, 0.08)',
+                      '& .MuiLinearProgress-bar': {
+                        borderRadius: 0,
+                      },
+                    }}
+                  />
+                </Box>
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                  {value}%
+                </Typography>
+              </Box>
+            ),
+          },
+          {
+            label: 'Ngân sách',
+            field: 'budget',
+            width: 180,
+            minWidth: 150,
+            render: (value) => (
+              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                {formatCurrency(value)}
+              </Typography>
+            ),
+          },
+          {
+            label: 'Trạng thái',
+            field: 'status',
+            width: 150,
+            minWidth: 120,
+            render: (value) => (
+              <Chip
+                label={getStatusLabel(value)}
+                color={getStatusColor(value) as any}
+                size="small"
+                sx={{ fontWeight: 500 }}
+              />
+            ),
+          },
+        ]}
+        data={projects}
+        actions={{
+          onView: (project) => navigate(`/projects/${project.id}`),
+          onEdit: handleEdit,
+          onDelete: handleDelete,
         }}
-      >
-        <Table>
-          <TableHead>
-            <TableRow
-              sx={{
-                backgroundColor: (theme) => theme.palette.mode === 'light' ? '#f8fafc' : '#1e293b',
-                '& .MuiTableCell-head': {
-                  fontWeight: 600,
-                  fontSize: '0.875rem',
-                  color: 'text.primary',
-                  borderBottom: '2px solid',
-                  borderColor: 'divider',
-                  py: 2,
-                },
-              }}
-            >
-              <TableCell>Mã dự án</TableCell>
-              <TableCell>Tên dự án</TableCell>
-              <TableCell>Khách hàng</TableCell>
-              <TableCell>Địa điểm</TableCell>
-              <TableCell>Tiến độ</TableCell>
-              <TableCell>Ngân sách</TableCell>
-              <TableCell>Trạng thái</TableCell>
-              <TableCell align="center">Thao tác</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {projects.map((project) => (
-                <TableRow
-                  key={project.id}
-                  hover
-                  sx={{
-                    '&:hover': {
-                      backgroundColor: 'rgba(25, 118, 210, 0.04)',
-                    },
-                    '& .MuiTableCell-body': {
-                      borderBottom: '1px solid',
-                      borderColor: 'divider',
-                      py: 2,
-                    },
-                  }}
-                >
-                  <TableCell>
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                      {project.code}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {project.name}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>{project.client}</TableCell>
-                  <TableCell>{project.location}</TableCell>
-                  <TableCell>
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <Box sx={{ width: 100 }}>
-                        <LinearProgress
-                          variant="determinate"
-                          value={project.progress}
-                          sx={{
-                            height: 8,
-                            borderRadius: 4,
-                            backgroundColor: 'rgba(0, 0, 0, 0.08)',
-                            '& .MuiLinearProgress-bar': {
-                              borderRadius: 4,
-                            },
-                          }}
-                        />
-                      </Box>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {project.progress}%
-                      </Typography>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {formatCurrency(project.budget)}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={getStatusLabel(project.status)}
-                      color={getStatusColor(project.status) as any}
-                      size="small"
-                      sx={{ fontWeight: 500 }}
-                    />
-                  </TableCell>
-                  <TableCell align="center">
-                    <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
-                      <Tooltip title="Xem chi tiết">
-                        <IconButton
-                          size="small"
-                          onClick={() => navigate(`/projects/${project.id}`)}
-                          sx={{
-                            color: 'info.main',
-                            '&:hover': {
-                              backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                            },
-                          }}
-                        >
-                          <VisibilityIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Chỉnh sửa">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleEdit(project)}
-                          sx={{
-                            color: 'primary.main',
-                            '&:hover': {
-                              backgroundColor: 'rgba(25, 118, 210, 0.1)',
-                            },
-                          }}
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Xóa">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleDelete(project)}
-                          sx={{
-                            color: 'error.main',
-                            '&:hover': {
-                              backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                            },
-                          }}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              ))}
-          </TableBody>
-        </Table>
-        <TablePagination
-          component="div"
-          count={projectsTotal}
-          page={page}
-          onPageChange={handleChangePage}
-          rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-          labelRowsPerPage="Số dòng mỗi trang:"
-        />
-      </TableContainer>
-
-      <ProjectForm
-        open={formOpen}
-        onClose={() => {
-          setFormOpen(false);
-          setSelectedProject(null);
-          fetchProjects(rowsPerPage, page);
+        pagination={{
+          count: projectsTotal,
+          page,
+          rowsPerPage,
+          onPageChange: handleChangePage,
+          onRowsPerPageChange: handleChangeRowsPerPage,
         }}
-        project={selectedProject}
+        minWidth={1000}
+        emptyMessage="Không có dự án nào"
       />
 
       <DeleteConfirmDialog

@@ -8,25 +8,21 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Button,
   Grid,
 } from '@mui/material';
+import { Button } from '../common';
 import { Material } from '../../types';
 import { useMaterialStore } from '../../stores/materialStore';
 import { formatCurrencyInput, parseCurrencyInput } from '../../utils/currencyFormat';
 import { normalizeNumber } from '../../utils/normalize';
 
 const materialSchema = z.object({
-  code: z.string().min(1, 'Mã vật tư là bắt buộc'),
   name: z.string().min(1, 'Tên vật tư là bắt buộc'),
-  category: z.string().min(1, 'Danh mục là bắt buộc'),
+  type: z.string().min(1, 'Chủng loại là bắt buộc'),
   unit: z.string().min(1, 'Đơn vị là bắt buộc'),
   currentStock: z.number().min(0, 'Tồn kho phải >= 0'),
-  minStock: z.number().min(0, 'Tồn kho tối thiểu phải >= 0'),
-  maxStock: z.number().min(0, 'Tồn kho tối đa phải >= 0'),
-  unitPrice: z.number().min(0, 'Đơn giá phải >= 0'),
+  importPrice: z.number().min(0, 'Đơn giá nhập phải >= 0'),
   supplier: z.string().optional(),
-  location: z.string().optional(),
 });
 
 type MaterialFormData = z.infer<typeof materialSchema>;
@@ -49,16 +45,12 @@ export default function MaterialForm({ open, onClose, material }: MaterialFormPr
   } = useForm<MaterialFormData>({
     resolver: zodResolver(materialSchema),
     defaultValues: {
-      code: '',
       name: '',
-      category: '',
+      type: '',
       unit: '',
       currentStock: 0,
-      minStock: 0,
-      maxStock: 0,
-      unitPrice: 0,
+      importPrice: 0,
       supplier: '',
-      location: '',
     },
   });
 
@@ -70,29 +62,21 @@ export default function MaterialForm({ open, onClose, material }: MaterialFormPr
     
     if (material) {
       reset({
-        code: material.code || '',
         name: material.name || '',
-        category: material.category || '',
+        type: material.type || (material as any).category || '',
         unit: material.unit || '',
         currentStock: normalizeNumber(material.currentStock || (material as any).current_stock),
-        minStock: normalizeNumber(material.minStock || (material as any).min_stock),
-        maxStock: normalizeNumber(material.maxStock || (material as any).max_stock),
-        unitPrice: normalizeNumber(material.unitPrice || (material as any).unit_price),
+        importPrice: normalizeNumber(material.importPrice || (material as any).import_price || (material as any).unit_price),
         supplier: material.supplier || '',
-        location: material.location || '',
       });
     } else {
       reset({
-        code: '',
         name: '',
-        category: '',
+        type: '',
         unit: '',
         currentStock: 0,
-        minStock: 0,
-        maxStock: 0,
-        unitPrice: 0,
+        importPrice: 0,
         supplier: '',
-        location: '',
       });
     }
   }, [material?.id, open, reset]);
@@ -107,16 +91,12 @@ export default function MaterialForm({ open, onClose, material }: MaterialFormPr
     
     try {
       const materialData = {
-        code: data.code,
         name: data.name,
-        category: data.category,
+        type: data.type,
         unit: data.unit,
         currentStock: data.currentStock,
-        minStock: data.minStock,
-        maxStock: data.maxStock,
-        unitPrice: data.unitPrice,
+        importPrice: data.importPrice,
         supplier: data.supplier || '',
-        location: data.location || '',
       };
 
       if (material) {
@@ -139,23 +119,7 @@ export default function MaterialForm({ open, onClose, material }: MaterialFormPr
         <DialogTitle>{material ? 'Chỉnh sửa vật tư' : 'Thêm vật tư mới'}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
-              <Controller
-                name="code"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label="Mã vật tư"
-                    error={!!errors.code}
-                    helperText={errors.code?.message}
-                    required
-                  />
-                )}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <Controller
                 name="name"
                 control={control}
@@ -173,15 +137,15 @@ export default function MaterialForm({ open, onClose, material }: MaterialFormPr
             </Grid>
             <Grid item xs={12} sm={6}>
               <Controller
-                name="category"
+                name="type"
                 control={control}
                 render={({ field }) => (
                   <TextField
                     {...field}
                     fullWidth
-                    label="Danh mục"
-                    error={!!errors.category}
-                    helperText={errors.category?.message}
+                    label="Chủng loại"
+                    error={!!errors.type}
+                    helperText={errors.type?.message}
                     required
                   />
                 )}
@@ -203,14 +167,14 @@ export default function MaterialForm({ open, onClose, material }: MaterialFormPr
                 )}
               />
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={6}>
               <Controller
                 name="currentStock"
                 control={control}
                 render={({ field }) => (
                   <TextField
                     fullWidth
-                    label="Tồn kho hiện tại"
+                    label="Tồn kho"
                     error={!!errors.currentStock}
                     helperText={errors.currentStock?.message}
                     required
@@ -227,64 +191,16 @@ export default function MaterialForm({ open, onClose, material }: MaterialFormPr
                 )}
               />
             </Grid>
-            <Grid item xs={12} sm={4}>
-              <Controller
-                name="minStock"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    fullWidth
-                    label="Tồn kho tối thiểu"
-                    error={!!errors.minStock}
-                    helperText={errors.minStock?.message}
-                    required
-                    value={formatCurrencyInput(field.value || 0)}
-                    onChange={(e) => {
-                      const parsed = parseCurrencyInput(e.target.value);
-                      field.onChange(parsed);
-                    }}
-                    inputProps={{
-                      inputMode: 'numeric',
-                      pattern: '[0-9,]*',
-                    }}
-                  />
-                )}
-              />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Controller
-                name="maxStock"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    fullWidth
-                    label="Tồn kho tối đa"
-                    error={!!errors.maxStock}
-                    helperText={errors.maxStock?.message}
-                    required
-                    value={formatCurrencyInput(field.value || 0)}
-                    onChange={(e) => {
-                      const parsed = parseCurrencyInput(e.target.value);
-                      field.onChange(parsed);
-                    }}
-                    inputProps={{
-                      inputMode: 'numeric',
-                      pattern: '[0-9,]*',
-                    }}
-                  />
-                )}
-              />
-            </Grid>
             <Grid item xs={12} sm={6}>
               <Controller
-                name="unitPrice"
+                name="importPrice"
                 control={control}
                 render={({ field }) => (
                   <TextField
                     fullWidth
-                    label="Đơn giá (VND)"
-                    error={!!errors.unitPrice}
-                    helperText={errors.unitPrice?.message}
+                    label="Đơn giá nhập (VND)"
+                    error={!!errors.importPrice}
+                    helperText={errors.importPrice?.message}
                     required
                     value={formatCurrencyInput(field.value)}
                     onChange={(e) => {
@@ -300,7 +216,7 @@ export default function MaterialForm({ open, onClose, material }: MaterialFormPr
                 )}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <Controller
                 name="supplier"
                 control={control}
@@ -309,19 +225,6 @@ export default function MaterialForm({ open, onClose, material }: MaterialFormPr
                     {...field}
                     fullWidth
                     label="Nhà cung cấp"
-                  />
-                )}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <Controller
-                name="location"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label="Vị trí trong kho"
                   />
                 )}
               />

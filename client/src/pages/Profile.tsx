@@ -4,7 +4,6 @@ import {
   Typography,
   Paper,
   TextField,
-  Button,
   Grid,
   Avatar,
   Alert,
@@ -14,6 +13,7 @@ import {
   IconButton,
   Tooltip,
 } from '@mui/material';
+import { Button } from '../components/common';
 import SaveIcon from '@mui/icons-material/Save';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import { useAuthStore } from '../stores/authStore';

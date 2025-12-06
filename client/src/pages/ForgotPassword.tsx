@@ -5,10 +5,10 @@ import {
   Box,
   Paper,
   TextField,
-  Button,
   Typography,
   Alert,
 } from '@mui/material';
+import { Button } from '../components/common';
 import ConstructionIcon from '@mui/icons-material/Construction';
 import { authAPI } from '../services/api';
 

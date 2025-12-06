@@ -1,25 +1,20 @@
 import { create } from 'zustand';
-import { Project, SiteLog } from '../types';
-import { projectsAPI, siteLogsAPI } from '../services/api';
-import { normalizeProject, normalizeSiteLog } from '../utils/normalize';
+import { Project } from '../types';
+import { projectsAPI } from '../services/api';
+import { normalizeProject } from '../utils/normalize';
 import { showSuccess, showError } from '../utils/notifications';
 
 interface ProjectState {
   projects: Project[];
   projectsTotal: number;
   selectedProject: Project | null;
-  siteLogs: SiteLog[];
-  siteLogsTotal: number;
   isLoading: boolean;
   error: string | null;
   fetchProjects: (pageSize?: number, pageIndex?: number) => Promise<void>;
-  fetchSiteLogs: (projectId?: string, pageSize?: number, pageIndex?: number) => Promise<void>;
   addProject: (project: Omit<Project, 'id' | 'createdAt' | 'stages' | 'documents'>) => Promise<void>;
   updateProject: (id: string, project: Partial<Project>) => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
   updateProjectProgress: (id: string, progress: number) => Promise<void>;
-  addSiteLog: (log: Omit<SiteLog, 'id' | 'createdAt'>) => Promise<void>;
-  updateSiteLog: (id: string, log: Partial<SiteLog>) => Promise<void>;
   setSelectedProject: (project: Project | null) => void;
 }
 
@@ -27,8 +22,6 @@ export const useProjectStore = create<ProjectState>((set) => ({
   projects: [],
   projectsTotal: 0,
   selectedProject: null,
-  siteLogs: [],
-  siteLogsTotal: 0,
   isLoading: false,
   error: null,
 
@@ -47,22 +40,6 @@ export const useProjectStore = create<ProjectState>((set) => ({
       console.error('Error fetching projects:', error);
     }
   },
-
-      fetchSiteLogs: async (projectId, pageSize = 10, pageIndex = 0) => {
-        set({ isLoading: true, error: null });
-        try {
-          const response = await siteLogsAPI.getAll(projectId, pageSize, pageIndex);
-          // Handle both old format (array) and new format (object with data, total)
-          const logs = Array.isArray(response) 
-            ? response.map(normalizeSiteLog) 
-            : (response.data || []).map(normalizeSiteLog);
-          const total = Array.isArray(response) ? logs.length : (response.total || 0);
-          set({ siteLogs: logs, siteLogsTotal: total, isLoading: false });
-        } catch (error: any) {
-          set({ error: error.message || 'Failed to fetch site logs', isLoading: false });
-          console.error('Error fetching site logs:', error);
-        }
-      },
 
   addProject: async (projectData) => {
     set({ isLoading: true, error: null });
@@ -129,38 +106,6 @@ export const useProjectStore = create<ProjectState>((set) => ({
       throw error;
     }
   },
-
-      addSiteLog: async (logData) => {
-        set({ isLoading: true, error: null });
-        try {
-          const data = await siteLogsAPI.create(logData);
-          const newLog = normalizeSiteLog(data);
-          set((state) => ({
-            siteLogs: [newLog, ...state.siteLogs],
-            isLoading: false,
-          }));
-          showSuccess('Thêm nhật ký công trường thành công');
-        } catch (error: any) {
-          set({ error: error.message || 'Không thể thêm nhật ký công trường', isLoading: false });
-          throw error;
-        }
-      },
-
-      updateSiteLog: async (id, logData) => {
-        set({ isLoading: true, error: null });
-        try {
-          const data = await siteLogsAPI.update(id, logData);
-          const updatedLog = normalizeSiteLog(data);
-          set((state) => ({
-            siteLogs: state.siteLogs.map((log) => (log.id === id ? updatedLog : log)),
-            isLoading: false,
-          }));
-          showSuccess('Cập nhật nhật ký công trường thành công');
-        } catch (error: any) {
-          set({ error: error.message || 'Không thể cập nhật nhật ký công trường', isLoading: false });
-          throw error;
-        }
-      },
 
   setSelectedProject: (project) => set({ selectedProject: project }),
 }));
