@@ -91,29 +91,34 @@ export default function ActionMenuWithCustomActions({
               <ListItemText>{action.label}</ListItemText>
             </MenuItem>
           ))}
-          {onView && (
-            <MenuItem onClick={() => handleAction(onView)}>
-              <ListItemIcon>
-                <VisibilityIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>{viewLabel}</ListItemText>
-            </MenuItem>
-          )}
-          {onEdit && (
-            <MenuItem onClick={() => handleAction(onEdit)}>
-              <ListItemIcon>
-                <EditIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>{editLabel}</ListItemText>
-            </MenuItem>
-          )}
-          {onDelete && (
-            <MenuItem onClick={() => handleAction(onDelete)} sx={{ color: 'error.main' }}>
-              <ListItemIcon>
-                <DeleteIcon fontSize="small" sx={{ color: 'error.main' }} />
-              </ListItemIcon>
-              <ListItemText>{deleteLabel}</ListItemText>
-            </MenuItem>
+          {/* Only show default actions if no customActions or customActions is empty */}
+          {customActions.length === 0 && (
+            <>
+              {onView && (
+                <MenuItem onClick={() => handleAction(onView)}>
+                  <ListItemIcon>
+                    <VisibilityIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>{viewLabel}</ListItemText>
+                </MenuItem>
+              )}
+              {onEdit && (
+                <MenuItem onClick={() => handleAction(onEdit)}>
+                  <ListItemIcon>
+                    <EditIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>{editLabel}</ListItemText>
+                </MenuItem>
+              )}
+              {onDelete && (
+                <MenuItem onClick={() => handleAction(onDelete)} sx={{ color: 'error.main' }}>
+                  <ListItemIcon>
+                    <DeleteIcon fontSize="small" sx={{ color: 'error.main' }} />
+                  </ListItemIcon>
+                  <ListItemText>{deleteLabel}</ListItemText>
+                </MenuItem>
+              )}
+            </>
           )}
         </MenuList>
       </Popover>

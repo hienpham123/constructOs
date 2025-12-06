@@ -38,6 +38,7 @@ const personnelSchema = z.object({
   phone: z.string().min(1, 'Số điện thoại là bắt buộc'),
   email: z.string().email('Email không hợp lệ').optional().or(z.literal('')),
   position: z.string().min(1, 'Vị trí là bắt buộc'),
+  status: z.enum(['active', 'inactive', 'on_leave', 'banned']),
   projectId: z.string().optional(),
 });
 
@@ -118,6 +119,7 @@ export default function PersonnelAddEdit() {
       phone: '',
       email: '',
       position: '',
+      status: 'active' as const,
       projectId: '',
     },
   });
@@ -129,6 +131,7 @@ export default function PersonnelAddEdit() {
         phone: personnelData.phone || '',
         email: personnelData.email || '',
         position: personnelData.position || '',
+        status: (personnelData as any).status || 'active',
         projectId: personnelData.projectId || (personnelData as any).project_id || '',
       });
     } else if (!isEditMode) {
@@ -137,6 +140,7 @@ export default function PersonnelAddEdit() {
         phone: '',
         email: '',
         position: '',
+        status: 'active' as const,
         projectId: '',
       });
     }
@@ -159,6 +163,7 @@ export default function PersonnelAddEdit() {
         phone: data.phone,
         email: data.email || undefined,
         position: data.position,
+        status: data.status,
         projectId: data.projectId || undefined,
         projectName: selectedProject?.name || undefined,
       };
@@ -314,6 +319,27 @@ export default function PersonnelAddEdit() {
                           {errors.position.message}
                         </Typography>
                       )}
+                    </FormControl>
+                  )}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Controller
+                  name="status"
+                  control={control}
+                  render={({ field }) => (
+                    <FormControl fullWidth error={!!errors.status}>
+                      <InputLabel>Tình trạng *</InputLabel>
+                      <Select
+                        {...field}
+                        label="Tình trạng *"
+                        value={field.value || 'active'}
+                      >
+                        <MenuItem value="active">Hoạt động</MenuItem>
+                        <MenuItem value="inactive">Không hoạt động</MenuItem>
+                        <MenuItem value="on_leave">Nghỉ phép</MenuItem>
+                        <MenuItem value="banned">Bị cấm</MenuItem>
+                      </Select>
                     </FormControl>
                   )}
                 />

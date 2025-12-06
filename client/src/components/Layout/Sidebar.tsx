@@ -25,6 +25,8 @@ import ListAltIcon from '@mui/icons-material/ListAlt';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import SecurityIcon from '@mui/icons-material/Security';
+import AssessmentIcon from '@mui/icons-material/Assessment';
+import DescriptionIcon from '@mui/icons-material/Description';
 import IconButton from '@mui/material/IconButton';
 import logoImage from '../../images/logo.svg';
 
@@ -53,6 +55,15 @@ const menuItems: MenuItem[] = [
   },
   { text: 'Nhân sự', icon: <PeopleIcon />, path: '/personnel' },
   { text: 'Vai trò', icon: <SecurityIcon />, path: '/roles' },
+  {
+    text: 'Báo cáo',
+    icon: <AssessmentIcon />,
+    path: '/reports',
+    submenu: [
+      { text: 'Báo cáo ngày', icon: <DescriptionIcon />, path: '/daily-reports' },
+      { text: 'Báo cáo dự án', icon: <DescriptionIcon />, path: '/project-reports' },
+    ],
+  },
 ];
 
 interface SidebarProps {
@@ -74,6 +85,7 @@ export default function Sidebar({
   const [internalCollapsed, setInternalCollapsed] = useState(false);
   const [openSubmenus, setOpenSubmenus] = useState<{ [key: string]: boolean }>({
     '/materials': true, // Default open
+    '/reports': true, // Default open
   });
   const navigate = useNavigate();
   const location = useLocation();

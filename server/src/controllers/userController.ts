@@ -253,8 +253,8 @@ export const updateUser = async (req: Request, res: Response) => {
         if (roleCheck.length === 0) {
           return res.status(400).json({ error: `Role with id ${userData.role} does not exist` });
         }
-        updates.push('role = ?');
-        values.push(userData.role);
+      updates.push('role = ?');
+      values.push(userData.role);
       } catch (roleError: any) {
         return res.status(400).json({ error: `Invalid role_id: ${roleError.message}` });
       }

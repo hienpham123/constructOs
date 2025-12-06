@@ -243,7 +243,7 @@ export const deleteRole = async (req: Request, res: Response) => {
 
     // Check if role is being used by any user
     const usersWithRole = await query<any[]>(
-      'SELECT COUNT(*) as count FROM users WHERE role_id = ?',
+      'SELECT COUNT(*) as count FROM users WHERE role = ?',
       [id]
     );
 
@@ -281,9 +281,9 @@ export const getUserPermissions = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // Get user's role_id and role name
+    // Get user's role (which is role_id)
     const users = await query<any[]>(
-      'SELECT role_id, role FROM users WHERE id = ?',
+      'SELECT role FROM users WHERE id = ?',
       [userId]
     );
 
@@ -292,20 +292,8 @@ export const getUserPermissions = async (req: AuthRequest, res: Response) => {
     }
 
     const user = users[0];
-    let roleId = user.role_id;
-
-    // If no role_id, try to find role by role name (backward compatibility)
-    if (!roleId && user.role) {
-      const roles = await query<any[]>(
-        'SELECT id FROM roles WHERE name = ?',
-        [user.role]
-      );
-      if (roles.length > 0) {
-        roleId = roles[0].id;
-        // Optionally update user's role_id for future queries
-        // await query('UPDATE users SET role_id = ? WHERE id = ?', [roleId, userId]);
-      }
-    }
+    // role column in users table is actually role_id (UUID reference to roles table)
+    const roleId = user.role;
 
     // Default permissions (no access)
     const defaultPermissions = {

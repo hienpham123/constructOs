@@ -81,13 +81,21 @@ api.interceptors.response.use(
       window.location.href = '/login';
     }
     
-    // Extract error message
-    const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Đã xảy ra lỗi';
+    // Don't show error notification for 404 on daily-reports endpoint
+    // (404 is expected when a report doesn't exist yet)
+    const isDailyReport404 = error.response?.status === 404 && 
+                             error.config?.url?.includes('/daily-reports/') &&
+                             error.config?.method === 'get';
     
-    // Import notification helper dynamically to avoid circular dependency
-    import('../../utils/notifications').then(({ showError }) => {
-      showError(errorMessage);
-    });
+    if (!isDailyReport404) {
+      // Extract error message
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Đã xảy ra lỗi';
+      
+      // Import notification helper dynamically to avoid circular dependency
+      import('../../utils/notifications').then(({ showError }) => {
+        showError(errorMessage);
+      });
+    }
     
     return Promise.reject(error);
   }

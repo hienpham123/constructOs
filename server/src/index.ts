@@ -9,6 +9,8 @@ import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import roleRoutes from './routes/roleRoutes.js';
+import dailyReportRoutes from './routes/dailyReportRoutes.js';
+import projectReportRoutes from './routes/projectReportRoutes.js';
 // Import database connection (test connection on startup)
 import './config/db.js';
 
@@ -25,8 +27,8 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Serve static files (avatars)
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+// Serve static files (avatars, project reports)
+app.use('/uploads', express.static(path.join(process.cwd(), 'server', 'uploads')));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -36,6 +38,8 @@ app.use('/api/materials', materialRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/personnel', personnelRoutes);
 app.use('/api/roles', roleRoutes);
+app.use('/api/daily-reports', dailyReportRoutes);
+app.use('/api/project-reports', projectReportRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

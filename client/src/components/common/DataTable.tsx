@@ -217,20 +217,30 @@ export default function DataTable<T = any>({
                         ? actions.customActions(row)
                         : actions.customActions;
                       
-                      return customActions && customActions.length > 0 ? (
-                        <ActionMenuWithCustomActions
-                          customActions={customActions.map((action) => ({
-                            ...action,
-                            onClick: () => action.onClick(row),
-                          }))}
-                          onView={actions.onView ? () => actions.onView!(row) : undefined}
-                          onEdit={() => actions.onEdit(row)}
-                          onDelete={() => actions.onDelete(row)}
-                          viewLabel={actions.viewLabel}
-                          editLabel={actions.editLabel}
-                          deleteLabel={actions.deleteLabel}
-                        />
-                      ) : (
+                      // If customActions is provided, only use it (even if empty)
+                      if (actions.customActions !== undefined) {
+                        if (customActions && customActions.length > 0) {
+                          return (
+                            <ActionMenuWithCustomActions
+                              customActions={customActions.map((action) => ({
+                                ...action,
+                                onClick: () => action.onClick(row),
+                              }))}
+                              onView={undefined}
+                              onEdit={undefined}
+                              onDelete={undefined}
+                              viewLabel={actions.viewLabel}
+                              editLabel={actions.editLabel}
+                              deleteLabel={actions.deleteLabel}
+                            />
+                          );
+                        }
+                        // If customActions is empty, don't show menu
+                        return null;
+                      }
+                      
+                      // Fallback to default ActionMenu if no customActions
+                      return (
                         <ActionMenu
                           onView={actions.onView ? () => actions.onView!(row) : undefined}
                           onEdit={() => actions.onEdit(row)}

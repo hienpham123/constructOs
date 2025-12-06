@@ -7,6 +7,8 @@ export { personnelAPI } from './personnel';
 export { dashboardAPI } from './dashboard';
 export { rolesAPI } from './roles';
 export type { Role, RolePermission } from './roles';
+export { dailyReportsAPI } from './dailyReports';
+export { projectReportsAPI } from './projectReports';
 
 // Export default axios instance
 export { default as api } from './instance';

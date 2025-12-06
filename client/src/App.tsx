@@ -20,6 +20,9 @@ import Personnel from './pages/Personnel';
 import PersonnelAddEdit from './pages/PersonnelAddEdit';
 import Roles from './pages/Roles';
 import RolesAddEdit from './pages/RolesAddEdit';
+import DailyReports from './pages/DailyReports';
+import DailyReportAddEdit from './pages/DailyReportAddEdit';
+import ProjectReports from './pages/ProjectReports';
 import Profile from './pages/Profile';
 import { useAuthStore } from './stores/authStore';
 
@@ -365,6 +368,10 @@ function App() {
           <Route path="roles" element={<Roles />} />
           <Route path="roles/add" element={<RolesAddEdit />} />
           <Route path="roles/edit/:id" element={<RolesAddEdit />} />
+          <Route path="daily-reports" element={<DailyReports />} />
+          <Route path="daily-reports/edit/:userId/:date" element={<DailyReportAddEdit />} />
+          <Route path="daily-reports/view/:userId/:date" element={<DailyReportAddEdit />} />
+          <Route path="project-reports" element={<ProjectReports />} />
           <Route path="profile" element={<Profile />} />
         </Route>
         </Routes>
