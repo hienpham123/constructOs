@@ -100,19 +100,15 @@ export default function ProjectForm({ open, onClose, project }: ProjectFormProps
     }
     
     if (project) {
-      // Convert date from ISO string to Dayjs object for DatePicker
       const parseDate = (dateString: string | undefined | null): Dayjs | null => {
         if (!dateString) return null;
-        const date = dateString;
-        if (!date) return null;
-        return dayjs(date);
+        return dayjs(dateString);
       };
 
       const stages = project.stages || [];
       const hasStages = stages.length > 0;
-      const shouldAutoCalculate = hasStages;
       
-      setAutoCalculateProgress(shouldAutoCalculate);
+      setAutoCalculateProgress(hasStages);
       
       const calculatedProgress = hasStages 
         ? calculateProgressFromStages(stages)
@@ -145,7 +141,7 @@ export default function ProjectForm({ open, onClose, project }: ProjectFormProps
       });
       setAutoCalculateProgress(false);
     }
-  }, [project?.id, open, reset]); // Include reset but it's stable from react-hook-form
+  }, [project?.id, open, reset]);
 
   // Tính lại progress khi stages thay đổi (nếu đang ở chế độ tự động)
   useEffect(() => {
