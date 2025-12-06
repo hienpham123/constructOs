@@ -6,11 +6,17 @@ import {
   updateEquipment,
   deleteEquipment,
   getUsage,
+  getUsageById,
   createUsage,
+  updateUsage,
+  deleteUsage,
   getMaintenanceSchedules,
+  getMaintenanceScheduleById,
   createMaintenanceSchedule,
   updateMaintenanceSchedule,
+  deleteMaintenanceSchedule,
 } from '../controllers/equipmentController.js';
+import { authenticate } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -21,11 +27,16 @@ router.put('/:id', updateEquipment);
 router.delete('/:id', deleteEquipment);
 
 router.get('/usage/list', getUsage);
-router.post('/usage', createUsage);
+router.get('/usage/:id', getUsageById);
+router.post('/usage', authenticate, createUsage);
+router.put('/usage/:id', authenticate, updateUsage);
+router.delete('/usage/:id', authenticate, deleteUsage);
 
 router.get('/maintenance/list', getMaintenanceSchedules);
-router.post('/maintenance', createMaintenanceSchedule);
-router.put('/maintenance/:id', updateMaintenanceSchedule);
+router.get('/maintenance/:id', getMaintenanceScheduleById);
+router.post('/maintenance', authenticate, createMaintenanceSchedule);
+router.put('/maintenance/:id', authenticate, updateMaintenanceSchedule);
+router.delete('/maintenance/:id', authenticate, deleteMaintenanceSchedule);
 
 export default router;
 

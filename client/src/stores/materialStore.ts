@@ -1,64 +1,89 @@
 import { create } from 'zustand';
 import { Material, MaterialTransaction, PurchaseRequest } from '../types';
 import { materialsAPI } from '../services/api';
-import { normalizeMaterial } from '../utils/normalize';
+import { normalizeMaterial, normalizeMaterialTransaction, normalizePurchaseRequest } from '../utils/normalize';
 import { showSuccess, showError } from '../utils/notifications';
 
 interface MaterialState {
   materials: Material[];
+  materialsTotal: number;
   transactions: MaterialTransaction[];
+  transactionsTotal: number;
   purchaseRequests: PurchaseRequest[];
+  purchaseRequestsTotal: number;
   selectedMaterial: Material | null;
   isLoading: boolean;
   error: string | null;
-  fetchMaterials: () => Promise<void>;
-  fetchTransactions: () => Promise<void>;
-  fetchPurchaseRequests: () => Promise<void>;
+  fetchMaterials: (pageSize?: number, pageIndex?: number) => Promise<void>;
+  fetchTransactions: (pageSize?: number, pageIndex?: number) => Promise<void>;
+  fetchPurchaseRequests: (pageSize?: number, pageIndex?: number) => Promise<void>;
   addMaterial: (material: Omit<Material, 'id' | 'createdAt' | 'status'>) => Promise<void>;
   updateMaterial: (id: string, material: Partial<Material>) => Promise<void>;
   deleteMaterial: (id: string) => Promise<void>;
   addTransaction: (transaction: Omit<MaterialTransaction, 'id' | 'performedAt'>) => Promise<void>;
+  updateTransaction: (id: string, transaction: Partial<MaterialTransaction>) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
   addPurchaseRequest: (request: Omit<PurchaseRequest, 'id' | 'requestedAt' | 'status'>) => Promise<void>;
-  updatePurchaseRequest: (id: string, status: PurchaseRequest['status'], approvedBy?: string) => Promise<void>;
+  updatePurchaseRequest: (id: string, status: PurchaseRequest['status']) => Promise<void>;
+  deletePurchaseRequest: (id: string) => Promise<void>;
   setSelectedMaterial: (material: Material | null) => void;
 }
 
 export const useMaterialStore = create<MaterialState>((set) => ({
   materials: [],
+  materialsTotal: 0,
   transactions: [],
+  transactionsTotal: 0,
   purchaseRequests: [],
+  purchaseRequestsTotal: 0,
   selectedMaterial: null,
   isLoading: false,
   error: null,
 
-  fetchMaterials: async () => {
+  fetchMaterials: async (pageSize = 10, pageIndex = 0) => {
     set({ isLoading: true, error: null });
     try {
-      const data = await materialsAPI.getAll();
-      const materials = Array.isArray(data) ? data.map(normalizeMaterial) : [];
-      set({ materials, isLoading: false });
+      const response = await materialsAPI.getAll(pageSize, pageIndex);
+      // Handle both old format (array) and new format (object with data, total)
+      const materials = Array.isArray(response) 
+        ? response.map(normalizeMaterial) 
+        : (response.data || []).map(normalizeMaterial);
+      const total = Array.isArray(response) ? materials.length : (response.total || 0);
+      set({ materials, materialsTotal: total, isLoading: false });
     } catch (error: any) {
       set({ error: error.message || 'Failed to fetch materials', isLoading: false });
       console.error('Error fetching materials:', error);
     }
   },
 
-  fetchTransactions: async () => {
+  fetchTransactions: async (pageSize = 10, pageIndex = 0) => {
     set({ isLoading: true, error: null });
     try {
-      const transactions = await materialsAPI.getTransactions();
-      set({ transactions, isLoading: false });
+      const response = await materialsAPI.getTransactions(pageSize, pageIndex);
+      // Handle both old format (array) and new format (object with data, total)
+      const transactionsData = Array.isArray(response) 
+        ? response 
+        : (response.data || []);
+      const transactions = transactionsData.map(normalizeMaterialTransaction);
+      const total = Array.isArray(response) ? transactions.length : (response.total || 0);
+      set({ transactions, transactionsTotal: total, isLoading: false });
     } catch (error: any) {
       set({ error: error.message || 'Failed to fetch transactions', isLoading: false });
       console.error('Error fetching transactions:', error);
     }
   },
 
-  fetchPurchaseRequests: async () => {
+  fetchPurchaseRequests: async (pageSize = 10, pageIndex = 0) => {
     set({ isLoading: true, error: null });
     try {
-      const purchaseRequests = await materialsAPI.getPurchaseRequests();
-      set({ purchaseRequests, isLoading: false });
+      const response = await materialsAPI.getPurchaseRequests(pageSize, pageIndex);
+      // Handle both old format (array) and new format (object with data, total)
+      const purchaseRequestsData = Array.isArray(response) 
+        ? response 
+        : (response.data || []);
+      const purchaseRequests = purchaseRequestsData.map(normalizePurchaseRequest);
+      const total = Array.isArray(response) ? purchaseRequests.length : (response.total || 0);
+      set({ purchaseRequests, purchaseRequestsTotal: total, isLoading: false });
     } catch (error: any) {
       set({ error: error.message || 'Failed to fetch purchase requests', isLoading: false });
       console.error('Error fetching purchase requests:', error);
@@ -131,10 +156,52 @@ export const useMaterialStore = create<MaterialState>((set) => ({
     }
   },
 
+  updateTransaction: async (id, transactionData) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await materialsAPI.updateTransaction(id, transactionData);
+      const updatedTransaction = normalizeMaterialTransaction(response);
+      set((state) => ({
+        transactions: state.transactions.map((transaction) =>
+          transaction.id === id ? updatedTransaction : transaction
+        ),
+        isLoading: false,
+      }));
+      // Refresh materials to get updated stock
+      const data = await materialsAPI.getAll();
+      const materials = Array.isArray(data) ? data.map(normalizeMaterial) : [];
+      set({ materials });
+      showSuccess('Cập nhật giao dịch thành công');
+    } catch (error: any) {
+      set({ error: error.message || 'Không thể cập nhật giao dịch', isLoading: false });
+      throw error;
+    }
+  },
+
+  deleteTransaction: async (id) => {
+    set({ isLoading: true, error: null });
+    try {
+      await materialsAPI.deleteTransaction(id);
+      set((state) => ({
+        transactions: state.transactions.filter((transaction) => transaction.id !== id),
+        isLoading: false,
+      }));
+      // Refresh materials to get updated stock
+      const data = await materialsAPI.getAll();
+      const materials = Array.isArray(data) ? data.map(normalizeMaterial) : [];
+      set({ materials });
+      showSuccess('Xóa giao dịch thành công');
+    } catch (error: any) {
+      set({ error: error.message || 'Không thể xóa giao dịch', isLoading: false });
+      throw error;
+    }
+  },
+
   addPurchaseRequest: async (requestData) => {
     set({ isLoading: true, error: null });
     try {
-      const newRequest = await materialsAPI.createPurchaseRequest(requestData);
+      const response = await materialsAPI.createPurchaseRequest(requestData);
+      const newRequest = normalizePurchaseRequest(response);
       set((state) => ({
         purchaseRequests: [newRequest, ...state.purchaseRequests],
         isLoading: false,
@@ -146,10 +213,11 @@ export const useMaterialStore = create<MaterialState>((set) => ({
     }
   },
 
-  updatePurchaseRequest: async (id, status, approvedBy) => {
+  updatePurchaseRequest: async (id, status) => {
     set({ isLoading: true, error: null });
     try {
-      const updatedRequest = await materialsAPI.updatePurchaseRequest(id, { status, approvedBy });
+      const response = await materialsAPI.updatePurchaseRequest(id, { status });
+      const updatedRequest = normalizePurchaseRequest(response);
       set((state) => ({
         purchaseRequests: state.purchaseRequests.map((request) =>
           request.id === id ? updatedRequest : request
@@ -159,6 +227,21 @@ export const useMaterialStore = create<MaterialState>((set) => ({
       showSuccess('Cập nhật yêu cầu mua hàng thành công');
     } catch (error: any) {
       set({ error: error.message || 'Không thể cập nhật yêu cầu mua hàng', isLoading: false });
+      throw error;
+    }
+  },
+
+  deletePurchaseRequest: async (id) => {
+    set({ isLoading: true, error: null });
+    try {
+      await materialsAPI.deletePurchaseRequest(id);
+      set((state) => ({
+        purchaseRequests: state.purchaseRequests.filter((request) => request.id !== id),
+        isLoading: false,
+      }));
+      showSuccess('Xóa yêu cầu mua hàng thành công');
+    } catch (error: any) {
+      set({ error: error.message || 'Không thể xóa yêu cầu mua hàng', isLoading: false });
       throw error;
     }
   },

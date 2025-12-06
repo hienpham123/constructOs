@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Dayjs } from 'dayjs';
 import dayjs from '../../config/dayjs';
 import {
   Dialog,
@@ -12,10 +11,6 @@ import {
   TextField,
   Button,
   Grid,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
   Autocomplete,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -25,7 +20,7 @@ import 'dayjs/locale/vi';
 import { SiteLog } from '../../types';
 import { useProjectStore } from '../../stores/projectStore';
 import { useAuthStore } from '../../stores/authStore';
-import { showError } from '../../utils/notifications';
+import { normalizeSiteLog } from '../../utils/normalize';
 
 const siteLogSchema = z.object({
   projectId: z.string().min(1, 'Dự án là bắt buộc'),
@@ -46,15 +41,11 @@ interface SiteLogFormProps {
 }
 
 export default function SiteLogForm({ open, onClose, siteLog }: SiteLogFormProps) {
-  const { addSiteLog, projects, fetchProjects } = useProjectStore();
+  const addSiteLog = useProjectStore((state) => state.addSiteLog);
+  const updateSiteLog = useProjectStore((state) => state.updateSiteLog);
+  const projects = useProjectStore((state) => state.projects);
   const { user } = useAuthStore();
   const isSubmittingRef = useRef(false);
-
-  useEffect(() => {
-    if (open) {
-      fetchProjects();
-    }
-  }, [open, fetchProjects]);
 
   const {
     control,
@@ -79,12 +70,14 @@ export default function SiteLogForm({ open, onClose, siteLog }: SiteLogFormProps
     }
 
     if (siteLog) {
+      // Normalize siteLog data to ensure correct field names
+      const normalized = normalizeSiteLog(siteLog);
       reset({
-        projectId: siteLog.projectId || '',
-        date: siteLog.date ? dayjs(siteLog.date) : dayjs(),
-        weather: siteLog.weather || '',
-        workDescription: siteLog.workDescription || '',
-        issues: siteLog.issues || '',
+        projectId: normalized.projectId || '',
+        date: normalized.date ? dayjs(normalized.date) : dayjs(),
+        weather: normalized.weather || '',
+        workDescription: normalized.workDescription || '',
+        issues: normalized.issues || '',
       });
     } else {
       reset({
@@ -105,21 +98,31 @@ export default function SiteLogForm({ open, onClose, siteLog }: SiteLogFormProps
     isSubmittingRef.current = true;
 
     try {
+      // Find selected project to get projectName
+      const selectedProject = data.projectId 
+        ? projects.find((p) => p.id === data.projectId)
+        : null;
+
       const siteLogData = {
         projectId: data.projectId,
+        projectName: selectedProject?.name || '',
         date: data.date ? dayjs(data.date).format('YYYY-MM-DD') : '',
         weather: data.weather,
         workDescription: data.workDescription,
         issues: data.issues || '',
         photos: siteLog?.photos || [],
+        createdBy: user?.name || user?.email || '',
       };
 
-      await addSiteLog(siteLogData);
+      if (siteLog?.id) {
+        await updateSiteLog(siteLog.id, siteLogData);
+      } else {
+        await addSiteLog(siteLogData);
+      }
       onClose();
     } catch (error: any) {
       console.error('Error saving site log:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'Không thể lưu nhật ký công trường';
-      showError(errorMessage);
+      // Error notification đã được xử lý bởi API interceptor, không cần show lại
     } finally {
       isSubmittingRef.current = false;
     }

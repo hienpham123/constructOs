@@ -24,7 +24,6 @@ import 'dayjs/locale/vi';
 import { Personnel } from '../../types';
 import { usePersonnelStore } from '../../stores/personnelStore';
 import { useProjectStore } from '../../stores/projectStore';
-import { showError } from '../../utils/notifications';
 
 const personnelSchema = z.object({
   code: z.string().min(1, 'Mã nhân sự là bắt buộc'),
@@ -57,7 +56,8 @@ export default function PersonnelForm({ open, onClose, personnel }: PersonnelFor
     if (open) {
       fetchProjects();
     }
-  }, [open, fetchProjects]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
   
   const {
     control,
@@ -148,8 +148,7 @@ export default function PersonnelForm({ open, onClose, personnel }: PersonnelFor
       onClose();
     } catch (error: any) {
       console.error('Error saving personnel:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'Không thể lưu nhân sự';
-      showError(errorMessage);
+      // Error notification đã được xử lý bởi API interceptor
       isSubmittingRef.current = false;
     }
   };

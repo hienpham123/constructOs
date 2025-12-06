@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -24,8 +24,8 @@ import 'dayjs/locale/vi';
 import { Equipment } from '../../types';
 import { useEquipmentStore } from '../../stores/equipmentStore';
 import { useProjectStore } from '../../stores/projectStore';
-import { showError } from '../../utils/notifications';
 import { normalizeNumber } from '../../utils/normalize';
+import { usersAPI } from '../../services/api';
 
 const equipmentSchema = z.object({
   code: z.string().min(1, 'Mã thiết bị là bắt buộc'),
@@ -39,6 +39,7 @@ const equipmentSchema = z.object({
   }),
   status: z.enum(['available', 'in_use', 'maintenance', 'broken']),
   currentProjectId: z.string().optional(),
+  currentUserId: z.string().optional(),
   totalHours: z.number().min(0, 'Tổng giờ sử dụng phải >= 0'),
 });
 
@@ -53,13 +54,22 @@ interface EquipmentFormProps {
 export default function EquipmentForm({ open, onClose, equipment }: EquipmentFormProps) {
   const { addEquipment, updateEquipment } = useEquipmentStore();
   const { projects, fetchProjects } = useProjectStore();
+  const [users, setUsers] = useState<any[]>([]);
   const isSubmittingRef = useRef(false);
 
   useEffect(() => {
     if (open) {
       fetchProjects();
+      // Fetch users for dropdown
+      usersAPI.getAll(100, 0).then((response) => {
+        const usersData = Array.isArray(response) ? response : (response.data || []);
+        setUsers(usersData);
+      }).catch((error) => {
+        console.error('Error fetching users:', error);
+      });
     }
-  }, [open, fetchProjects]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const {
     control,
@@ -78,6 +88,7 @@ export default function EquipmentForm({ open, onClose, equipment }: EquipmentFor
       purchaseDate: dayjs(),
       status: 'available',
       currentProjectId: '',
+      currentUserId: '',
       totalHours: 0,
     },
   });
@@ -99,6 +110,7 @@ export default function EquipmentForm({ open, onClose, equipment }: EquipmentFor
         purchaseDate: equipment.purchaseDate ? dayjs(equipment.purchaseDate || (equipment as any).purchase_date) : dayjs(),
         status: equipment.status || 'available',
         currentProjectId: equipment.currentProjectId || (equipment as any).current_project_id || '',
+        currentUserId: (equipment as any).currentUserId || (equipment as any).current_user_id || '',
         totalHours: normalizeNumber(equipment.totalHours || (equipment as any).total_hours || 0),
       });
     } else {
@@ -112,6 +124,7 @@ export default function EquipmentForm({ open, onClose, equipment }: EquipmentFor
         purchaseDate: dayjs(),
         status: 'available',
         currentProjectId: '',
+        currentUserId: '',
         totalHours: 0,
       });
     }
@@ -141,6 +154,7 @@ export default function EquipmentForm({ open, onClose, equipment }: EquipmentFor
         status: data.status,
         currentProjectId: data.currentProjectId || undefined,
         currentProjectName: selectedProject?.name || undefined,
+        currentUserId: data.currentUserId || undefined,
         totalHours: data.totalHours,
       };
 
@@ -152,8 +166,7 @@ export default function EquipmentForm({ open, onClose, equipment }: EquipmentFor
       onClose();
     } catch (error: any) {
       console.error('Error saving equipment:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'Không thể lưu thiết bị';
-      showError(errorMessage);
+      // Error notification đã được xử lý bởi API interceptor
     } finally {
       isSubmittingRef.current = false;
     }
@@ -326,6 +339,36 @@ export default function EquipmentForm({ open, onClose, equipment }: EquipmentFor
                           (option) =>
                             option.code.toLowerCase().includes(searchValue) ||
                             option.name.toLowerCase().includes(searchValue)
+                        );
+                      }}
+                      isOptionEqualToValue={(option, value) => option.id === value.id}
+                    />
+                  )}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Controller
+                  name="currentUserId"
+                  control={control}
+                  render={({ field }) => (
+                    <Autocomplete
+                      options={users}
+                      getOptionLabel={(option) => option ? option.name : ''}
+                      value={users.find((u) => u.id === field.value) || null}
+                      onChange={(_, newValue) => field.onChange(newValue?.id || '')}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Người sử dụng"
+                          placeholder="Tìm kiếm người dùng..."
+                        />
+                      )}
+                      filterOptions={(options: any[], { inputValue }) => {
+                        const searchValue = inputValue.toLowerCase();
+                        return options.filter(
+                          (option: any) =>
+                            option.name.toLowerCase().includes(searchValue) ||
+                            option.email.toLowerCase().includes(searchValue)
                         );
                       }}
                       isOptionEqualToValue={(option, value) => option.id === value.id}

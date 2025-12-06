@@ -194,9 +194,15 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path="projects" element={<Projects />} />
           <Route path="projects/:id" element={<ProjectDetail />} />
-          <Route path="materials" element={<Materials />} />
+          <Route path="materials" element={<Navigate to="/materials/list" replace />} />
+          <Route path="materials/list" element={<Materials tab="list" />} />
+          <Route path="materials/transactions" element={<Materials tab="transactions" />} />
+          <Route path="materials/purchase-requests" element={<Materials tab="purchase-requests" />} />
           <Route path="personnel" element={<Personnel />} />
-          <Route path="equipment" element={<Equipment />} />
+          <Route path="equipment" element={<Navigate to="/equipment/list" replace />} />
+          <Route path="equipment/list" element={<Equipment tab="list" />} />
+          <Route path="equipment/usage" element={<Equipment tab="usage" />} />
+          <Route path="equipment/maintenance" element={<Equipment tab="maintenance" />} />
           <Route path="contracts" element={<Contracts />} />
           <Route path="site-logs" element={<SiteLogs />} />
           <Route path="profile" element={<Profile />} />

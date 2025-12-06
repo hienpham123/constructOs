@@ -6,10 +6,32 @@ import type { Personnel } from '../types/index.js';
 
 export const getPersonnel = async (req: Request, res: Response) => {
   try {
-    const results = await query<any[]>(
-      'SELECT * FROM personnel ORDER BY created_at DESC'
+    const { pageSize, pageIndex } = req.query;
+    
+    // Parse pagination params with defaults
+    const pageSizeNum = pageSize ? parseInt(pageSize as string, 10) : 10;
+    const pageIndexNum = pageIndex ? parseInt(pageIndex as string, 10) : 0;
+    const offset = pageIndexNum * pageSizeNum;
+    
+    // Get total count
+    const countResults = await query<any[]>(
+      'SELECT COUNT(*) as total FROM personnel'
     );
-    res.json(results);
+    const total = countResults[0]?.total || 0;
+    
+    // Get paginated data
+    // Note: LIMIT and OFFSET cannot use placeholders in MySQL, so we inject the values directly
+    // but we've already validated them as numbers above
+    const results = await query<any[]>(
+      `SELECT * FROM personnel ORDER BY created_at DESC LIMIT ${pageSizeNum} OFFSET ${offset}`
+    );
+    
+    res.json({
+      data: results,
+      total,
+      pageIndex: pageIndexNum,
+      pageSize: pageSizeNum,
+    });
   } catch (error: any) {
     console.error('Error fetching personnel:', error);
     res.status(500).json({ error: 'Không thể lấy danh sách nhân sự' });

@@ -25,7 +25,6 @@ import 'dayjs/locale/vi';
 import { Contract } from '../../types';
 import { useContractStore } from '../../stores/contractStore';
 import { useProjectStore } from '../../stores/projectStore';
-import { showError } from '../../utils/notifications';
 import { formatCurrencyInput, parseCurrencyInput } from '../../utils/currencyFormat';
 import { normalizeNumber } from '../../utils/normalize';
 
@@ -63,7 +62,8 @@ export default function ContractForm({ open, onClose, contract }: ContractFormPr
     if (open) {
       fetchProjects();
     }
-  }, [open, fetchProjects]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const {
     control,
@@ -162,8 +162,7 @@ export default function ContractForm({ open, onClose, contract }: ContractFormPr
       onClose();
     } catch (error: any) {
       console.error('Error saving contract:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'Không thể lưu hợp đồng';
-      showError(errorMessage);
+      // Error notification đã được xử lý bởi API interceptor
     } finally {
       isSubmittingRef.current = false;
     }

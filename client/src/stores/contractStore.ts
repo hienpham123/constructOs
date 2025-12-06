@@ -6,10 +6,11 @@ import { showSuccess } from '../utils/notifications';
 
 interface ContractState {
   contracts: Contract[];
+  contractsTotal: number;
   selectedContract: Contract | null;
   isLoading: boolean;
   error: string | null;
-  fetchContracts: () => Promise<void>;
+  fetchContracts: (pageSize?: number, pageIndex?: number) => Promise<void>;
   addContract: (contract: Omit<Contract, 'id' | 'createdAt'>) => Promise<void>;
   updateContract: (id: string, contract: Partial<Contract>) => Promise<void>;
   deleteContract: (id: string) => Promise<void>;
@@ -18,16 +19,21 @@ interface ContractState {
 
 export const useContractStore = create<ContractState>((set) => ({
   contracts: [],
+  contractsTotal: 0,
   selectedContract: null,
   isLoading: false,
   error: null,
 
-  fetchContracts: async () => {
+  fetchContracts: async (pageSize = 10, pageIndex = 0) => {
     set({ isLoading: true, error: null });
     try {
-      const data = await contractsAPI.getAll();
-      const contracts = Array.isArray(data) ? data.map(normalizeContract) : [];
-      set({ contracts, isLoading: false });
+      const response = await contractsAPI.getAll(pageSize, pageIndex);
+      // Handle both old format (array) and new format (object with data, total)
+      const contracts = Array.isArray(response) 
+        ? response.map(normalizeContract) 
+        : (response.data || []).map(normalizeContract);
+      const total = Array.isArray(response) ? contracts.length : (response.total || 0);
+      set({ contracts, contractsTotal: total, isLoading: false });
     } catch (error: any) {
       set({ error: error.message || 'Failed to fetch contracts', isLoading: false });
       console.error('Error fetching contracts:', error);

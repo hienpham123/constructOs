@@ -13,7 +13,6 @@ import {
 } from '@mui/material';
 import { Material } from '../../types';
 import { useMaterialStore } from '../../stores/materialStore';
-import { showError } from '../../utils/notifications';
 import { formatCurrencyInput, parseCurrencyInput } from '../../utils/currencyFormat';
 import { normalizeNumber } from '../../utils/normalize';
 
@@ -129,8 +128,7 @@ export default function MaterialForm({ open, onClose, material }: MaterialFormPr
       onClose();
     } catch (error: any) {
       console.error('Error saving material:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'Không thể lưu vật tư';
-      showError(errorMessage);
+      // Error notification đã được xử lý bởi API interceptor
       isSubmittingRef.current = false;
     }
   };

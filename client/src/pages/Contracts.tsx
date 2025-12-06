@@ -26,7 +26,7 @@ import ContractForm from '../components/forms/ContractForm';
 import DeleteConfirmDialog from '../components/DeleteConfirmDialog';
 
 export default function Contracts() {
-  const { contracts, isLoading, fetchContracts, deleteContract } = useContractStore();
+  const { contracts, contractsTotal, isLoading, fetchContracts, deleteContract } = useContractStore();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [formOpen, setFormOpen] = useState(false);
@@ -34,15 +34,16 @@ export default function Contracts() {
   const [selectedContract, setSelectedContract] = useState<any>(null);
 
   useEffect(() => {
-    fetchContracts();
-  }, [fetchContracts]);
+    fetchContracts(rowsPerPage, page);
+  }, [fetchContracts, rowsPerPage, page]);
 
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
   };
 
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
+    const newRowsPerPage = parseInt(event.target.value, 10);
+    setRowsPerPage(newRowsPerPage);
     setPage(0);
   };
 
@@ -134,9 +135,7 @@ export default function Contracts() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {contracts
-              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-              .map((contract) => (
+            {contracts.map((contract) => (
                 <TableRow key={contract.id} hover>
                   <TableCell>{contract.code}</TableCell>
                   <TableCell>{contract.name}</TableCell>
@@ -186,7 +185,7 @@ export default function Contracts() {
         </Table>
         <TablePagination
           component="div"
-          count={contracts.length}
+          count={contractsTotal}
           page={page}
           onPageChange={handleChangePage}
           rowsPerPage={rowsPerPage}
@@ -200,7 +199,7 @@ export default function Contracts() {
         onClose={() => {
           setFormOpen(false);
           setSelectedContract(null);
-          fetchContracts();
+          fetchContracts(rowsPerPage, page);
         }}
         contract={selectedContract}
       />
@@ -216,7 +215,7 @@ export default function Contracts() {
             await deleteContract(selectedContract.id);
             setDeleteOpen(false);
             setSelectedContract(null);
-            fetchContracts();
+            fetchContracts(rowsPerPage, page);
           }
         }}
         title="Xóa hợp đồng"

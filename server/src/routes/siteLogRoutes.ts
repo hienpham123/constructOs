@@ -6,14 +6,15 @@ import {
   updateSiteLog,
   deleteSiteLog,
 } from '../controllers/siteLogController.js';
+import { authenticate } from '../middleware/auth.js';
 
 const router = Router();
 
 router.get('/', getSiteLogs);
 router.get('/:id', getSiteLogById);
-router.post('/', createSiteLog);
-router.put('/:id', updateSiteLog);
-router.delete('/:id', deleteSiteLog);
+router.post('/', authenticate, createSiteLog);
+router.put('/:id', authenticate, updateSiteLog);
+router.delete('/:id', authenticate, deleteSiteLog);
 
 export default router;
 

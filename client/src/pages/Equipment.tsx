@@ -15,8 +15,6 @@ import {
   LinearProgress,
   IconButton,
   Tooltip,
-  Tabs,
-  Tab,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -24,29 +22,55 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { useEquipmentStore } from '../stores/equipmentStore';
 import { formatDate, formatDateTime } from '../utils/dateFormat';
 import EquipmentForm from '../components/forms/EquipmentForm';
+import UsageForm from '../components/forms/UsageForm';
+import MaintenanceScheduleForm from '../components/forms/MaintenanceScheduleForm';
 import DeleteConfirmDialog from '../components/DeleteConfirmDialog';
 
-export default function Equipment() {
-  const { equipment, usage, maintenanceSchedules, isLoading, fetchEquipment, fetchUsage, fetchMaintenanceSchedules, deleteEquipment } = useEquipmentStore();
+interface EquipmentProps {
+  tab?: 'list' | 'usage' | 'maintenance';
+}
+
+export default function Equipment({ tab = 'list' }: EquipmentProps) {
+  const { 
+    equipment, equipmentTotal, 
+    usage, usageTotal, 
+    maintenanceSchedules, maintenanceSchedulesTotal, 
+    isLoading, 
+    fetchEquipment, fetchUsage, fetchMaintenanceSchedules, 
+    deleteEquipment, deleteUsage, deleteMaintenanceSchedule 
+  } = useEquipmentStore();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [tabValue, setTabValue] = useState(0);
   const [formOpen, setFormOpen] = useState(false);
+  const [usageFormOpen, setUsageFormOpen] = useState(false);
+  const [maintenanceFormOpen, setMaintenanceFormOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState<any>(null);
+  const [selectedUsage, setSelectedUsage] = useState<any>(null);
+  const [selectedSchedule, setSelectedSchedule] = useState<any>(null);
+
+  // Fetch equipment list for dropdowns (only once when component mounts or tab changes)
+  useEffect(() => {
+    fetchEquipment(100, 0);
+  }, [fetchEquipment, tab]);
 
   useEffect(() => {
-    fetchEquipment();
-    fetchUsage();
-    fetchMaintenanceSchedules();
-  }, [fetchEquipment, fetchUsage, fetchMaintenanceSchedules]);
+    if (tab === 'list') {
+      fetchEquipment(rowsPerPage, page);
+    } else if (tab === 'usage') {
+      fetchUsage(undefined, rowsPerPage, page);
+    } else if (tab === 'maintenance') {
+      fetchMaintenanceSchedules(undefined, rowsPerPage, page);
+    }
+  }, [fetchEquipment, fetchUsage, fetchMaintenanceSchedules, rowsPerPage, page, tab]);
 
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
   };
 
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
+    const newRowsPerPage = parseInt(event.target.value, 10);
+    setRowsPerPage(newRowsPerPage);
     setPage(0);
   };
 
@@ -116,27 +140,34 @@ export default function Equipment() {
     return <LinearProgress />;
   }
 
+  const getTitle = () => {
+    switch (tab) {
+      case 'list':
+        return 'Danh sách thiết bị';
+      case 'usage':
+        return 'Lịch sử sử dụng';
+      case 'maintenance':
+        return 'Lịch bảo trì';
+      default:
+        return 'Quản lý thiết bị';
+    }
+  };
+
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h4">Quản lý thiết bị</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
-          setSelectedEquipment(null);
-          setFormOpen(true);
-        }}>
-          Thêm thiết bị
-        </Button>
+        <Typography variant="h4">{getTitle()}</Typography>
+        {tab === 'list' && (
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
+            setSelectedEquipment(null);
+            setFormOpen(true);
+          }}>
+            Thêm thiết bị
+          </Button>
+        )}
       </Box>
 
-      <Paper sx={{ mb: 2 }}>
-        <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)}>
-          <Tab label="Danh sách thiết bị" />
-          <Tab label="Lịch sử sử dụng" />
-          <Tab label="Lịch bảo trì" />
-        </Tabs>
-      </Paper>
-
-      {tabValue === 0 && (
+      {tab === 'list' && (
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
@@ -151,15 +182,13 @@ export default function Equipment() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {equipment
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((eq) => (
+              {equipment.map((eq) => (
                   <TableRow key={eq.id} hover>
                     <TableCell>{eq.code}</TableCell>
                     <TableCell>{eq.name}</TableCell>
                     <TableCell>{getTypeLabel(eq.type)}</TableCell>
                     <TableCell>{eq.currentProjectName || '-'}</TableCell>
-                    <TableCell>{eq.currentUser || '-'}</TableCell>
+                    <TableCell>{eq.currentUser ? eq.currentUser : '-'}</TableCell>
                     <TableCell>
                       <Chip
                         label={getStatusLabel(eq.status)}
@@ -197,7 +226,7 @@ export default function Equipment() {
           </Table>
           <TablePagination
             component="div"
-            count={equipment.length}
+            count={equipmentTotal}
             page={page}
             onPageChange={handleChangePage}
             rowsPerPage={rowsPerPage}
@@ -207,27 +236,40 @@ export default function Equipment() {
         </TableContainer>
       )}
 
-      {tabValue === 1 && (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Thiết bị</TableCell>
-                <TableCell>Dự án</TableCell>
-                <TableCell>Người sử dụng</TableCell>
-                <TableCell>Thời gian bắt đầu</TableCell>
-                <TableCell>Thời gian kết thúc</TableCell>
-                <TableCell>Tiêu hao nhiên liệu</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {usage
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((u) => (
+      {tab === 'usage' && (
+        <>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6">Lịch sử sử dụng</Typography>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => {
+                setSelectedUsage(null);
+                setUsageFormOpen(true);
+              }}
+            >
+              Thêm lịch sử sử dụng
+            </Button>
+          </Box>
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Thiết bị</TableCell>
+                  <TableCell>Dự án</TableCell>
+                  <TableCell>Người sử dụng</TableCell>
+                  <TableCell>Thời gian bắt đầu</TableCell>
+                  <TableCell>Thời gian kết thúc</TableCell>
+                  <TableCell>Tiêu hao nhiên liệu</TableCell>
+                  <TableCell>Thao tác</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {usage.map((u) => (
                   <TableRow key={u.id} hover>
                     <TableCell>{u.equipmentName}</TableCell>
-                    <TableCell>{u.projectName}</TableCell>
-                    <TableCell>{u.userName}</TableCell>
+                    <TableCell>{u.projectName || '-'}</TableCell>
+                    <TableCell>{u.userName || '-'}</TableCell>
                     <TableCell>
                       {formatDateTime(u.startTime)}
                     </TableCell>
@@ -237,39 +279,77 @@ export default function Equipment() {
                         : '-'}
                     </TableCell>
                     <TableCell>{u.fuelConsumption ? `${u.fuelConsumption}L` : '-'}</TableCell>
+                    <TableCell>
+                      <Tooltip title="Chỉnh sửa">
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setSelectedUsage(u);
+                            setUsageFormOpen(true);
+                          }}
+                        >
+                          <EditIcon />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Xóa">
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setSelectedUsage(u);
+                            setDeleteOpen(true);
+                          }}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
                   </TableRow>
                 ))}
-            </TableBody>
-          </Table>
-          <TablePagination
-            component="div"
-            count={usage.length}
-            page={page}
-            onPageChange={handleChangePage}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-            labelRowsPerPage="Số dòng mỗi trang:"
-          />
-        </TableContainer>
+              </TableBody>
+            </Table>
+            <TablePagination
+              component="div"
+              count={usageTotal}
+              page={page}
+              onPageChange={handleChangePage}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+              labelRowsPerPage="Số dòng mỗi trang:"
+            />
+          </TableContainer>
+        </>
       )}
 
-      {tabValue === 2 && (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Thiết bị</TableCell>
-                <TableCell>Loại</TableCell>
-                <TableCell>Ngày lên lịch</TableCell>
-                <TableCell>Mô tả</TableCell>
-                <TableCell>Chi phí</TableCell>
-                <TableCell>Trạng thái</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {maintenanceSchedules
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((schedule) => (
+      {tab === 'maintenance' && (
+        <>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6">Lịch bảo trì</Typography>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => {
+                setSelectedSchedule(null);
+                setMaintenanceFormOpen(true);
+              }}
+            >
+              Thêm lịch bảo trì
+            </Button>
+          </Box>
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Thiết bị</TableCell>
+                  <TableCell>Loại</TableCell>
+                  <TableCell>Ngày lên lịch</TableCell>
+                  <TableCell>Mô tả</TableCell>
+                  <TableCell>Chi phí</TableCell>
+                  <TableCell>Trạng thái</TableCell>
+                  <TableCell>Thao tác</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {maintenanceSchedules.map((schedule) => (
                   <TableRow key={schedule.id} hover>
                     <TableCell>{schedule.equipmentName}</TableCell>
                     <TableCell>
@@ -294,20 +374,45 @@ export default function Equipment() {
                         size="small"
                       />
                     </TableCell>
+                    <TableCell>
+                      <Tooltip title="Chỉnh sửa">
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setSelectedSchedule(schedule);
+                            setMaintenanceFormOpen(true);
+                          }}
+                        >
+                          <EditIcon />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Xóa">
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setSelectedSchedule(schedule);
+                            setDeleteOpen(true);
+                          }}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
                   </TableRow>
                 ))}
-            </TableBody>
-          </Table>
-          <TablePagination
-            component="div"
-            count={maintenanceSchedules.length}
-            page={page}
-            onPageChange={handleChangePage}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-            labelRowsPerPage="Số dòng mỗi trang:"
-          />
-        </TableContainer>
+              </TableBody>
+            </Table>
+            <TablePagination
+              component="div"
+              count={maintenanceSchedulesTotal}
+              page={page}
+              onPageChange={handleChangePage}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+              labelRowsPerPage="Số dòng mỗi trang:"
+            />
+          </TableContainer>
+        </>
       )}
 
       <EquipmentForm
@@ -315,27 +420,74 @@ export default function Equipment() {
         onClose={() => {
           setFormOpen(false);
           setSelectedEquipment(null);
-          fetchEquipment();
+          if (tab === 'list') {
+            fetchEquipment(rowsPerPage, page);
+          }
         }}
         equipment={selectedEquipment}
       />
-
+      <UsageForm
+        open={usageFormOpen}
+        onClose={() => {
+          setUsageFormOpen(false);
+          setSelectedUsage(null);
+          if (tab === 'usage') {
+            fetchUsage(undefined, rowsPerPage, page);
+          }
+        }}
+        usage={selectedUsage}
+      />
+      <MaintenanceScheduleForm
+        open={maintenanceFormOpen}
+        onClose={() => {
+          setMaintenanceFormOpen(false);
+          setSelectedSchedule(null);
+          if (tab === 'maintenance') {
+            fetchMaintenanceSchedules(undefined, rowsPerPage, page);
+          }
+        }}
+        schedule={selectedSchedule}
+      />
       <DeleteConfirmDialog
         open={deleteOpen}
         onClose={() => {
           setDeleteOpen(false);
           setSelectedEquipment(null);
+          setSelectedUsage(null);
+          setSelectedSchedule(null);
         }}
         onConfirm={async () => {
           if (selectedEquipment) {
             await deleteEquipment(selectedEquipment.id);
             setDeleteOpen(false);
             setSelectedEquipment(null);
-            fetchEquipment();
+            if (tab === 'list') {
+              fetchEquipment(rowsPerPage, page);
+            }
+          } else if (selectedUsage) {
+            await deleteUsage(selectedUsage.id);
+            setDeleteOpen(false);
+            setSelectedUsage(null);
+            if (tab === 'usage') {
+              fetchUsage(undefined, rowsPerPage, page);
+            }
+          } else if (selectedSchedule) {
+            await deleteMaintenanceSchedule(selectedSchedule.id);
+            setDeleteOpen(false);
+            setSelectedSchedule(null);
+            if (tab === 'maintenance') {
+              fetchMaintenanceSchedules(undefined, rowsPerPage, page);
+            }
           }
         }}
-        title="Xóa thiết bị"
-        message={`Bạn có chắc chắn muốn xóa thiết bị "${selectedEquipment?.name}"?`}
+        title={selectedEquipment ? "Xóa thiết bị" : selectedUsage ? "Xóa lịch sử sử dụng" : "Xóa lịch bảo trì"}
+        message={
+          selectedEquipment 
+            ? `Bạn có chắc chắn muốn xóa thiết bị "${selectedEquipment?.name}"?`
+            : selectedUsage
+            ? `Bạn có chắc chắn muốn xóa lịch sử sử dụng này?`
+            : `Bạn có chắc chắn muốn xóa lịch bảo trì này?`
+        }
       />
     </Box>
   );

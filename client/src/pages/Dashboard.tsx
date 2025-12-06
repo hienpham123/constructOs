@@ -7,8 +7,6 @@ import {
   Card,
   CardContent,
   LinearProgress,
-  Alert,
-  AlertTitle,
   List,
   ListItem,
   ListItemText,
@@ -70,6 +68,9 @@ export default function Dashboard() {
   }) => (
     <Card
       sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
         background: bgColor || `linear-gradient(135deg, ${color}15 0%, ${color}05 100%)`,
         border: `1px solid ${color}20`,
         position: 'relative',
@@ -87,8 +88,17 @@ export default function Dashboard() {
         },
       }}
     >
-      <CardContent sx={{ position: 'relative', zIndex: 1 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+      <CardContent 
+        sx={{ 
+          position: 'relative', 
+          zIndex: 1,
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '140px',
+        }}
+      >
+        <Box display="flex" justifyContent="space-between" alignItems="flex-start" sx={{ flex: 1 }}>
           <Box sx={{ flex: 1 }}>
             <Typography
               color="text.secondary"
@@ -124,6 +134,7 @@ export default function Dashboard() {
               borderRadius: '12px',
               background: `linear-gradient(135deg, ${color}20 0%, ${color}10 100%)`,
               border: `1px solid ${color}30`,
+              flexShrink: 0,
             }}
           >
             {icon}
@@ -235,44 +246,108 @@ export default function Dashboard() {
           <Paper
             sx={{
               p: 3,
-              background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-              border: '1px solid #fbbf2420',
+              background: 'linear-gradient(135deg, #FFF8E1 0%, #FFECB3 100%)',
+              border: '1px solid rgba(255, 152, 0, 0.2)',
+              borderRadius: 3,
+              boxShadow: '0 4px 12px rgba(255, 152, 0, 0.15)',
+              position: 'relative',
+              overflow: 'hidden',
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '4px',
+                background: 'linear-gradient(90deg, #F57C00 0%, #FF9800 100%)',
+              },
             }}
           >
-            <Box display="flex" alignItems="center" mb={2}>
+            <Box display="flex" alignItems="center" mb={3}>
               <Box
                 sx={{
-                  p: 1,
-                  borderRadius: 2,
-                  backgroundColor: 'warning.main',
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  backgroundColor: '#F57C00',
                   color: 'white',
-                  mr: 2,
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'center',
+                  mr: 2,
+                  boxShadow: '0 2px 8px rgba(245, 124, 0, 0.3)',
                 }}
               >
-                <WarningIcon />
+                <WarningIcon sx={{ fontSize: 28 }} />
               </Box>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  fontWeight: 700,
+                  color: '#E65100',
+                  fontSize: '1.25rem',
+                }}
+              >
                 Cảnh báo
               </Typography>
             </Box>
-            <List sx={{ pt: 0 }}>
-              {stats.alerts.map((alert) => (
-                <Alert
+            <Box sx={{ pl: 0.5 }}>
+              {stats.alerts.map((alert, index) => (
+                <Box
                   key={alert.id}
-                  severity={alert.type === 'error' ? 'error' : alert.type === 'warning' ? 'warning' : 'info'}
                   sx={{
-                    mb: 1.5,
+                    mb: index < stats.alerts.length - 1 ? 2 : 0,
+                    p: 2.5,
+                    backgroundColor: '#FFFDE7',
                     borderRadius: 2,
-                    '&:last-child': { mb: 0 },
+                    border: '1px solid rgba(255, 152, 0, 0.15)',
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      backgroundColor: '#FFF9C4',
+                      borderColor: 'rgba(255, 152, 0, 0.3)',
+                      transform: 'translateX(4px)',
+                    },
                   }}
                 >
-                  <AlertTitle sx={{ fontWeight: 600 }}>{alert.title}</AlertTitle>
-                  {alert.message}
-                </Alert>
+                  <Box display="flex" alignItems="flex-start">
+                    <Box
+                      sx={{
+                        mt: 0.5,
+                        mr: 2,
+                        color: '#F57C00',
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <WarningIcon sx={{ fontSize: 20 }} />
+                    </Box>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography
+                        variant="subtitle1"
+                        sx={{
+                          fontWeight: 600,
+                          color: '#E65100',
+                          mb: 0.5,
+                          fontSize: '1rem',
+                        }}
+                      >
+                        {alert.title}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: 'text.secondary',
+                          lineHeight: 1.6,
+                          fontSize: '0.9rem',
+                        }}
+                      >
+                        {alert.message}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
               ))}
-            </List>
+            </Box>
           </Paper>
         </Box>
       )}

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -16,6 +16,8 @@ import {
   FormControl,
   InputLabel,
   Select,
+  FormControlLabel,
+  Checkbox,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -24,7 +26,6 @@ import 'dayjs/locale/vi';
 import { Project } from '../../types';
 import { useProjectStore } from '../../stores/projectStore';
 import { useAuthStore } from '../../stores/authStore';
-import { showError } from '../../utils/notifications';
 import { formatCurrencyInput, parseCurrencyInput } from '../../utils/currencyFormat';
 import { normalizeNumber } from '../../utils/normalize';
 
@@ -42,6 +43,7 @@ const projectSchema = z.object({
   }),
   budget: z.number().min(0, 'Ngân sách phải >= 0'),
   status: z.enum(['planning', 'in_progress', 'on_hold', 'completed', 'cancelled']),
+  progress: z.number().min(0).max(100, 'Tiến độ phải từ 0-100'),
 });
 
 type ProjectFormData = z.infer<typeof projectSchema>;
@@ -56,11 +58,13 @@ export default function ProjectForm({ open, onClose, project }: ProjectFormProps
   const { addProject, updateProject } = useProjectStore();
   const { user } = useAuthStore();
   const isSubmittingRef = useRef(false);
+  const [autoCalculateProgress, setAutoCalculateProgress] = useState(false);
   
   const {
     control,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
@@ -74,13 +78,24 @@ export default function ProjectForm({ open, onClose, project }: ProjectFormProps
       endDate: null,
       budget: 0,
       status: 'planning',
+      progress: 0,
     },
   });
+
+  // Tính progress tự động từ stages
+  const calculateProgressFromStages = (stages: any[]): number => {
+    if (!stages || stages.length === 0) {
+      return 0;
+    }
+    const completedStages = stages.filter((stage) => stage.status === 'completed').length;
+    return Math.round((completedStages / stages.length) * 100);
+  };
 
   useEffect(() => {
     if (!open) {
       // Reset submitting flag when dialog closes
       isSubmittingRef.current = false;
+      setAutoCalculateProgress(false);
       return;
     }
     
@@ -93,6 +108,16 @@ export default function ProjectForm({ open, onClose, project }: ProjectFormProps
         return dayjs(date);
       };
 
+      const stages = project.stages || [];
+      const hasStages = stages.length > 0;
+      const shouldAutoCalculate = hasStages;
+      
+      setAutoCalculateProgress(shouldAutoCalculate);
+      
+      const calculatedProgress = hasStages 
+        ? calculateProgressFromStages(stages)
+        : (project.progress || (project as any).progress || 0);
+
       reset({
         name: project.name || '',
         code: project.code || '',
@@ -103,6 +128,7 @@ export default function ProjectForm({ open, onClose, project }: ProjectFormProps
         endDate: parseDate(project.endDate || (project as any).end_date),
         budget: normalizeNumber(project.budget || (project as any).budget),
         status: project.status || 'planning',
+        progress: calculatedProgress,
       });
     } else {
       reset({
@@ -115,9 +141,19 @@ export default function ProjectForm({ open, onClose, project }: ProjectFormProps
         endDate: null,
         budget: 0,
         status: 'planning',
+        progress: 0,
       });
+      setAutoCalculateProgress(false);
     }
   }, [project?.id, open, reset]); // Include reset but it's stable from react-hook-form
+
+  // Tính lại progress khi stages thay đổi (nếu đang ở chế độ tự động)
+  useEffect(() => {
+    if (autoCalculateProgress && project?.stages) {
+      const calculatedProgress = calculateProgressFromStages(project.stages);
+      setValue('progress', calculatedProgress);
+    }
+  }, [project?.stages, autoCalculateProgress, setValue]);
 
   const onSubmit = async (data: ProjectFormData) => {
     // Prevent duplicate submission
@@ -138,7 +174,7 @@ export default function ProjectForm({ open, onClose, project }: ProjectFormProps
         endDate: data.endDate ? dayjs(data.endDate).format('YYYY-MM-DD') : '',
         budget: data.budget,
         actualCost: project?.actualCost || 0,
-        progress: project?.progress || 0,
+        progress: data.progress || 0,
         managerId: user?.id || '',
         managerName: user?.name || '',
         status: data.status,
@@ -153,8 +189,7 @@ export default function ProjectForm({ open, onClose, project }: ProjectFormProps
       onClose();
     } catch (error: any) {
       console.error('Error saving project:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'Không thể lưu dự án';
-      showError(errorMessage);
+      // Error notification đã được xử lý bởi API interceptor
       isSubmittingRef.current = false;
     }
   };
@@ -330,6 +365,59 @@ export default function ProjectForm({ open, onClose, project }: ProjectFormProps
                         <MenuItem value="cancelled">Đã hủy</MenuItem>
                       </Select>
                     </FormControl>
+                  )}
+                />
+              </Grid>
+              {project && project.stages && project.stages.length > 0 && (
+                <Grid item xs={12}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={autoCalculateProgress}
+                        onChange={(e) => {
+                          setAutoCalculateProgress(e.target.checked);
+                          if (e.target.checked) {
+                            const calculatedProgress = calculateProgressFromStages(project.stages);
+                            setValue('progress', calculatedProgress);
+                          }
+                        }}
+                      />
+                    }
+                    label="Tính tự động từ stages"
+                  />
+                </Grid>
+              )}
+              <Grid item xs={12} sm={6}>
+                <Controller
+                  name="progress"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label="Tiến độ (%)"
+                      type="number"
+                      inputProps={{ min: 0, max: 100, step: 1 }}
+                      error={!!errors.progress}
+                      helperText={
+                        autoCalculateProgress && project?.stages && project.stages.length > 0
+                          ? `Tự động: ${calculateProgressFromStages(project.stages)}% (${project.stages.filter((s) => s.status === 'completed').length}/${project.stages.length} stages hoàn thành)`
+                          : errors.progress?.message || 'Nhập từ 0-100'
+                      }
+                      value={field.value || ''}
+                      onChange={(e) => {
+                        if (autoCalculateProgress) {
+                          return; // Không cho phép chỉnh sửa khi đang ở chế độ tự động
+                        }
+                        const value = parseInt(e.target.value, 10);
+                        if (isNaN(value)) {
+                          field.onChange(0);
+                        } else {
+                          field.onChange(Math.min(100, Math.max(0, value)));
+                        }
+                      }}
+                      disabled={autoCalculateProgress}
+                    />
                   )}
                 />
               </Grid>

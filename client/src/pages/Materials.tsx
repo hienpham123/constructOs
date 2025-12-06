@@ -15,38 +15,59 @@ import {
   LinearProgress,
   IconButton,
   Tooltip,
-  Tabs,
-  Tab,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
 import { useMaterialStore } from '../stores/materialStore';
+import { useProjectStore } from '../stores/projectStore';
 import MaterialForm from '../components/forms/MaterialForm';
+import TransactionForm from '../components/forms/TransactionForm';
+import PurchaseRequestForm from '../components/forms/PurchaseRequestForm';
 import DeleteConfirmDialog from '../components/DeleteConfirmDialog';
 import { formatDate } from '../utils/dateFormat';
 
-export default function Materials() {
-  const { materials, transactions, purchaseRequests, isLoading, fetchMaterials, fetchTransactions, fetchPurchaseRequests, deleteMaterial } = useMaterialStore();
+interface MaterialsProps {
+  tab?: 'list' | 'transactions' | 'purchase-requests';
+}
+
+export default function Materials({ tab = 'list' }: MaterialsProps) {
+  const { materials, materialsTotal, transactions, transactionsTotal, purchaseRequests, purchaseRequestsTotal, isLoading, fetchMaterials, fetchTransactions, fetchPurchaseRequests, deleteMaterial, deleteTransaction, deletePurchaseRequest, updatePurchaseRequest } = useMaterialStore();
+  const { fetchProjects } = useProjectStore();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [tabValue, setTabValue] = useState(0);
   const [formOpen, setFormOpen] = useState(false);
+  const [transactionFormOpen, setTransactionFormOpen] = useState(false);
+  const [purchaseRequestFormOpen, setPurchaseRequestFormOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [transactionDeleteOpen, setTransactionDeleteOpen] = useState(false);
+  const [purchaseRequestDeleteOpen, setPurchaseRequestDeleteOpen] = useState(false);
   const [selectedMaterial, setSelectedMaterialState] = useState<any>(null);
+  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
+  const [selectedPurchaseRequest, setSelectedPurchaseRequest] = useState<any>(null);
 
   useEffect(() => {
-    fetchMaterials();
-    fetchTransactions();
-    fetchPurchaseRequests();
-  }, [fetchMaterials, fetchTransactions, fetchPurchaseRequests]);
+    fetchProjects();
+    if (tab === 'list') {
+      fetchMaterials(rowsPerPage, page);
+    }
+    if (tab === 'transactions') {
+      fetchTransactions(rowsPerPage, page);
+    }
+    if (tab === 'purchase-requests') {
+      fetchPurchaseRequests(rowsPerPage, page);
+    }
+  }, [fetchMaterials, fetchTransactions, fetchPurchaseRequests, fetchProjects, rowsPerPage, page, tab]);
 
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
   };
 
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
+    const newRowsPerPage = parseInt(event.target.value, 10);
+    setRowsPerPage(newRowsPerPage);
     setPage(0);
   };
 
@@ -115,24 +136,47 @@ export default function Materials() {
     return <LinearProgress />;
   }
 
+  const getTitle = () => {
+    switch (tab) {
+      case 'list':
+        return 'Danh sách vật tư';
+      case 'transactions':
+        return 'Nhập xuất kho';
+      case 'purchase-requests':
+        return 'Đề xuất mua hàng';
+      default:
+        return 'Quản lý vật tư';
+    }
+  };
+
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h4">Quản lý vật tư</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setSelectedMaterialState(null); setFormOpen(true); }}>
-          Thêm vật tư
-        </Button>
+        <Typography variant="h4">{getTitle()}</Typography>
+        {tab === 'list' && (
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setSelectedMaterialState(null); setFormOpen(true); }}>
+            Thêm vật tư
+          </Button>
+        )}
+        {tab === 'transactions' && (
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
+            setSelectedTransaction(null);
+            setTransactionFormOpen(true);
+          }}>
+            Thêm giao dịch
+          </Button>
+        )}
+        {tab === 'purchase-requests' && (
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
+            setSelectedPurchaseRequest(null);
+            setPurchaseRequestFormOpen(true);
+          }}>
+            Thêm đề xuất mua hàng
+          </Button>
+        )}
       </Box>
 
-      <Paper sx={{ mb: 2 }}>
-        <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)}>
-          <Tab label="Danh sách vật tư" />
-          <Tab label="Nhập xuất kho" />
-          <Tab label="Đề xuất mua hàng" />
-        </Tabs>
-      </Paper>
-
-      {tabValue === 0 && (
+      {tab === 'list' && (
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
@@ -147,9 +191,7 @@ export default function Materials() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {materials
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((material) => (
+              {materials.map((material) => (
                   <TableRow key={material.id} hover>
                     <TableCell>{material.code}</TableCell>
                     <TableCell>{material.name}</TableCell>
@@ -183,7 +225,7 @@ export default function Materials() {
           </Table>
           <TablePagination
             component="div"
-            count={materials.length}
+            count={materialsTotal}
             page={page}
             onPageChange={handleChangePage}
             rowsPerPage={rowsPerPage}
@@ -193,112 +235,190 @@ export default function Materials() {
         </TableContainer>
       )}
 
-      {tabValue === 1 && (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Ngày</TableCell>
-                <TableCell>Vật tư</TableCell>
-                <TableCell>Loại</TableCell>
-                <TableCell>Số lượng</TableCell>
-                <TableCell>Dự án</TableCell>
-                <TableCell>Lý do</TableCell>
-                <TableCell>Người thực hiện</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {transactions
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((transaction) => (
-                  <TableRow key={transaction.id} hover>
-                    <TableCell>
-                      {formatDate(transaction.performedAt)}
-                    </TableCell>
-                    <TableCell>{transaction.materialName}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={getTransactionTypeLabel(transaction.type)}
-                        color={transaction.type === 'import' ? 'success' : 'default'}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {transaction.quantity} {transaction.unit}
-                    </TableCell>
-                    <TableCell>{transaction.projectName || '-'}</TableCell>
-                    <TableCell>{transaction.reason}</TableCell>
-                    <TableCell>{transaction.performedBy}</TableCell>
-                  </TableRow>
-                ))}
-            </TableBody>
-          </Table>
-          <TablePagination
-            component="div"
-            count={transactions.length}
-            page={page}
-            onPageChange={handleChangePage}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-            labelRowsPerPage="Số dòng mỗi trang:"
-          />
-        </TableContainer>
+      {tab === 'transactions' && (
+        <>
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Ngày</TableCell>
+                  <TableCell>Vật tư</TableCell>
+                  <TableCell>Loại</TableCell>
+                  <TableCell>Số lượng</TableCell>
+                  <TableCell>Dự án</TableCell>
+                  <TableCell>Lý do</TableCell>
+                  <TableCell>Người thực hiện</TableCell>
+                  <TableCell>Thao tác</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {transactions.map((transaction) => (
+                    <TableRow key={transaction.id} hover>
+                      <TableCell>
+                        {formatDate(transaction.performedAt)}
+                      </TableCell>
+                      <TableCell>{transaction.materialName}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={getTransactionTypeLabel(transaction.type)}
+                          color={transaction.type === 'import' ? 'success' : 'default'}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {transaction.quantity} {transaction.unit}
+                      </TableCell>
+                      <TableCell>{transaction.projectName || '-'}</TableCell>
+                      <TableCell>{transaction.reason}</TableCell>
+                      <TableCell>{transaction.performedBy || '-'}</TableCell>
+                      <TableCell>
+                        <Tooltip title="Chỉnh sửa">
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setSelectedTransaction(transaction);
+                              setTransactionFormOpen(true);
+                            }}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Xóa">
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setSelectedTransaction(transaction);
+                              setTransactionDeleteOpen(true);
+                            }}
+                            color="error"
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+            <TablePagination
+              component="div"
+              count={transactionsTotal}
+              page={page}
+              onPageChange={handleChangePage}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+              labelRowsPerPage="Số dòng mỗi trang:"
+            />
+          </TableContainer>
+        </>
       )}
 
-      {tabValue === 2 && (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Ngày đề xuất</TableCell>
-                <TableCell>Vật tư</TableCell>
-                <TableCell>Số lượng</TableCell>
-                <TableCell>Lý do</TableCell>
-                <TableCell>Trạng thái</TableCell>
-                <TableCell>Thao tác</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {purchaseRequests
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((request) => (
-                  <TableRow key={request.id} hover>
-                    <TableCell>
-                      {formatDate(request.requestedAt)}
-                    </TableCell>
-                    <TableCell>{request.materialName}</TableCell>
-                    <TableCell>
-                      {request.quantity} {request.unit}
-                    </TableCell>
-                    <TableCell>{request.reason}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={getRequestStatusLabel(request.status)}
-                        color={request.status === 'approved' ? 'success' : request.status === 'pending' ? 'warning' : 'default'}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {request.status === 'pending' && (
-                        <Button size="small" variant="outlined">
-                          Duyệt
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-            </TableBody>
-          </Table>
-          <TablePagination
-            component="div"
-            count={purchaseRequests.length}
-            page={page}
-            onPageChange={handleChangePage}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-            labelRowsPerPage="Số dòng mỗi trang:"
-          />
-        </TableContainer>
+      {tab === 'purchase-requests' && (
+        <>
+          <Box display="flex" justifyContent="flex-end" mb={2}>
+          </Box>
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Ngày đề xuất</TableCell>
+                  <TableCell>Vật tư</TableCell>
+                  <TableCell>Số lượng</TableCell>
+                  <TableCell>Lý do</TableCell>
+                  <TableCell>Trạng thái</TableCell>
+                  <TableCell>Thao tác</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {purchaseRequests.map((request) => (
+                    <TableRow key={request.id} hover>
+                      <TableCell>
+                        {formatDate(request.requestedAt)}
+                      </TableCell>
+                      <TableCell>{request.materialName}</TableCell>
+                      <TableCell>
+                        {request.quantity} {request.unit}
+                      </TableCell>
+                      <TableCell>{request.reason}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={getRequestStatusLabel(request.status)}
+                          color={request.status === 'approved' ? 'success' : request.status === 'pending' ? 'warning' : 'default'}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {request.status === 'pending' && (
+                          <>
+                            <Tooltip title="Duyệt">
+                              <IconButton
+                                size="small"
+                                onClick={async () => {
+                                  await updatePurchaseRequest(request.id, 'approved');
+                                  if (tab === 'purchase-requests') {
+                                    fetchPurchaseRequests(rowsPerPage, page);
+                                  }
+                                }}
+                                sx={{ color: 'success.main' }}
+                              >
+                                <CheckIcon />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Từ chối">
+                              <IconButton
+                                size="small"
+                                onClick={async () => {
+                                  await updatePurchaseRequest(request.id, 'rejected');
+                                  if (tab === 'purchase-requests') {
+                                    fetchPurchaseRequests(rowsPerPage, page);
+                                  }
+                                }}
+                                sx={{ color: 'error.main' }}
+                              >
+                                <CloseIcon />
+                              </IconButton>
+                            </Tooltip>
+                          </>
+                        )}
+                        <Tooltip title="Xem chi tiết">
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setSelectedPurchaseRequest(request);
+                              setPurchaseRequestFormOpen(true);
+                            }}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Xóa">
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setSelectedPurchaseRequest(request);
+                              setPurchaseRequestDeleteOpen(true);
+                            }}
+                            color="error"
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+            <TablePagination
+              component="div"
+              count={purchaseRequestsTotal}
+              page={page}
+              onPageChange={handleChangePage}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+              labelRowsPerPage="Số dòng mỗi trang:"
+            />
+          </TableContainer>
+        </>
       )}
 
       <MaterialForm
@@ -322,6 +442,70 @@ export default function Materials() {
           }
         }}
         itemName={selectedMaterial?.name}
+      />
+
+      <TransactionForm
+        open={transactionFormOpen}
+        onClose={() => {
+          setTransactionFormOpen(false);
+          setSelectedTransaction(null);
+          if (tab === 'transactions') {
+            fetchTransactions(rowsPerPage, page);
+          }
+        }}
+        transaction={selectedTransaction}
+      />
+
+      <DeleteConfirmDialog
+        open={transactionDeleteOpen}
+        onClose={() => {
+          setTransactionDeleteOpen(false);
+          setSelectedTransaction(null);
+        }}
+        onConfirm={async () => {
+          if (selectedTransaction) {
+            await deleteTransaction(selectedTransaction.id);
+            setTransactionDeleteOpen(false);
+            setSelectedTransaction(null);
+            if (tab === 'transactions') {
+              fetchTransactions(rowsPerPage, page);
+            }
+          }
+        }}
+        title="Xóa giao dịch"
+        message={`Bạn có chắc chắn muốn xóa giao dịch này?`}
+      />
+
+      <PurchaseRequestForm
+        open={purchaseRequestFormOpen}
+        onClose={() => {
+          setPurchaseRequestFormOpen(false);
+          setSelectedPurchaseRequest(null);
+          if (tab === 'purchase-requests') {
+            fetchPurchaseRequests(rowsPerPage, page);
+          }
+        }}
+        purchaseRequest={selectedPurchaseRequest}
+      />
+
+      <DeleteConfirmDialog
+        open={purchaseRequestDeleteOpen}
+        onClose={() => {
+          setPurchaseRequestDeleteOpen(false);
+          setSelectedPurchaseRequest(null);
+        }}
+        onConfirm={async () => {
+          if (selectedPurchaseRequest) {
+            await deletePurchaseRequest(selectedPurchaseRequest.id);
+            setPurchaseRequestDeleteOpen(false);
+            setSelectedPurchaseRequest(null);
+            if (tab === 'purchase-requests') {
+              fetchPurchaseRequests(rowsPerPage, page);
+            }
+          }
+        }}
+        title="Xóa đề xuất mua hàng"
+        message={`Bạn có chắc chắn muốn xóa đề xuất mua hàng này?`}
       />
     </Box>
   );

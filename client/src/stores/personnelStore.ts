@@ -6,11 +6,12 @@ import { showSuccess, showError } from '../utils/notifications';
 
 interface PersonnelState {
   personnel: Personnel[];
+  personnelTotal: number;
   attendance: Attendance[];
   selectedPersonnel: Personnel | null;
   isLoading: boolean;
   error: string | null;
-  fetchPersonnel: () => Promise<void>;
+  fetchPersonnel: (pageSize?: number, pageIndex?: number) => Promise<void>;
   fetchAttendance: (projectId?: string, date?: string) => Promise<void>;
   addPersonnel: (personnel: Omit<Personnel, 'id' | 'createdAt'>) => Promise<void>;
   updatePersonnel: (id: string, personnel: Partial<Personnel>) => Promise<void>;
@@ -22,17 +23,22 @@ interface PersonnelState {
 
 export const usePersonnelStore = create<PersonnelState>((set) => ({
   personnel: [],
+  personnelTotal: 0,
   attendance: [],
   selectedPersonnel: null,
   isLoading: false,
   error: null,
 
-  fetchPersonnel: async () => {
+  fetchPersonnel: async (pageSize = 10, pageIndex = 0) => {
     set({ isLoading: true, error: null });
     try {
-      const data = await personnelAPI.getAll();
-      const personnel = Array.isArray(data) ? data.map(normalizePersonnel) : [];
-      set({ personnel, isLoading: false });
+      const response = await personnelAPI.getAll(pageSize, pageIndex);
+      // Handle both old format (array) and new format (object with data, total)
+      const personnel = Array.isArray(response) 
+        ? response.map(normalizePersonnel) 
+        : (response.data || []).map(normalizePersonnel);
+      const total = Array.isArray(response) ? personnel.length : (response.total || 0);
+      set({ personnel, personnelTotal: total, isLoading: false });
     } catch (error: any) {
       set({ error: error.message || 'Failed to fetch personnel', isLoading: false });
       console.error('Error fetching personnel:', error);

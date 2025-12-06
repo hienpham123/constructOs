@@ -163,6 +163,7 @@ export interface Equipment {
   status: 'available' | 'in_use' | 'maintenance' | 'broken';
   currentProjectId?: string;
   currentProjectName?: string;
+  currentUserId?: string;
   currentUser?: string;
   lastMaintenanceDate?: string;
   nextMaintenanceDate?: string;
@@ -174,8 +175,8 @@ export interface EquipmentUsage {
   id: string;
   equipmentId: string;
   equipmentName: string;
-  projectId: string;
-  projectName: string;
+  projectId?: string;
+  projectName?: string;
   userId: string;
   userName: string;
   startTime: string;

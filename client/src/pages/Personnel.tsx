@@ -24,7 +24,7 @@ import PersonnelForm from '../components/forms/PersonnelForm';
 import DeleteConfirmDialog from '../components/DeleteConfirmDialog';
 
 export default function Personnel() {
-  const { personnel, attendance, isLoading, fetchPersonnel, fetchAttendance, deletePersonnel } = usePersonnelStore();
+  const { personnel, personnelTotal, attendance, isLoading, fetchPersonnel, fetchAttendance, deletePersonnel } = usePersonnelStore();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [formOpen, setFormOpen] = useState(false);
@@ -32,16 +32,17 @@ export default function Personnel() {
   const [selectedPersonnel, setSelectedPersonnel] = useState<any>(null);
 
   useEffect(() => {
-    fetchPersonnel();
+    fetchPersonnel(rowsPerPage, page);
     fetchAttendance();
-  }, [fetchPersonnel, fetchAttendance]);
+  }, [fetchPersonnel, fetchAttendance, rowsPerPage, page]);
 
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
   };
 
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
+    const newRowsPerPage = parseInt(event.target.value, 10);
+    setRowsPerPage(newRowsPerPage);
     setPage(0);
   };
 
@@ -165,9 +166,7 @@ export default function Personnel() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {personnel
-              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-              .map((person) => (
+            {personnel.map((person) => (
                 <TableRow
                   key={person.id}
                   hover
@@ -242,7 +241,7 @@ export default function Personnel() {
         </Table>
         <TablePagination
           component="div"
-          count={personnel.length}
+          count={personnelTotal}
           page={page}
           onPageChange={handleChangePage}
           rowsPerPage={rowsPerPage}
@@ -256,7 +255,7 @@ export default function Personnel() {
         onClose={() => {
           setFormOpen(false);
           setSelectedPersonnel(null);
-          fetchPersonnel();
+          fetchPersonnel(rowsPerPage, page);
         }}
         personnel={selectedPersonnel}
       />

@@ -25,7 +25,7 @@ import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 
 export default function SiteLogs() {
-  const { siteLogs, isLoading, fetchSiteLogs } = useProjectStore();
+  const { siteLogs, siteLogsTotal, isLoading, fetchSiteLogs, fetchProjects } = useProjectStore();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [formOpen, setFormOpen] = useState(false);
@@ -33,15 +33,17 @@ export default function SiteLogs() {
   const [selectedSiteLog, setSelectedSiteLog] = useState<any>(null);
 
   useEffect(() => {
-    fetchSiteLogs();
-  }, [fetchSiteLogs]);
+    fetchSiteLogs(undefined, rowsPerPage, page);
+    fetchProjects();
+  }, [fetchSiteLogs, fetchProjects, rowsPerPage, page]);
 
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
   };
 
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
+    const newRowsPerPage = parseInt(event.target.value, 10);
+    setRowsPerPage(newRowsPerPage);
     setPage(0);
   };
 
@@ -75,9 +77,7 @@ export default function SiteLogs() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {siteLogs
-              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-              .map((log) => (
+            {siteLogs.map((log) => (
                 <TableRow key={log.id} hover>
                   <TableCell>
                     {formatDate(log.date)}
@@ -100,7 +100,7 @@ export default function SiteLogs() {
                       </Typography>
                     </Box>
                   </TableCell>
-                  <TableCell>{log.createdBy}</TableCell>
+                  <TableCell>{log.createdBy || '-'}</TableCell>
                   <TableCell>
                     <Tooltip title="Chỉnh sửa">
                       <IconButton 
@@ -120,7 +120,7 @@ export default function SiteLogs() {
         </Table>
         <TablePagination
           component="div"
-          count={siteLogs.length}
+          count={siteLogsTotal}
           page={page}
           onPageChange={handleChangePage}
           rowsPerPage={rowsPerPage}
@@ -134,7 +134,7 @@ export default function SiteLogs() {
         onClose={() => {
           setFormOpen(false);
           setSelectedSiteLog(null);
-          fetchSiteLogs();
+          fetchSiteLogs(undefined, rowsPerPage, page);
         }}
         siteLog={selectedSiteLog}
       />

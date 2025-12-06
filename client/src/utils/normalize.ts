@@ -1,4 +1,45 @@
 /**
+ * Normalize EquipmentUsage data from API
+ */
+export const normalizeUsage = (data: any): any => {
+  if (!data) return null;
+  
+  return {
+    id: data.id || '',
+    equipmentId: data.equipmentId || data.equipment_id || '',
+    equipmentName: data.equipmentName || data.equipment_name || '',
+    projectId: data.projectId || data.project_id || undefined,
+    projectName: data.projectName || data.project_name || undefined,
+    userId: data.userId || data.user_id || '',
+    userName: data.user_name || data.userName || '',
+    startTime: data.startTime || data.start_time || '',
+    endTime: data.endTime || data.end_time || undefined,
+    fuelConsumption: normalizeNumber(data.fuelConsumption || data.fuel_consumption),
+    notes: data.notes || '',
+  };
+};
+
+/**
+ * Normalize MaintenanceSchedule data from API
+ */
+export const normalizeMaintenanceSchedule = (data: any): any => {
+  if (!data) return null;
+  
+  return {
+    id: data.id || '',
+    equipmentId: data.equipmentId || data.equipment_id || '',
+    equipmentName: data.equipmentName || data.equipment_name || '',
+    type: data.type || 'routine',
+    scheduledDate: data.scheduledDate || data.scheduled_date || '',
+    completedDate: data.completedDate || data.completed_date || undefined,
+    status: data.status || 'scheduled',
+    description: data.description || '',
+    cost: normalizeNumber(data.cost),
+    technician: data.technician || undefined,
+  };
+};
+
+/**
  * Normalize number value - parse string to number, handle decimals
  */
 export const normalizeNumber = (value: any): number => {
@@ -129,10 +170,76 @@ export const normalizeEquipment = (data: any): any => {
     status: data.status || 'available',
     currentProjectId: data.currentProjectId || data.current_project_id || undefined,
     currentProjectName: data.currentProjectName || data.current_project_name || undefined,
-    currentUser: data.currentUser || data.current_user || undefined,
+    currentUserId: data.currentUserId || data.current_user_id || undefined,
+    currentUser: (data.current_user_name && data.current_user_name !== null && data.current_user_name !== '') 
+      ? data.current_user_name 
+      : undefined, // Only use name from JOIN, don't fallback to ID
     lastMaintenanceDate: data.lastMaintenanceDate || data.last_maintenance_date || undefined,
     nextMaintenanceDate: data.nextMaintenanceDate || data.next_maintenance_date || undefined,
     totalHours: normalizeNumber(data.totalHours || data.total_hours || 0),
     createdAt: data.created_at || data.createdAt || '',
+  };
+};
+
+/**
+ * Normalize SiteLog data from API
+ */
+export const normalizeSiteLog = (data: any): any => {
+  if (!data) return null;
+  
+  return {
+    id: data.id,
+    projectId: data.projectId || data.project_id || '',
+    projectName: data.projectName || data.project_name || '',
+    date: data.date || '',
+    weather: data.weather || '',
+    workDescription: data.workDescription || data.work_description || '',
+    issues: data.issues || '',
+    photos: data.photos || [],
+    createdBy: data.created_by_name || data.createdBy || data.created_by || '',
+    createdAt: data.created_at || data.createdAt || '',
+    updatedAt: data.updated_at || data.updatedAt || '',
+  };
+};
+
+/**
+ * Normalize MaterialTransaction data from API
+ */
+export const normalizeMaterialTransaction = (data: any): any => {
+  if (!data) return null;
+  
+  return {
+    id: data.id,
+    materialId: data.materialId || data.material_id || '',
+    materialName: data.materialName || data.material_name || '',
+    type: data.type || 'import',
+    quantity: normalizeNumber(data.quantity),
+    unit: data.unit || '',
+    projectId: data.projectId || data.project_id || undefined,
+    projectName: data.projectName || data.project_name || undefined,
+    reason: data.reason || '',
+    performedBy: data.performed_by_name || data.performedBy || data.performed_by || '',
+    performedAt: data.performedAt || data.performed_at || '',
+  };
+};
+
+/**
+ * Normalize PurchaseRequest data from API
+ */
+export const normalizePurchaseRequest = (data: any): any => {
+  if (!data) return null;
+  
+  return {
+    id: data.id,
+    materialId: data.materialId || data.material_id || '',
+    materialName: data.materialName || data.material_name || '',
+    quantity: normalizeNumber(data.quantity),
+    unit: data.unit || '',
+    reason: data.reason || '',
+    requestedBy: data.requested_by_name || data.requestedBy || data.requested_by || '', // Prioritize name
+    requestedAt: data.requestedAt || data.requested_at || '',
+    status: data.status || 'pending',
+    approvedBy: data.approved_by_name || data.approvedBy || data.approved_by || undefined, // Prioritize name
+    approvedAt: data.approvedAt || data.approved_at || undefined,
   };
 };
