@@ -98,7 +98,7 @@ export function TableRowWrapper({ children, hover = true }: TableRowProps) {
       hover={hover}
       sx={{
         '&:hover': {
-          backgroundColor: 'rgba(25, 118, 210, 0.04)',
+          backgroundColor: 'rgba(220, 38, 38, 0.04)',
         },
         '& .MuiTableCell-body': {
           borderBottom: '1px solid',

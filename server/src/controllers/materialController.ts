@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { query } from '../config/db.js';
 import { v4 as uuidv4 } from 'uuid';
-import { toMySQLDateTime, normalizeProject } from '../utils/dataHelpers.js';
+import { toMySQLDateTime, normalizeProject, buildSearchClause, buildSortClause } from '../utils/dataHelpers.js';
 import type { Material, MaterialTransaction, PurchaseRequest } from '../types/index.js';
 import type { AuthRequest } from '../middleware/auth.js';
 import { getTransactionAttachmentUrl } from '../middleware/upload.js';
@@ -10,24 +10,35 @@ import path from 'path';
 
 export const getMaterials = async (req: Request, res: Response) => {
   try {
-    const { pageSize, pageIndex } = req.query;
+    const { pageSize, pageIndex, search, sortBy, sortOrder } = req.query;
     
     // Parse pagination params with defaults
     const pageSizeNum = pageSize ? parseInt(pageSize as string, 10) : 10;
     const pageIndexNum = pageIndex ? parseInt(pageIndex as string, 10) : 0;
     const offset = pageIndexNum * pageSizeNum;
     
-    // Get total count
-    const countResults = await query<any[]>(
-      'SELECT COUNT(*) as total FROM materials'
+    // Build search and sort clauses
+    const queryParams: any[] = [];
+    const searchClause = buildSearchClause(
+      search as string,
+      ['name', 'code', 'type', 'category', 'supplier', 'barcode', 'qr_code'],
+      queryParams
     );
+    
+    const allowedSortFields = ['name', 'code', 'type', 'category', 'unit', 'current_stock', 'import_price', 'unit_price', 'supplier', 'status', 'created_at', 'updated_at'];
+    const sortClause = buildSortClause(sortBy as string, allowedSortFields, 'created_at', sortOrder as string);
+    
+    // Get total count with search
+    const countQuery = `SELECT COUNT(*) as total FROM materials ${searchClause}`;
+    const countResults = await query<any[]>(countQuery, queryParams);
     const total = countResults[0]?.total || 0;
     
     // Get paginated data
     // Note: LIMIT and OFFSET cannot use placeholders in MySQL, so we inject the values directly
     // but we've already validated them as numbers above
     const results = await query<any[]>(
-      `SELECT * FROM materials ORDER BY created_at DESC LIMIT ${pageSizeNum} OFFSET ${offset}`
+      `SELECT * FROM materials ${searchClause} ${sortClause} LIMIT ${pageSizeNum} OFFSET ${offset}`,
+      queryParams
     );
     
     res.json({
@@ -198,17 +209,39 @@ export const deleteMaterial = async (req: Request, res: Response) => {
 
 export const getTransactions = async (req: Request, res: Response) => {
   try {
-    const { pageSize, pageIndex } = req.query;
+    const { pageSize, pageIndex, search, sortBy, sortOrder } = req.query;
     
     // Parse pagination params with defaults
     const pageSizeNum = pageSize ? parseInt(pageSize as string, 10) : 10;
     const pageIndexNum = pageIndex ? parseInt(pageIndex as string, 10) : 0;
     const offset = pageIndexNum * pageSizeNum;
     
-    // Get total count
-    const countResults = await query<any[]>(
-      'SELECT COUNT(*) as total FROM material_transactions'
+    // Build search and sort clauses
+    const queryParams: any[] = [];
+    const searchClause = buildSearchClause(
+      search as string,
+      ['mt.material_name', 'mt.project_name', 'mt.reason', 'mt.type', 'u.name'],
+      queryParams
     );
+    
+    const allowedSortFields = ['material_name', 'type', 'quantity', 'project_name', 'performed_at', 'created_at'];
+    const sortClause = buildSortClause(sortBy as string, allowedSortFields, 'performed_at', sortOrder as string);
+    // Map frontend field names to database field names
+    const sortFieldMap: Record<string, string> = {
+      'material_name': 'mt.material_name',
+      'type': 'mt.type',
+      'quantity': 'mt.quantity',
+      'project_name': 'mt.project_name',
+      'performed_at': 'mt.performed_at',
+      'created_at': 'mt.performed_at',
+    };
+    const dbSortField = sortFieldMap[sortBy as string] || 'mt.performed_at';
+    const validSortOrder = sortOrder === 'desc' ? 'DESC' : 'ASC';
+    const finalSortClause = `ORDER BY ${dbSortField} ${validSortOrder}`;
+    
+    // Get total count with search
+    const countQuery = `SELECT COUNT(*) as total FROM material_transactions mt LEFT JOIN users u ON mt.performed_by = u.id ${searchClause}`;
+    const countResults = await query<any[]>(countQuery, queryParams);
     const total = countResults[0]?.total || 0;
     
     // Get paginated data with JOIN to get user name
@@ -220,7 +253,8 @@ export const getTransactions = async (req: Request, res: Response) => {
         u.name as performed_by_name
       FROM material_transactions mt
       LEFT JOIN users u ON mt.performed_by = u.id
-      ORDER BY mt.performed_at DESC LIMIT ${pageSizeNum} OFFSET ${offset}`
+      ${searchClause} ${finalSortClause} LIMIT ${pageSizeNum} OFFSET ${offset}`,
+      queryParams
     );
     
     res.json({
@@ -405,17 +439,38 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
 
 export const getPurchaseRequests = async (req: Request, res: Response) => {
   try {
-    const { pageSize, pageIndex } = req.query;
+    const { pageSize, pageIndex, search, sortBy, sortOrder } = req.query;
     
     // Parse pagination params with defaults
     const pageSizeNum = pageSize ? parseInt(pageSize as string, 10) : 10;
     const pageIndexNum = pageIndex ? parseInt(pageIndex as string, 10) : 0;
     const offset = pageIndexNum * pageSizeNum;
     
-    // Get total count
-    const countResults = await query<any[]>(
-      'SELECT COUNT(*) as total FROM purchase_requests'
+    // Build search and sort clauses
+    const queryParams: any[] = [];
+    const searchClause = buildSearchClause(
+      search as string,
+      ['pr.material_name', 'pr.reason', 'pr.status', 'u1.name', 'u2.name'],
+      queryParams
     );
+    
+    const allowedSortFields = ['material_name', 'quantity', 'status', 'requested_at', 'approved_at'];
+    const sortClause = buildSortClause(sortBy as string, allowedSortFields, 'requested_at', sortOrder as string);
+    // Map frontend field names to database field names
+    const sortFieldMap: Record<string, string> = {
+      'material_name': 'pr.material_name',
+      'quantity': 'pr.quantity',
+      'status': 'pr.status',
+      'requested_at': 'pr.requested_at',
+      'approved_at': 'pr.approved_at',
+    };
+    const dbSortField = sortFieldMap[sortBy as string] || 'pr.requested_at';
+    const validSortOrder = sortOrder === 'desc' ? 'DESC' : 'ASC';
+    const finalSortClause = `ORDER BY ${dbSortField} ${validSortOrder}`;
+    
+    // Get total count with search
+    const countQuery = `SELECT COUNT(*) as total FROM purchase_requests pr LEFT JOIN users u1 ON pr.requested_by = u1.id LEFT JOIN users u2 ON pr.approved_by = u2.id ${searchClause}`;
+    const countResults = await query<any[]>(countQuery, queryParams);
     const total = countResults[0]?.total || 0;
     
     // Get paginated data with JOIN to get user names
@@ -429,7 +484,8 @@ export const getPurchaseRequests = async (req: Request, res: Response) => {
       FROM purchase_requests pr
       LEFT JOIN users u1 ON pr.requested_by = u1.id
       LEFT JOIN users u2 ON pr.approved_by = u2.id
-      ORDER BY pr.requested_at DESC LIMIT ${pageSizeNum} OFFSET ${offset}`
+      ${searchClause} ${finalSortClause} LIMIT ${pageSizeNum} OFFSET ${offset}`,
+      queryParams
     );
     
     res.json({

@@ -10,11 +10,9 @@ import {
 } from '@mui/material';
 import {
   Construction as ConstructionIcon,
-  Inventory as InventoryIcon,
-  People as PeopleIcon,
-  TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
 import { useDashboardStore } from '../stores/dashboardStore';
+import soDoToChucImage from '../images/so_do_to_chuc.jpeg';
 
 export default function Dashboard() {
   const { stats, isLoading, fetchStats } = useDashboardStore();
@@ -37,13 +35,6 @@ export default function Dashboard() {
       </Box>
     );
   }
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-    }).format(value);
-  };
 
   const StatCard = ({
     title,
@@ -125,27 +116,8 @@ export default function Dashboard() {
 
   return (
     <Box>
-      <Box sx={{ mb: 4 }}>
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 700,
-            mb: 1,
-            background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-          }}
-        >
-          Dashboard Tổng quan
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Tổng quan về hoạt động và hiệu suất của công ty
-        </Typography>
-      </Box>
-
       <Grid container spacing={3} sx={{ mt: 1 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6}>
           <StatCard
             title="Tổng dự án"
             value={stats.totalProjects}
@@ -154,60 +126,54 @@ export default function Dashboard() {
             bgColor="linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6}>
           <StatCard
-            title="Dự án đang thi công"
+            title="Dự án đang triển khai"
             value={stats.activeProjects}
             icon={<ConstructionIcon />}
             color="#10b981"
             bgColor="linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Tổng doanh thu"
-            value={formatCurrency(stats.totalRevenue)}
-            icon={<TrendingUpIcon />}
-            color="#f59e0b"
-            bgColor="linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Lợi nhuận"
-            value={formatCurrency(stats.totalProfit)}
-            icon={<TrendingUpIcon />}
-            color="#10b981"
-            bgColor="linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)"
-          />
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Tổng nhân sự"
-            value={stats.totalPersonnel}
-            icon={<PeopleIcon />}
-            color="#3b82f6"
-            bgColor="linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Nhân sự đang làm"
-            value={stats.activePersonnel}
-            icon={<PeopleIcon />}
-            color="#10b981"
-            bgColor="linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Vật tư sắp hết"
-            value={stats.lowStockMaterials}
-            icon={<InventoryIcon />}
-            color="#ef4444"
-            bgColor="linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)"
-          />
+        <Grid item xs={12}>
+          <Card
+            sx={{
+              background: '#ffffff',
+              border: '1px solid #e5e7eb',
+            }}
+          >
+            <CardContent>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 600,
+                  mb: 2,
+                  color: 'text.primary',
+                }}
+              >
+                Sơ đồ tổ chức
+              </Typography>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  width: '100%',
+                  overflow: 'auto',
+                }}
+              >
+                <img
+                  src={soDoToChucImage}
+                  alt="Sơ đồ tổ chức"
+                  style={{
+                    maxWidth: '100%',
+                    height: 'auto',
+                    display: 'block',
+                  }}
+                />
+              </Box>
+            </CardContent>
+          </Card>
         </Grid>
       </Grid>
     </Box>

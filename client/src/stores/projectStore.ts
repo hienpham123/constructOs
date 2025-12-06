@@ -10,7 +10,7 @@ interface ProjectState {
   selectedProject: Project | null;
   isLoading: boolean;
   error: string | null;
-  fetchProjects: (pageSize?: number, pageIndex?: number) => Promise<void>;
+  fetchProjects: (pageSize?: number, pageIndex?: number, search?: string, sortBy?: string, sortOrder?: 'asc' | 'desc') => Promise<void>;
   addProject: (project: Omit<Project, 'id' | 'createdAt' | 'stages' | 'documents'>) => Promise<void>;
   updateProject: (id: string, project: Partial<Project>) => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
@@ -25,10 +25,10 @@ export const useProjectStore = create<ProjectState>((set) => ({
   isLoading: false,
   error: null,
 
-  fetchProjects: async (pageSize = 10, pageIndex = 0) => {
+  fetchProjects: async (pageSize = 10, pageIndex = 0, search?: string, sortBy?: string, sortOrder?: 'asc' | 'desc') => {
     set({ isLoading: true, error: null });
     try {
-      const response = await projectsAPI.getAll(pageSize, pageIndex);
+      const response = await projectsAPI.getAll(pageSize, pageIndex, search, sortBy, sortOrder);
       // Handle both old format (array) and new format (object with data, total)
       const projects = Array.isArray(response) 
         ? response.map(normalizeProject) 

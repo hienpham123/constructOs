@@ -13,7 +13,8 @@ export function Button({ children, sx, ...props }: ButtonProps) {
         fontWeight: 600,
         borderRadius: 0,
         px: 3,
-        py: 1.5,
+        py: 0.75,
+        minHeight: '40px',
         boxShadow: 'none',
         '&:hover': {
           boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.12)',

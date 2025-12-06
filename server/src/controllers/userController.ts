@@ -1,31 +1,70 @@
 import { Request, Response } from 'express';
 import { query } from '../config/db.js';
 import { v4 as uuidv4 } from 'uuid';
-import { normalizeString, toMySQLDateTime } from '../utils/dataHelpers.js';
+import { normalizeString, toMySQLDateTime, buildSearchClause, buildSortClause } from '../utils/dataHelpers.js';
 import bcrypt from 'bcryptjs';
 import { AuthRequest } from '../middleware/auth.js';
 import { getAvatarUrl } from '../middleware/upload.js';
 
 export const getUsers = async (req: Request, res: Response) => {
   try {
-    const { pageSize, pageIndex } = req.query;
+    const { pageSize, pageIndex, search, sortBy, sortOrder } = req.query;
     
     // Parse pagination params with defaults
     const pageSizeNum = pageSize ? parseInt(pageSize as string, 10) : 10;
     const pageIndexNum = pageIndex ? parseInt(pageIndex as string, 10) : 0;
     const offset = pageIndexNum * pageSizeNum;
     
-    // Get total count
-    const countResults = await query<any[]>(
-      'SELECT COUNT(*) as total FROM users'
+    // Build search and sort clauses
+    const queryParams: any[] = [];
+    const searchClause = buildSearchClause(
+      search as string,
+      ['name', 'email', 'phone', 'role'],
+      queryParams
     );
+    
+    const allowedSortFields = ['name', 'email', 'phone', 'role', 'status', 'created_at', 'updated_at'];
+    const sortClause = buildSortClause(sortBy as string, allowedSortFields, 'created_at', sortOrder as string);
+    
+    // Get total count with search
+    // Update search clause to use table alias for count query
+    const countSearchClause = searchClause
+      .replace(/\bname\b/g, 'u.name')
+      .replace(/\bemail\b/g, 'u.email')
+      .replace(/\bphone\b/g, 'u.phone')
+      .replace(/\brole\b/g, 'u.role');
+    
+    const countQuery = `SELECT COUNT(*) as total FROM users u ${countSearchClause}`;
+    const countResults = await query<any[]>(countQuery, queryParams);
     const total = countResults[0]?.total || 0;
     
-    // Get paginated data
-    // Note: LIMIT and OFFSET cannot use placeholders in MySQL, so we inject the values directly
-    // but we've already validated them as numbers above
+    // Get paginated data with role description
+    // Update search and sort clauses to use table aliases
+    const searchClauseWithAlias = searchClause
+      .replace(/\bname\b/g, 'u.name')
+      .replace(/\bemail\b/g, 'u.email')
+      .replace(/\bphone\b/g, 'u.phone')
+      .replace(/\brole\b/g, 'u.role');
+    
+    const sortClauseWithAlias = sortClause
+      .replace(/\bname\b/g, 'u.name')
+      .replace(/\bemail\b/g, 'u.email')
+      .replace(/\bphone\b/g, 'u.phone')
+      .replace(/\brole\b/g, 'u.role')
+      .replace(/\bstatus\b/g, 'u.status')
+      .replace(/\bcreated_at\b/g, 'u.created_at')
+      .replace(/\bupdated_at\b/g, 'u.updated_at');
+    
     const results = await query<any[]>(
-      `SELECT id, name, email, phone, role, status, avatar, created_at, updated_at FROM users ORDER BY created_at DESC LIMIT ${pageSizeNum} OFFSET ${offset}`
+      `SELECT 
+        u.id, u.name, u.email, u.phone, 
+        u.role,
+        COALESCE(r.description, r.name) as role_description,
+        u.status, u.avatar, u.created_at, u.updated_at 
+      FROM users u
+      LEFT JOIN roles r ON u.role = r.id
+      ${searchClauseWithAlias} ${sortClauseWithAlias} LIMIT ${pageSizeNum} OFFSET ${offset}`,
+      queryParams
     );
     
     res.json({
@@ -44,7 +83,14 @@ export const getUserById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const results = await query<any[]>(
-      'SELECT id, name, email, phone, role, status, avatar, created_at, updated_at FROM users WHERE id = ?',
+      `SELECT 
+        u.id, u.name, u.email, u.phone, 
+        u.role,
+        COALESCE(r.description, r.name) as role_description,
+        u.status, u.avatar, u.created_at, u.updated_at 
+      FROM users u
+      LEFT JOIN roles r ON u.role = r.id
+      WHERE u.id = ?`,
       [id]
     );
     
@@ -76,6 +122,37 @@ export const createUser = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Vui lòng nhập mật khẩu' });
     }
     
+    // Validate role_id
+    let roleId = userData.role;
+    if (!roleId) {
+      // Try to get a default role (first role in database)
+      try {
+        const defaultRole = await query<any[]>(
+          'SELECT id FROM roles LIMIT 1'
+        );
+        if (defaultRole.length > 0) {
+          roleId = defaultRole[0].id;
+        } else {
+          return res.status(400).json({ error: 'No roles found in database. Please create at least one role first.' });
+        }
+      } catch (roleError) {
+        return res.status(400).json({ error: 'Role (role_id) is required and no default role found' });
+      }
+    } else {
+      // Validate that the role exists
+      try {
+        const roleCheck = await query<any[]>(
+          'SELECT id FROM roles WHERE id = ?',
+          [roleId]
+        );
+        if (roleCheck.length === 0) {
+          return res.status(400).json({ error: `Role with id ${roleId} does not exist` });
+        }
+      } catch (roleError: any) {
+        return res.status(400).json({ error: `Invalid role_id: ${roleError.message}` });
+      }
+    }
+    
     await query(
       `INSERT INTO users (
         id, name, email, phone, password_hash, role, status, avatar, created_at, updated_at
@@ -86,7 +163,7 @@ export const createUser = async (req: Request, res: Response) => {
         userData.email,
         userData.phone || '',
         passwordHash,
-        userData.role || 'client',
+        roleId,
         userData.status || 'active',
         normalizeString(userData.avatar),
         createdAt,
@@ -95,7 +172,14 @@ export const createUser = async (req: Request, res: Response) => {
     );
     
     const newUser = await query<any[]>(
-      'SELECT id, name, email, phone, role, status, avatar, created_at, updated_at FROM users WHERE id = ?',
+      `SELECT 
+        u.id, u.name, u.email, u.phone, 
+        u.role,
+        COALESCE(r.description, r.name) as role_description,
+        u.status, u.avatar, u.created_at, u.updated_at 
+      FROM users u
+      LEFT JOIN roles r ON u.role = r.id
+      WHERE u.id = ?`,
       [id]
     );
     
@@ -160,8 +244,20 @@ export const updateUser = async (req: Request, res: Response) => {
       values.push(passwordHash);
     }
     if (userData.role !== undefined) {
-      updates.push('role = ?');
-      values.push(userData.role);
+      // Validate that the role exists
+      try {
+        const roleCheck = await query<any[]>(
+          'SELECT id FROM roles WHERE id = ?',
+          [userData.role]
+        );
+        if (roleCheck.length === 0) {
+          return res.status(400).json({ error: `Role with id ${userData.role} does not exist` });
+        }
+        updates.push('role = ?');
+        values.push(userData.role);
+      } catch (roleError: any) {
+        return res.status(400).json({ error: `Invalid role_id: ${roleError.message}` });
+      }
     }
     if (userData.status !== undefined) {
       updates.push('status = ?');
@@ -182,7 +278,14 @@ export const updateUser = async (req: Request, res: Response) => {
     );
     
     const updated = await query<any[]>(
-      'SELECT id, name, email, phone, role, status, avatar, created_at, updated_at FROM users WHERE id = ?',
+      `SELECT 
+        u.id, u.name, u.email, u.phone, 
+        u.role,
+        COALESCE(r.description, r.name) as role_description,
+        u.status, u.avatar, u.created_at, u.updated_at 
+      FROM users u
+      LEFT JOIN roles r ON u.role = r.id
+      WHERE u.id = ?`,
       [id]
     );
     
@@ -234,7 +337,14 @@ export const getCurrentUser = async (req: AuthRequest, res: Response) => {
     }
     
     const results = await query<any[]>(
-      'SELECT id, name, email, phone, role, status, avatar, created_at, updated_at FROM users WHERE id = ?',
+      `SELECT 
+        u.id, u.name, u.email, u.phone, 
+        u.role,
+        COALESCE(r.description, r.name) as role_description,
+        u.status, u.avatar, u.created_at, u.updated_at 
+      FROM users u
+      LEFT JOIN roles r ON u.role = r.id
+      WHERE u.id = ?`,
       [req.userId]
     );
     
@@ -277,7 +387,14 @@ export const uploadAvatar = async (req: AuthRequest, res: Response) => {
 
     // Get updated user
     const results = await query<any[]>(
-      'SELECT id, name, email, phone, role, status, avatar, created_at, updated_at FROM users WHERE id = ?',
+      `SELECT 
+        u.id, u.name, u.email, u.phone, 
+        u.role,
+        COALESCE(r.description, r.name) as role_description,
+        u.status, u.avatar, u.created_at, u.updated_at 
+      FROM users u
+      LEFT JOIN roles r ON u.role = r.id
+      WHERE u.id = ?`,
       [req.userId]
     );
 

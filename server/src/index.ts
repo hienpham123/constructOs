@@ -8,6 +8,7 @@ import personnelRoutes from './routes/personnelRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
+import roleRoutes from './routes/roleRoutes.js';
 // Import database connection (test connection on startup)
 import './config/db.js';
 
@@ -34,6 +35,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/materials', materialRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/personnel', personnelRoutes);
+app.use('/api/roles', roleRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

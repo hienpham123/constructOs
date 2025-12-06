@@ -24,7 +24,9 @@ import ExpandMore from '@mui/icons-material/ExpandMore';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import SecurityIcon from '@mui/icons-material/Security';
 import IconButton from '@mui/material/IconButton';
+import logoImage from '../../images/logo.svg';
 
 const drawerWidth = 280;
 const collapsedWidth = 64;
@@ -50,6 +52,7 @@ const menuItems: MenuItem[] = [
     ],
   },
   { text: 'Nhân sự', icon: <PeopleIcon />, path: '/personnel' },
+  { text: 'Vai trò', icon: <SecurityIcon />, path: '/roles' },
 ];
 
 interface SidebarProps {
@@ -141,15 +144,48 @@ export default function Sidebar({
       >
         {open && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}>
-            <ConstructionIcon />
-            <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 600 }}>
-              Admin Panel
-            </Typography>
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <img
+                src={logoImage}
+                alt="Logo"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                }}
+              />
+            </Box>
           </Box>
         )}
         {!open && (
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-            <ConstructionIcon />
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <img
+                src={logoImage}
+                alt="Logo"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                }}
+              />
+            </Box>
           </Box>
         )}
         {variant === 'permanent' && open && (
@@ -205,14 +241,14 @@ export default function Sidebar({
                     mx: 1,
                     borderRadius: 0,
                     backgroundColor: itemActive && !hasSubmenu
-                      ? 'rgba(25, 118, 210, 0.15)'
+                      ? 'rgba(220, 38, 38, 0.15)'
                       : 'transparent',
                     borderLeft: itemActive && !hasSubmenu ? '3px solid' : '3px solid transparent',
-                    borderColor: itemActive && !hasSubmenu ? '#1976d2' : 'transparent',
+                    borderColor: itemActive && !hasSubmenu ? '#dc2626' : 'transparent',
                     color: itemActive && !hasSubmenu ? '#ffffff' : 'rgba(255, 255, 255, 0.7)',
                     '&:hover': {
                       backgroundColor: itemActive && !hasSubmenu
-                        ? 'rgba(25, 118, 210, 0.2)'
+                        ? 'rgba(220, 38, 38, 0.2)'
                         : 'rgba(255, 255, 255, 0.06)',
                       color: itemActive && !hasSubmenu ? '#ffffff' : 'rgba(255, 255, 255, 0.9)',
                       transition: 'all 0.2s ease-in-out',
@@ -261,14 +297,14 @@ export default function Sidebar({
                             mx: 1,
                             borderRadius: 0,
                             backgroundColor: subActive
-                              ? 'rgba(25, 118, 210, 0.15)'
+                              ? 'rgba(220, 38, 38, 0.15)'
                               : 'transparent',
                             borderLeft: subActive ? '3px solid' : '3px solid transparent',
-                            borderColor: subActive ? '#1976d2' : 'transparent',
+                            borderColor: subActive ? '#dc2626' : 'transparent',
                             color: subActive ? '#ffffff' : 'rgba(255, 255, 255, 0.6)',
                             '&:hover': {
                               backgroundColor: subActive
-                                ? 'rgba(25, 118, 210, 0.2)'
+                                ? 'rgba(220, 38, 38, 0.2)'
                                 : 'rgba(255, 255, 255, 0.04)',
                               color: subActive ? '#ffffff' : 'rgba(255, 255, 255, 0.8)',
                               transition: 'all 0.2s ease-in-out',

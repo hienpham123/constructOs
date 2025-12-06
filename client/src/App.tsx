@@ -18,6 +18,8 @@ import TransactionAddEdit from './pages/TransactionAddEdit';
 import PurchaseRequestAddEdit from './pages/PurchaseRequestAddEdit';
 import Personnel from './pages/Personnel';
 import PersonnelAddEdit from './pages/PersonnelAddEdit';
+import Roles from './pages/Roles';
+import RolesAddEdit from './pages/RolesAddEdit';
 import Profile from './pages/Profile';
 import { useAuthStore } from './stores/authStore';
 
@@ -25,15 +27,15 @@ const theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#1976d2',
-      light: '#42a5f5',
-      dark: '#1565c0',
+      main: '#dc2626', // Đỏ phòng cháy chữa cháy
+      light: '#ef4444',
+      dark: '#b91c1c',
       contrastText: '#ffffff',
     },
     secondary: {
-      main: '#9c27b0',
-      light: '#ba68c8',
-      dark: '#7b1fa2',
+      main: '#3b82f6', // Xanh dương
+      light: '#60a5fa',
+      dark: '#2563eb',
     },
     background: {
       default: '#f5f7fa',
@@ -282,7 +284,7 @@ const theme = createTheme({
               borderColor: '#9ca3af',
             },
             '&.Mui-focused fieldset': {
-              borderColor: '#1976d2',
+              borderColor: '#dc2626',
               borderWidth: '1.5px',
             },
           },
@@ -360,6 +362,9 @@ function App() {
           <Route path="personnel" element={<Personnel />} />
           <Route path="personnel/add" element={<PersonnelAddEdit />} />
           <Route path="personnel/edit/:id" element={<PersonnelAddEdit />} />
+          <Route path="roles" element={<Roles />} />
+          <Route path="roles/add" element={<RolesAddEdit />} />
+          <Route path="roles/edit/:id" element={<RolesAddEdit />} />
           <Route path="profile" element={<Profile />} />
         </Route>
         </Routes>

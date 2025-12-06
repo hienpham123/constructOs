@@ -1,19 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
-  Typography,
   Chip,
   LinearProgress,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import { useMaterialStore } from '../stores/materialStore';
 import { useProjectStore } from '../stores/projectStore';
 import DeleteConfirmDialog from '../components/DeleteConfirmDialog';
 import { formatDate } from '../utils/dateFormat';
-import { DataTable, Button } from '../components/common';
+import { DataTable, Button, SearchInput } from '../components/common';
+import type { SearchInputRef } from '../components/common/SearchInput';
+import { mapSortField, getReverseFieldMap } from '../utils/sortFieldMapper';
+import { exportToExcel } from '../utils/export';
 import type { Material } from '../types';
 
 interface MaterialsProps {
@@ -46,20 +49,84 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
   const [selectedMaterial, setSelectedMaterialState] = useState<any>(null);
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [selectedPurchaseRequest, setSelectedPurchaseRequest] = useState<any>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  
+  // Search and sort states for each tab
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<string>('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  
+  // Separate search/sort for transactions
+  const [transactionSearch, setTransactionSearch] = useState('');
+  const [transactionSortBy, setTransactionSortBy] = useState<string>('performed_at');
+  const [transactionSortOrder, setTransactionSortOrder] = useState<'asc' | 'desc'>('desc');
+  
+  // Separate search/sort for purchase requests
+  const [purchaseRequestSearch, setPurchaseRequestSearch] = useState('');
+  const [purchaseRequestSortBy, setPurchaseRequestSortBy] = useState<string>('requested_at');
+  const [purchaseRequestSortOrder, setPurchaseRequestSortOrder] = useState<'asc' | 'desc'>('desc');
+  
+  // Refs for search inputs
+  const searchInputRef = useRef<SearchInputRef>(null);
+  const transactionSearchInputRef = useRef<SearchInputRef>(null);
+  const purchaseRequestSearchInputRef = useRef<SearchInputRef>(null);
+  const prevIsLoadingRef = useRef(isLoading);
 
   useEffect(() => {
     fetchProjects();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     if (tab === 'list') {
-      fetchMaterials(rowsPerPage, page);
-    }
-    if (tab === 'transactions') {
-      fetchTransactions(rowsPerPage, page);
-    }
-    if (tab === 'purchase-requests') {
-      fetchPurchaseRequests(rowsPerPage, page);
+      fetchMaterials(rowsPerPage, page, search.trim() || undefined, sortBy, sortOrder);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rowsPerPage, page, tab]);
+  }, [search, sortBy, sortOrder, rowsPerPage, page, tab]);
+
+  useEffect(() => {
+    if (tab === 'transactions') {
+      fetchTransactions(rowsPerPage, page, transactionSearch.trim() || undefined, transactionSortBy, transactionSortOrder);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transactionSearch, transactionSortBy, transactionSortOrder, rowsPerPage, page, tab]);
+
+  useEffect(() => {
+    if (tab === 'purchase-requests') {
+      fetchPurchaseRequests(rowsPerPage, page, purchaseRequestSearch.trim() || undefined, purchaseRequestSortBy, purchaseRequestSortOrder);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [purchaseRequestSearch, purchaseRequestSortBy, purchaseRequestSortOrder, rowsPerPage, page, tab]);
+
+  // Focus search input after data is loaded
+  useEffect(() => {
+    if (prevIsLoadingRef.current && !isLoading) {
+      setTimeout(() => {
+        if (tab === 'list' && search) {
+          searchInputRef.current?.focus();
+        } else if (tab === 'transactions' && transactionSearch) {
+          transactionSearchInputRef.current?.focus();
+        } else if (tab === 'purchase-requests' && purchaseRequestSearch) {
+          purchaseRequestSearchInputRef.current?.focus();
+        }
+      }, 100);
+    }
+    prevIsLoadingRef.current = isLoading;
+  }, [isLoading, search, transactionSearch, purchaseRequestSearch, tab]);
+
+  useEffect(() => {
+    // Initial fetch when tab changes
+    if (tab === 'list') {
+      fetchMaterials(rowsPerPage, page, search.trim() || undefined, sortBy, sortOrder);
+    }
+    if (tab === 'transactions') {
+      fetchTransactions(rowsPerPage, page, transactionSearch.trim() || undefined, transactionSortBy, transactionSortOrder);
+    }
+    if (tab === 'purchase-requests') {
+      fetchPurchaseRequests(rowsPerPage, page, purchaseRequestSearch.trim() || undefined, purchaseRequestSortBy, purchaseRequestSortOrder);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
 
   // Fetch all materials once when switching to transactions or purchase-requests tab
   useEffect(() => {
@@ -77,6 +144,24 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
     const newRowsPerPage = parseInt(event.target.value, 10);
     setRowsPerPage(newRowsPerPage);
     setPage(0);
+  };
+
+  const handleSort = (field: string, order: 'asc' | 'desc') => {
+    const backendField = mapSortField(field, 'material');
+    setSortBy(backendField);
+    setSortOrder(order);
+  };
+
+  const handleTransactionSort = (field: string, order: 'asc' | 'desc') => {
+    const backendField = mapSortField(field, 'transaction');
+    setTransactionSortBy(backendField);
+    setTransactionSortOrder(order);
+  };
+
+  const handlePurchaseRequestSort = (field: string, order: 'asc' | 'desc') => {
+    const backendField = mapSortField(field, 'purchaseRequest');
+    setPurchaseRequestSortBy(backendField);
+    setPurchaseRequestSortOrder(order);
   };
 
   const formatCurrency = (value: number) => {
@@ -140,58 +225,146 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
     }
   };
 
-  if (isLoading) {
+  // Only show full page loading if no data exists yet
+  const hasData = tab === 'list' ? materials.length > 0 : 
+                  tab === 'transactions' ? transactions.length > 0 : 
+                  purchaseRequests.length > 0;
+  
+  if (isLoading && !hasData) {
     return <LinearProgress />;
   }
 
-  const getTitle = () => {
-    switch (tab) {
-      case 'list':
-        return 'Danh sách vật tư';
-      case 'transactions':
-        return 'Nhập xuất kho';
-      case 'purchase-requests':
-        return 'Đề xuất mua hàng';
-      default:
-        return 'Quản lý vật tư';
+
+  const handleExportMaterials = async () => {
+    setIsExporting(true);
+    try {
+      // Fetch all materials for export (use large page size to get all)
+      await fetchMaterials(10000, 0);
+      
+      // Get materials from store after fetch
+      const { materials: allMaterials } = useMaterialStore.getState();
+      
+      // Prepare data for export
+      const exportData = allMaterials.map((material) => ({
+        'Tên vật tư': material.name || '',
+        'Chủng loại': material.type || '',
+        'Đơn vị': material.unit || '',
+        'Tồn kho': material.currentStock || 0,
+        'Đơn giá nhập (VND)': material.importPrice || 0,
+        'Nhà cung cấp': material.supplier || '',
+        'Trạng thái': material.status === 'available' ? 'Có sẵn' : 
+                      material.status === 'low_stock' ? 'Sắp hết' : 
+                      material.status === 'out_of_stock' ? 'Hết hàng' : '',
+      }));
+      
+      // Export with date time in filename (format: Danh_sach_vat_tu_YYYYMMDD_HHmmss.xlsx)
+      exportToExcel(exportData, 'Danh_sach_vat_tu', 'Vật tư', true);
+      setIsExporting(false);
+    } catch (error) {
+      console.error('Error exporting materials:', error);
+      alert('Không thể xuất dữ liệu. Vui lòng thử lại.');
+      setIsExporting(false);
     }
   };
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h4">{getTitle()}</Typography>
+      <Box 
+        display="flex" 
+        justifyContent="space-between" 
+        alignItems="center" 
+        mb={3}
+        gap={1}
+        sx={{
+          flexWrap: { xs: 'wrap', md: 'nowrap' },
+        }}
+      >
         {tab === 'list' && (
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/materials/add')}>
-            Thêm vật tư
-          </Button>
+          <>
+            <Box sx={{ flex: { xs: 'none', md: 1 }, maxWidth: { xs: '100%', md: 280 }, width: { xs: '100%', md: 'auto' }, order: { xs: 1, md: 0 } }}>
+              <SearchInput
+                ref={searchInputRef}
+                value={search}
+                onChange={setSearch}
+                placeholder="Tìm kiếm"
+                debounceMs={1000}
+              />
+            </Box>
+            <Box display="flex" gap={1} sx={{ order: { xs: 2, md: 0 } }}>
+              <Button 
+                variant="outlined" 
+                startIcon={<FileDownloadIcon />} 
+                onClick={handleExportMaterials}
+                disabled={isExporting}
+              >
+                {isExporting ? 'Đang xuất...' : 'Xuất Excel'}
+              </Button>
+              <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/materials/add')} sx={{ px: 2 }}>
+                Thêm vật tư
+              </Button>
+            </Box>
+          </>
         )}
         {tab === 'transactions' && (
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/materials/transactions/add')}>
-            Thêm giao dịch
-          </Button>
+          <>
+            <Box sx={{ flex: { xs: 'none', md: 1 }, maxWidth: { xs: '100%', md: 280 }, width: { xs: '100%', md: 'auto' }, order: { xs: 1, md: 0 } }}>
+              <SearchInput
+                ref={transactionSearchInputRef}
+                value={transactionSearch}
+                onChange={setTransactionSearch}
+                placeholder="Tìm kiếm"
+                debounceMs={1000}
+              />
+            </Box>
+            <Box sx={{ order: { xs: 2, md: 0 } }}>
+              <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/materials/transactions/add')} sx={{ px: 2 }}>
+                Thêm giao dịch
+              </Button>
+            </Box>
+          </>
         )}
         {tab === 'purchase-requests' && (
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/materials/purchase-requests/add')}>
-            Thêm đề xuất mua hàng
-          </Button>
+          <>
+            <Box sx={{ flex: { xs: 'none', md: 1 }, maxWidth: { xs: '100%', md: 280 }, width: { xs: '100%', md: 'auto' }, order: { xs: 1, md: 0 } }}>
+              <SearchInput
+                ref={purchaseRequestSearchInputRef}
+                value={purchaseRequestSearch}
+                onChange={setPurchaseRequestSearch}
+                placeholder="Tìm kiếm"
+                debounceMs={1000}
+              />
+            </Box>
+            <Box sx={{ order: { xs: 2, md: 0 } }}>
+              <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/materials/purchase-requests/add')} sx={{ px: 2 }}>
+                Thêm đề xuất mua hàng
+              </Button>
+            </Box>
+          </>
         )}
       </Box>
 
       {tab === 'list' && (
-        <DataTable<Material>
+        <>
+          {isLoading && materials.length > 0 && (
+            <Box sx={{ position: 'relative', mb: 1 }}>
+              <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1 }} />
+            </Box>
+          )}
+          <DataTable<Material>
           columns={[
             {
               label: 'Tên vật tư',
               field: 'name',
               width: 250,
               minWidth: 200,
+              sortable: true,
             },
             {
               label: 'Chủng loại',
               field: 'type',
               width: 150,
               minWidth: 120,
+              sortable: true,
               render: (value, row) => value || (row as any).category || '-',
             },
             {
@@ -199,6 +372,7 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
               field: 'currentStock',
               width: 150,
               minWidth: 120,
+              sortable: true,
               render: (value, row) => `${value} ${row.unit}`,
             },
             {
@@ -206,6 +380,7 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
               field: 'importPrice',
               width: 180,
               minWidth: 150,
+              sortable: true,
               render: (value, row) => formatCurrency(value || (row as any).unitPrice || 0),
             },
             {
@@ -213,6 +388,7 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
               field: 'status',
               width: 150,
               minWidth: 120,
+              sortable: true,
               render: (value) => (
                 <Chip
                   label={getStatusLabel(value)}
@@ -241,17 +417,29 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
           }}
           minWidth={800}
           emptyMessage="Không có vật tư nào"
+          sortable={true}
+          onSort={handleSort}
+          sortField={sortBy ? getReverseFieldMap('material')[sortBy] || sortBy : undefined}
+          sortOrder={sortOrder}
         />
+        </>
       )}
 
       {tab === 'transactions' && (
-        <DataTable
+        <>
+          {isLoading && transactions.length > 0 && (
+            <Box sx={{ position: 'relative', mb: 1 }}>
+              <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1 }} />
+            </Box>
+          )}
+          <DataTable
           columns={[
             {
               label: 'Ngày',
               field: 'performedAt',
               width: 150,
               minWidth: 120,
+              sortable: true,
               render: (value) => formatDate(value),
             },
             {
@@ -259,12 +447,14 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
               field: 'materialName',
               width: 200,
               minWidth: 150,
+              sortable: true,
             },
             {
               label: 'Loại',
               field: 'type',
               width: 120,
               minWidth: 100,
+              sortable: true,
               render: (value) => (
                 <Chip
                   label={getTransactionTypeLabel(value)}
@@ -278,6 +468,7 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
               field: 'quantity',
               width: 120,
               minWidth: 100,
+              sortable: true,
               render: (value, row) => `${value} ${row.unit}`,
             },
             {
@@ -285,6 +476,7 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
               field: 'projectName',
               width: 200,
               minWidth: 150,
+              sortable: true,
               render: (value) => value || '-',
             },
             {
@@ -292,12 +484,14 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
               field: 'reason',
               width: 200,
               minWidth: 150,
+              sortable: false,
             },
             {
               label: 'Người thực hiện',
               field: 'performedBy',
               width: 150,
               minWidth: 120,
+              sortable: false,
               render: (value) => value || '-',
             },
           ]}
@@ -320,13 +514,21 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
           }}
           minWidth={1000}
           emptyMessage="Chưa có giao dịch nào"
+          sortable={true}
+          onSort={handleTransactionSort}
+          sortField={transactionSortBy ? getReverseFieldMap('transaction')[transactionSortBy] || transactionSortBy : undefined}
+          sortOrder={transactionSortOrder}
         />
+        </>
       )}
 
       {tab === 'purchase-requests' && (
         <>
-          <Box display="flex" justifyContent="flex-end" mb={2}>
-          </Box>
+          {isLoading && purchaseRequests.length > 0 && (
+            <Box sx={{ position: 'relative', mb: 1 }}>
+              <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1 }} />
+            </Box>
+          )}
           <DataTable
             columns={[
               {
@@ -334,6 +536,7 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
                 field: 'requestedAt',
                 width: 150,
                 minWidth: 120,
+                sortable: true,
                 render: (value) => formatDate(value),
               },
               {
@@ -341,12 +544,14 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
                 field: 'materialName',
                 width: 200,
                 minWidth: 150,
+                sortable: true,
               },
               {
                 label: 'Số lượng',
                 field: 'quantity',
                 width: 120,
                 minWidth: 100,
+                sortable: true,
                 render: (value, row) => `${value} ${row.unit}`,
               },
               {
@@ -354,12 +559,14 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
                 field: 'reason',
                 width: 200,
                 minWidth: 150,
+                sortable: false,
               },
               {
                 label: 'Trạng thái',
                 field: 'status',
                 width: 150,
                 minWidth: 120,
+                sortable: true,
                 render: (value) => (
                   <Chip
                     label={getRequestStatusLabel(value)}
@@ -380,7 +587,7 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
                         onClick: async () => {
                           await updatePurchaseRequest(request.id, 'approved');
                           if (tab === 'purchase-requests') {
-                            fetchPurchaseRequests(rowsPerPage, page);
+                            fetchPurchaseRequests(rowsPerPage, page, purchaseRequestSearch.trim() || undefined, purchaseRequestSortBy, purchaseRequestSortOrder);
                           }
                         },
                         color: 'success' as const,
@@ -391,7 +598,7 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
                         onClick: async () => {
                           await updatePurchaseRequest(request.id, 'rejected');
                           if (tab === 'purchase-requests') {
-                            fetchPurchaseRequests(rowsPerPage, page);
+                            fetchPurchaseRequests(rowsPerPage, page, purchaseRequestSearch.trim() || undefined, purchaseRequestSortBy, purchaseRequestSortOrder);
                           }
                         },
                         color: 'error' as const,
@@ -416,6 +623,10 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
             }}
             minWidth={900}
             emptyMessage="Không có đề xuất mua hàng nào"
+            sortable={true}
+            onSort={handlePurchaseRequestSort}
+            sortField={purchaseRequestSortBy ? getReverseFieldMap('purchaseRequest')[purchaseRequestSortBy] || purchaseRequestSortBy : undefined}
+            sortOrder={purchaseRequestSortOrder}
           />
         </>
       )}
@@ -466,7 +677,7 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
             setPurchaseRequestDeleteOpen(false);
             setSelectedPurchaseRequest(null);
             if (tab === 'purchase-requests') {
-              fetchPurchaseRequests(rowsPerPage, page);
+              fetchPurchaseRequests(rowsPerPage, page, purchaseRequestSearch.trim() || undefined, purchaseRequestSortBy, purchaseRequestSortOrder);
             }
           }
         }}

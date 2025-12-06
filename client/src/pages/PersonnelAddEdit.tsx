@@ -27,24 +27,18 @@ import 'dayjs/locale/vi';
 import { Personnel } from '../types';
 import { usePersonnelStore } from '../stores/personnelStore';
 import { useProjectStore } from '../stores/projectStore';
-import { personnelAPI } from '../services/api';
+import { personnelAPI, rolesAPI, Role } from '../services/api';
 import { normalizePersonnel } from '../utils/normalize';
 import HomeIcon from '@mui/icons-material/Home';
 import SaveIcon from '@mui/icons-material/Save';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 
 const personnelSchema = z.object({
-  code: z.string().min(1, 'Mã nhân sự là bắt buộc'),
   name: z.string().min(1, 'Họ và tên là bắt buộc'),
   phone: z.string().min(1, 'Số điện thoại là bắt buộc'),
   email: z.string().email('Email không hợp lệ').optional().or(z.literal('')),
-  position: z.enum(['worker', 'engineer', 'supervisor', 'team_leader']),
-  team: z.string().optional(),
+  position: z.string().min(1, 'Vị trí là bắt buộc'),
   projectId: z.string().optional(),
-  status: z.enum(['active', 'inactive', 'on_leave']),
-  hireDate: z.any().refine((val) => val !== null && val !== undefined, {
-    message: 'Ngày tuyển dụng là bắt buộc',
-  }),
 });
 
 type PersonnelFormData = z.infer<typeof personnelSchema>;
@@ -58,12 +52,29 @@ export default function PersonnelAddEdit() {
   const isEditMode = Boolean(id);
   const [personnelData, setPersonnelData] = useState<Personnel | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [isLoadingRoles, setIsLoadingRoles] = useState(false);
   
   const personnelId = isEditMode && id ? id : null;
 
   useEffect(() => {
     fetchProjects();
   }, [fetchProjects]);
+
+  useEffect(() => {
+    const fetchRoles = async () => {
+      setIsLoadingRoles(true);
+      try {
+        const data = await rolesAPI.getAll();
+        setRoles(data);
+      } catch (error: any) {
+        console.error('Error fetching roles:', error);
+      } finally {
+        setIsLoadingRoles(false);
+      }
+    };
+    fetchRoles();
+  }, []);
 
   // Fetch personnel by ID when in edit mode
   useEffect(() => {
@@ -103,42 +114,30 @@ export default function PersonnelAddEdit() {
   } = useForm<PersonnelFormData>({
     resolver: zodResolver(personnelSchema),
     defaultValues: {
-      code: '',
       name: '',
       phone: '',
       email: '',
-      position: 'worker',
-      team: '',
+      position: '',
       projectId: '',
-      status: 'active',
-      hireDate: dayjs(),
     },
   });
 
   useEffect(() => {
     if (personnelData) {
       reset({
-        code: personnelData.code || '',
         name: personnelData.name || '',
         phone: personnelData.phone || '',
         email: personnelData.email || '',
-        position: personnelData.position || 'worker',
-        team: personnelData.team || '',
+        position: personnelData.position || '',
         projectId: personnelData.projectId || (personnelData as any).project_id || '',
-        status: personnelData.status || 'active',
-        hireDate: personnelData.hireDate ? dayjs(personnelData.hireDate || (personnelData as any).hire_date) : dayjs(),
       });
     } else if (!isEditMode) {
       reset({
-        code: '',
         name: '',
         phone: '',
         email: '',
-        position: 'worker',
-        team: '',
+        position: '',
         projectId: '',
-        status: 'active',
-        hireDate: dayjs(),
       });
     }
   }, [personnelData, isEditMode, reset]);
@@ -156,16 +155,12 @@ export default function PersonnelAddEdit() {
         : null;
 
       const personnelPayload = {
-        code: data.code,
         name: data.name,
         phone: data.phone,
         email: data.email || undefined,
         position: data.position,
-        team: data.team || undefined,
         projectId: data.projectId || undefined,
         projectName: selectedProject?.name || undefined,
-        status: data.status,
-        hireDate: data.hireDate ? dayjs(data.hireDate).format('YYYY-MM-DD') : '',
       };
 
       if (isEditMode && id) {
@@ -252,21 +247,6 @@ export default function PersonnelAddEdit() {
             <Grid container spacing={3}>
               <Grid item xs={12} sm={6}>
                 <Controller
-                  name="code"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label="Mã nhân sự *"
-                      error={!!errors.code}
-                      helperText={errors.code?.message}
-                    />
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Controller
                   name="name"
                   control={control}
                   render={({ field }) => (
@@ -316,28 +296,25 @@ export default function PersonnelAddEdit() {
                   name="position"
                   control={control}
                   render={({ field }) => (
-                    <FormControl fullWidth>
+                    <FormControl fullWidth error={!!errors.position}>
                       <InputLabel>Vị trí *</InputLabel>
-                      <Select {...field} label="Vị trí *">
-                        <MenuItem value="worker">Công nhân</MenuItem>
-                        <MenuItem value="engineer">Kỹ sư</MenuItem>
-                        <MenuItem value="supervisor">Giám sát</MenuItem>
-                        <MenuItem value="team_leader">Tổ trưởng</MenuItem>
+                      <Select 
+                        {...field} 
+                        label="Vị trí *"
+                        disabled={isLoadingRoles}
+                      >
+                        {roles.map((role) => (
+                          <MenuItem key={role.id} value={role.id}>
+                            {role.description || role.name}
+                          </MenuItem>
+                        ))}
                       </Select>
+                      {errors.position && (
+                        <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
+                          {errors.position.message}
+                        </Typography>
+                      )}
                     </FormControl>
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Controller
-                  name="team"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label="Tổ đội"
-                    />
                   )}
                 />
               </Grid>
@@ -367,42 +344,6 @@ export default function PersonnelAddEdit() {
                         );
                       }}
                       isOptionEqualToValue={(option, value) => option.id === value.id}
-                    />
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Controller
-                  name="status"
-                  control={control}
-                  render={({ field }) => (
-                    <FormControl fullWidth>
-                      <InputLabel>Trạng thái *</InputLabel>
-                      <Select {...field} label="Trạng thái *">
-                        <MenuItem value="active">Đang làm việc</MenuItem>
-                        <MenuItem value="inactive">Không hoạt động</MenuItem>
-                        <MenuItem value="on_leave">Nghỉ phép</MenuItem>
-                      </Select>
-                    </FormControl>
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Controller
-                  name="hireDate"
-                  control={control}
-                  render={({ field }) => (
-                    <DatePicker
-                      {...field}
-                      label="Ngày tuyển dụng *"
-                      format="DD/MM/YYYY"
-                      slotProps={{
-                        textField: {
-                          fullWidth: true,
-                          error: !!errors.hireDate,
-                          helperText: errors.hireDate?.message as string,
-                        },
-                      }}
                     />
                   )}
                 />

@@ -322,7 +322,7 @@ CREATE TABLE personnel (
     name VARCHAR(255) NOT NULL,
     phone VARCHAR(20) NOT NULL,
     email VARCHAR(255),
-    position VARCHAR(20) NOT NULL CHECK (position IN ('worker', 'engineer', 'supervisor', 'team_leader')),
+    position UUID NOT NULL REFERENCES roles(id) ON DELETE RESTRICT ON UPDATE CASCADE,
     team VARCHAR(100),
     project_id UUID REFERENCES projects(id),
     project_name VARCHAR(255), -- Denormalized
@@ -335,6 +335,7 @@ CREATE TABLE personnel (
 CREATE INDEX idx_personnel_code ON personnel(code);
 CREATE INDEX idx_personnel_project_id ON personnel(project_id);
 CREATE INDEX idx_personnel_status ON personnel(status);
+CREATE INDEX idx_personnel_position ON personnel(position);
 ```
 
 **Field Types:**
@@ -343,7 +344,7 @@ CREATE INDEX idx_personnel_status ON personnel(status);
 - `name`: VARCHAR(255) - Họ và tên
 - `phone`: VARCHAR(20) - Số điện thoại
 - `email`: VARCHAR(255) - Email (nullable)
-- `position`: VARCHAR(20) - Vị trí (enum)
+- `position`: UUID - Foreign Key → roles.id (role ID from roles table)
 - `team`: VARCHAR(100) - Tổ đội (nullable)
 - `project_id`: UUID - Foreign Key → projects.id (nullable)
 - `project_name`: VARCHAR(255) - Tên dự án (denormalized, nullable)

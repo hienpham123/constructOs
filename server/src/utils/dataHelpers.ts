@@ -68,3 +68,46 @@ export async function normalizeProject(
   return { projectId: normalizedProjectId, projectName };
 }
 
+/**
+ * Build WHERE clause for search
+ * @param search - Search term
+ * @param searchFields - Array of field names to search in
+ * @param queryParams - Array to push query parameters to
+ * @returns WHERE clause string
+ */
+export function buildSearchClause(
+  search: string | undefined | null,
+  searchFields: string[],
+  queryParams: any[]
+): string {
+  if (!search || typeof search !== 'string' || !search.trim()) {
+    return '';
+  }
+
+  const searchTerm = `%${search.trim()}%`;
+  // Push searchTerm for each field
+  searchFields.forEach(() => queryParams.push(searchTerm));
+  
+  return `WHERE (${searchFields.map(field => `${field} LIKE ?`).join(' OR ')})`;
+}
+
+/**
+ * Build ORDER BY clause with validation
+ * @param sortBy - Field name to sort by
+ * @param allowedFields - Array of allowed field names
+ * @param defaultField - Default field if sortBy is invalid
+ * @param sortOrder - 'asc' or 'desc'
+ * @returns ORDER BY clause string
+ */
+export function buildSortClause(
+  sortBy: string | undefined | null,
+  allowedFields: string[],
+  defaultField: string,
+  sortOrder: string | undefined | null
+): string {
+  const validSortBy = allowedFields.includes(sortBy as string) ? sortBy : defaultField;
+  const validSortOrder = sortOrder === 'desc' ? 'DESC' : 'ASC';
+  
+  return `ORDER BY ${validSortBy} ${validSortOrder}`;
+}
+

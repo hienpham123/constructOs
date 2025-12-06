@@ -1,29 +1,40 @@
 import { Request, Response } from 'express';
 import { query } from '../config/db.js';
 import { v4 as uuidv4 } from 'uuid';
-import { toMySQLDateTime, toMySQLDate } from '../utils/dataHelpers.js';
+import { toMySQLDateTime, toMySQLDate, buildSearchClause, buildSortClause } from '../utils/dataHelpers.js';
 import type { Project } from '../types/index.js';
 
 export const getProjects = async (req: Request, res: Response) => {
   try {
-    const { pageSize, pageIndex } = req.query;
+    const { pageSize, pageIndex, search, sortBy, sortOrder } = req.query;
     
     // Parse pagination params with defaults
     const pageSizeNum = pageSize ? parseInt(pageSize as string, 10) : 10;
     const pageIndexNum = pageIndex ? parseInt(pageIndex as string, 10) : 0;
     const offset = pageIndexNum * pageSizeNum;
     
-    // Get total count
-    const countResults = await query<any[]>(
-      'SELECT COUNT(*) as total FROM projects'
+    // Build search and sort clauses
+    const queryParams: any[] = [];
+    const searchClause = buildSearchClause(
+      search as string,
+      ['name', 'description', 'investor', 'client', 'contact_person', 'location'],
+      queryParams
     );
+    
+    const allowedSortFields = ['name', 'investor', 'client', 'location', 'status', 'progress', 'budget', 'actual_cost', 'start_date', 'end_date', 'created_at', 'updated_at'];
+    const sortClause = buildSortClause(sortBy as string, allowedSortFields, 'created_at', sortOrder as string);
+    
+    // Get total count with search
+    const countQuery = `SELECT COUNT(*) as total FROM projects ${searchClause}`;
+    const countResults = await query<any[]>(countQuery, queryParams);
     const total = countResults[0]?.total || 0;
     
     // Get paginated data
     // Note: LIMIT and OFFSET cannot use placeholders in MySQL, so we inject the values directly
     // but we've already validated them as numbers above
     const results = await query<any[]>(
-      `SELECT * FROM projects ORDER BY created_at DESC LIMIT ${pageSizeNum} OFFSET ${offset}`
+      `SELECT * FROM projects ${searchClause} ${sortClause} LIMIT ${pageSizeNum} OFFSET ${offset}`,
+      queryParams
     );
     
     // For each project, get stages and documents

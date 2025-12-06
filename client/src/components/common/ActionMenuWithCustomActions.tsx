@@ -1,6 +1,6 @@
 import { useState, MouseEvent, ReactNode } from 'react';
 import { IconButton, Popover, MenuList, MenuItem, ListItemIcon, ListItemText, Tooltip } from '@mui/material';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -61,7 +61,7 @@ export default function ActionMenuWithCustomActions({
             },
           }}
         >
-          <MoreVertIcon fontSize="small" />
+          <MoreHorizIcon fontSize="small" />
         </IconButton>
       </Tooltip>
       <Popover

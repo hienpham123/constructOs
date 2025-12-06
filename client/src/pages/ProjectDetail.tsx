@@ -18,12 +18,15 @@ import { Button } from '../components/common';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useProjectStore } from '../stores/projectStore';
 import { formatDate, formatDateTime } from '../utils/dateFormat';
+import { usePermissions } from '../hooks/usePermissions';
+import { Alert } from '@mui/material';
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { projects, fetchProjects, selectedProject, setSelectedProject } = useProjectStore();
   const [tabValue, setTabValue] = useState(0);
+  const { canViewDocumentType, isLoading: permissionsLoading } = usePermissions();
 
   useEffect(() => {
     if (projects.length === 0) {
@@ -168,16 +171,35 @@ export default function ProjectDetail() {
 
             {tabValue === 1 && (
               <Box sx={{ mt: 2 }}>
-                <List>
-                  {selectedProject.documents.map((doc) => (
-                    <ListItem key={doc.id}>
-                      <ListItemText
-                        primary={doc.name}
-                        secondary={`${doc.type} - ${formatDate(doc.uploadedAt)}`}
-                      />
-                    </ListItem>
-                  ))}
-                </List>
+                {permissionsLoading ? (
+                  <LinearProgress />
+                ) : (
+                  <>
+                    {selectedProject.documents.filter((doc) => canViewDocumentType(doc.type, doc.name)).length === 0 ? (
+                      <Alert severity="info">
+                        Không có tài liệu nào bạn có quyền xem hoặc chưa có tài liệu nào.
+                      </Alert>
+                    ) : (
+                      <List>
+                        {selectedProject.documents
+                          .filter((doc) => canViewDocumentType(doc.type, doc.name))
+                          .map((doc) => (
+                            <ListItem key={doc.id}>
+                              <ListItemText
+                                primary={doc.name}
+                                secondary={`${doc.type} - ${formatDate(doc.uploadedAt)}`}
+                              />
+                            </ListItem>
+                          ))}
+                      </List>
+                    )}
+                    {selectedProject.documents.filter((doc) => !canViewDocumentType(doc.type, doc.name)).length > 0 && (
+                      <Alert severity="warning" sx={{ mt: 2 }}>
+                        Có {selectedProject.documents.filter((doc) => !canViewDocumentType(doc.type, doc.name)).length} tài liệu bạn không có quyền xem.
+                      </Alert>
+                    )}
+                  </>
+                )}
               </Box>
             )}
           </Paper>

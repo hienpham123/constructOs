@@ -10,20 +10,28 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- ============================================
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    code VARCHAR(50) UNIQUE,
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     phone VARCHAR(20) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    role VARCHAR(50) NOT NULL CHECK (role IN ('admin', 'project_manager', 'accountant', 'warehouse', 'site_manager', 'engineer', 'client')),
-    status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'banned')),
+    role UUID NOT NULL REFERENCES roles(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    team VARCHAR(100),
+    project_id UUID REFERENCES projects(id) ON DELETE SET NULL ON UPDATE CASCADE,
+    project_name VARCHAR(255),
+    status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'on_leave', 'banned')),
+    hire_date DATE,
     avatar TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_code ON users(code);
 CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_users_status ON users(status);
+CREATE INDEX idx_users_project_id ON users(project_id);
+CREATE INDEX idx_users_team ON users(team);
 
 -- ============================================
 -- 2. PROJECTS TABLE
@@ -168,34 +176,17 @@ CREATE INDEX idx_purchase_requests_status ON purchase_requests(status);
 CREATE INDEX idx_purchase_requests_requested_at ON purchase_requests(requested_at);
 
 -- ============================================
--- 9. PERSONNEL TABLE
+-- 9. PERSONNEL TABLE (MERGED INTO USERS)
 -- ============================================
-CREATE TABLE personnel (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    code VARCHAR(50) UNIQUE NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    phone VARCHAR(20) NOT NULL,
-    email VARCHAR(255),
-    position VARCHAR(20) NOT NULL CHECK (position IN ('worker', 'engineer', 'supervisor', 'team_leader')),
-    team VARCHAR(100),
-    project_id UUID REFERENCES projects(id),
-    project_name VARCHAR(255),
-    status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'on_leave')),
-    hire_date DATE NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_personnel_code ON personnel(code);
-CREATE INDEX idx_personnel_project_id ON personnel(project_id);
-CREATE INDEX idx_personnel_status ON personnel(status);
+-- Personnel table has been merged into users table
+-- All personnel are now users with additional fields: code, team, project_id, project_name, hire_date
 
 -- ============================================
 -- 10. ATTENDANCE TABLE
 -- ============================================
 CREATE TABLE attendance (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    personnel_id UUID NOT NULL REFERENCES personnel(id),
+    personnel_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
     personnel_name VARCHAR(255) NOT NULL,
     project_id UUID NOT NULL REFERENCES projects(id),
     project_name VARCHAR(255) NOT NULL,

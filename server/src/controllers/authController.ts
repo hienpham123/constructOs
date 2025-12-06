@@ -35,6 +35,37 @@ export const register = async (req: Request, res: Response) => {
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
     
+    // Validate role_id
+    let roleId = role;
+    if (!roleId) {
+      // Try to get a default role (first role in database)
+      try {
+        const defaultRole = await query<any[]>(
+          'SELECT id FROM roles LIMIT 1'
+        );
+        if (defaultRole.length > 0) {
+          roleId = defaultRole[0].id;
+        } else {
+          return res.status(400).json({ error: 'No roles found in database. Please create at least one role first.' });
+        }
+      } catch (roleError) {
+        return res.status(400).json({ error: 'Role (role_id) is required and no default role found' });
+      }
+    } else {
+      // Validate that the role exists
+      try {
+        const roleCheck = await query<any[]>(
+          'SELECT id FROM roles WHERE id = ?',
+          [roleId]
+        );
+        if (roleCheck.length === 0) {
+          return res.status(400).json({ error: `Role with id ${roleId} does not exist` });
+        }
+      } catch (roleError: any) {
+        return res.status(400).json({ error: `Invalid role_id: ${roleError.message}` });
+      }
+    }
+    
     // Create user
     const id = uuidv4();
     const createdAt = toMySQLDateTime();
@@ -49,7 +80,7 @@ export const register = async (req: Request, res: Response) => {
         email,
         phone || '',
         passwordHash,
-        role || 'client',
+        roleId,
         'active',
         createdAt,
         createdAt,

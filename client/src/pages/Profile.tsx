@@ -108,7 +108,11 @@ export default function Profile() {
     }
   };
 
-  const getRoleLabel = (role: string) => {
+  const getRoleLabel = (role: string, roleDescription?: string) => {
+    // Use description if available, otherwise fallback to mapping
+    if (roleDescription) {
+      return roleDescription;
+    }
     const labels: { [key: string]: string } = {
       admin: 'Quản trị viên',
       project_manager: 'Quản lý dự án',
@@ -260,7 +264,7 @@ export default function Profile() {
             )}
             <Box sx={{ mt: 2, mb: 2 }}>
               <Chip
-                label={getRoleLabel(displayUser.role)}
+                label={getRoleLabel(displayUser.role, displayUser.role_description)}
                 color="primary"
                 size="small"
                 sx={{ mr: 1 }}

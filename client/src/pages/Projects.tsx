@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -7,9 +7,13 @@ import {
   LinearProgress,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { useProjectStore } from '../stores/projectStore';
 import DeleteConfirmDialog from '../components/DeleteConfirmDialog';
-import { DataTable, Button } from '../components/common';
+import { DataTable, Button, SearchInput } from '../components/common';
+import type { SearchInputRef } from '../components/common/SearchInput';
+import { mapSortField, getReverseFieldMap } from '../utils/sortFieldMapper';
+import { exportToExcel } from '../utils/export';
 import type { Project } from '../types';
 
 export default function Projects() {
@@ -19,10 +23,34 @@ export default function Projects() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<any>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<string>('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const searchInputRef = useRef<SearchInputRef>(null);
+  const prevIsLoadingRef = useRef(isLoading);
 
   useEffect(() => {
-    fetchProjects(rowsPerPage, page);
-  }, [fetchProjects, rowsPerPage, page]);
+    fetchProjects(rowsPerPage, page, search.trim() || undefined, sortBy, sortOrder);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, sortBy, sortOrder, rowsPerPage, page]);
+
+  // Focus search input after data is loaded
+  useEffect(() => {
+    if (prevIsLoadingRef.current && !isLoading && search) {
+      // Data just finished loading, focus the search input
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 100);
+    }
+    prevIsLoadingRef.current = isLoading;
+  }, [isLoading, search]);
+
+  const handleSort = (field: string, order: 'asc' | 'desc') => {
+    const backendField = mapSortField(field, 'project');
+    setSortBy(backendField);
+    setSortOrder(order);
+  };
 
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
@@ -108,23 +136,91 @@ export default function Projects() {
     }
   };
 
-  if (isLoading) {
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      // Fetch all projects for export (use large page size to get all)
+      await fetchProjects(10000, 0);
+      
+      // Get projects from store after fetch
+      const { projects: allProjects } = useProjectStore.getState();
+      
+      // Prepare data for export
+      const exportData = allProjects.map((project) => ({
+        'Tên dự án': project.name || '',
+        'Mô tả': project.description || '',
+        'Chủ đầu tư': project.investor || '',
+        'Đầu mối': project.contactPerson || '',
+        'Địa điểm': project.location || '',
+        'Ngày bắt đầu': project.startDate || '',
+        'Ngày kết thúc': project.endDate || '',
+        'Ngân sách (VND)': project.budget || 0,
+        'Chi phí thực tế (VND)': project.actualCost || 0,
+        'Tiến độ (%)': project.progress || 0,
+        'Trạng thái': getStatusLabel(project.status || ''),
+        'Quản lý dự án': project.managerName || '',
+      }));
+      
+      exportToExcel(exportData, 'Danh_sach_du_an', 'Dự án', false);
+      setIsExporting(false);
+    } catch (error) {
+      console.error('Error exporting projects:', error);
+      alert('Không thể xuất dữ liệu. Vui lòng thử lại.');
+      setIsExporting(false);
+    }
+  };
+
+  // Only show full page loading if no data exists yet
+  if (isLoading && projects.length === 0) {
     return <LinearProgress />;
   }
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h4">Quản lý dự án</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleAdd}
-        >
-          Thêm dự án
-        </Button>
+      <Box 
+        display="flex" 
+        justifyContent="space-between" 
+        alignItems="center" 
+        mb={3}
+        gap={1}
+        sx={{
+          flexWrap: { xs: 'wrap', md: 'nowrap' },
+        }}
+      >
+        <Box sx={{ flex: { xs: 'none', md: 1 }, maxWidth: { xs: '100%', md: 280 }, width: { xs: '100%', md: 'auto' }, order: { xs: 1, md: 0 } }}>
+          <SearchInput
+            ref={searchInputRef}
+            value={search}
+            onChange={setSearch}
+            placeholder="Tìm kiếm"
+            debounceMs={1000}
+          />
+        </Box>
+        <Box display="flex" gap={1} sx={{ order: { xs: 2, md: 0 } }}>
+          <Button
+            variant="outlined"
+            startIcon={<FileDownloadIcon />}
+            onClick={handleExport}
+            disabled={isExporting}
+          >
+            {isExporting ? 'Đang xuất...' : 'Xuất Excel'}
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleAdd}
+            sx={{ px: 2 }}
+          >
+            Thêm dự án
+          </Button>
+        </Box>
       </Box>
 
+      {isLoading && projects.length > 0 && (
+        <Box sx={{ position: 'relative', mb: 1 }}>
+          <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1 }} />
+        </Box>
+      )}
       <DataTable<Project>
         columns={[
           {
@@ -132,6 +228,7 @@ export default function Projects() {
             field: 'name',
             width: 250,
             minWidth: 200,
+            sortable: true,
             render: (value) => (
               <Typography variant="body2" sx={{ fontWeight: 500 }}>
                 {value}
@@ -143,24 +240,28 @@ export default function Projects() {
             field: 'investor',
             width: 200,
             minWidth: 150,
+            sortable: true,
           },
           {
             label: 'Đầu mối',
             field: 'contactPerson',
             width: 150,
             minWidth: 120,
+            sortable: true,
           },
           {
             label: 'Địa điểm',
             field: 'location',
             width: 200,
             minWidth: 150,
+            sortable: true,
           },
           {
             label: 'Tiến độ',
             field: 'progress',
             width: 180,
             minWidth: 150,
+            sortable: true,
             render: (value) => (
               <Box display="flex" alignItems="center" gap={1}>
                 <Box sx={{ width: 100 }}>
@@ -188,6 +289,7 @@ export default function Projects() {
             field: 'budget',
             width: 180,
             minWidth: 150,
+            sortable: true,
             render: (value) => (
               <Typography variant="body2" sx={{ fontWeight: 500 }}>
                 {formatCurrency(value)}
@@ -199,6 +301,7 @@ export default function Projects() {
             field: 'status',
             width: 150,
             minWidth: 120,
+            sortable: true,
             render: (value) => (
               <Chip
                 label={getStatusLabel(value)}
@@ -224,6 +327,10 @@ export default function Projects() {
         }}
         minWidth={1000}
         emptyMessage="Không có dự án nào"
+        sortable={true}
+        onSort={handleSort}
+        sortField={sortBy ? getReverseFieldMap('project')[sortBy] || sortBy : undefined}
+        sortOrder={sortOrder}
       />
 
       <DeleteConfirmDialog

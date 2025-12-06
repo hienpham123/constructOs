@@ -14,9 +14,9 @@ interface MaterialState {
   selectedMaterial: Material | null;
   isLoading: boolean;
   error: string | null;
-  fetchMaterials: (pageSize?: number, pageIndex?: number) => Promise<void>;
-  fetchTransactions: (pageSize?: number, pageIndex?: number) => Promise<void>;
-  fetchPurchaseRequests: (pageSize?: number, pageIndex?: number) => Promise<void>;
+  fetchMaterials: (pageSize?: number, pageIndex?: number, search?: string, sortBy?: string, sortOrder?: 'asc' | 'desc') => Promise<void>;
+  fetchTransactions: (pageSize?: number, pageIndex?: number, search?: string, sortBy?: string, sortOrder?: 'asc' | 'desc') => Promise<void>;
+  fetchPurchaseRequests: (pageSize?: number, pageIndex?: number, search?: string, sortBy?: string, sortOrder?: 'asc' | 'desc') => Promise<void>;
   addMaterial: (material: Omit<Material, 'id' | 'createdAt' | 'status'>) => Promise<void>;
   updateMaterial: (id: string, material: Partial<Material>) => Promise<void>;
   deleteMaterial: (id: string) => Promise<void>;
@@ -40,10 +40,10 @@ export const useMaterialStore = create<MaterialState>((set) => ({
   isLoading: false,
   error: null,
 
-  fetchMaterials: async (pageSize = 10, pageIndex = 0) => {
+  fetchMaterials: async (pageSize = 10, pageIndex = 0, search?: string, sortBy?: string, sortOrder?: 'asc' | 'desc') => {
     set({ isLoading: true, error: null });
     try {
-      const response = await materialsAPI.getAll(pageSize, pageIndex);
+      const response = await materialsAPI.getAll(pageSize, pageIndex, search, sortBy, sortOrder);
       // Handle both old format (array) and new format (object with data, total)
       const materials = Array.isArray(response) 
         ? response.map(normalizeMaterial) 
@@ -56,10 +56,10 @@ export const useMaterialStore = create<MaterialState>((set) => ({
     }
   },
 
-  fetchTransactions: async (pageSize = 10, pageIndex = 0) => {
+  fetchTransactions: async (pageSize = 10, pageIndex = 0, search?: string, sortBy?: string, sortOrder?: 'asc' | 'desc') => {
     set({ isLoading: true, error: null });
     try {
-      const response = await materialsAPI.getTransactions(pageSize, pageIndex);
+      const response = await materialsAPI.getTransactions(pageSize, pageIndex, search, sortBy, sortOrder);
       // Handle both old format (array) and new format (object with data, total)
       const transactionsData = Array.isArray(response) 
         ? response 
@@ -83,10 +83,10 @@ export const useMaterialStore = create<MaterialState>((set) => ({
     }
   },
 
-  fetchPurchaseRequests: async (pageSize = 10, pageIndex = 0) => {
+  fetchPurchaseRequests: async (pageSize = 10, pageIndex = 0, search?: string, sortBy?: string, sortOrder?: 'asc' | 'desc') => {
     set({ isLoading: true, error: null });
     try {
-      const response = await materialsAPI.getPurchaseRequests(pageSize, pageIndex);
+      const response = await materialsAPI.getPurchaseRequests(pageSize, pageIndex, search, sortBy, sortOrder);
       // Handle both old format (array) and new format (object with data, total)
       const purchaseRequestsData = Array.isArray(response) 
         ? response 

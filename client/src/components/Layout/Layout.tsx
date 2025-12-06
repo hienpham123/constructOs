@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
   AppBar,
@@ -15,9 +15,7 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LogoutIcon from '@mui/icons-material/Logout';
-import SearchIcon from '@mui/icons-material/Search';
 import NotificationsIcon from '@mui/icons-material/Notifications';
-import { InputBase } from '@mui/material';
 import { useAuthStore } from '../../stores/authStore';
 import Sidebar from './Sidebar';
 
@@ -29,9 +27,22 @@ export default function Layout() {
   const [collapsed, setCollapsed] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout, refreshUser } = useAuthStore();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  // Get page title based on current route
+  const getPageTitle = () => {
+    const path = location.pathname;
+    if (path.startsWith('/projects')) return 'Quản lý dự án';
+    if (path.startsWith('/materials')) return 'Quản lý vật tư';
+    if (path.startsWith('/personnel')) return 'Quản lý nhân sự';
+    if (path.startsWith('/roles')) return 'Quản lý vai trò';
+    if (path.startsWith('/dashboard') || path === '/') return 'Dashboard';
+    if (path.startsWith('/profile')) return 'Hồ sơ';
+    return 'Quản lý công ty xây dựng';
+  };
 
   // Refresh user data when component mounts to get latest avatar
   useEffect(() => {
@@ -71,10 +82,10 @@ export default function Layout() {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.enteringScreen,
           }),
-          backgroundColor: '#e3f2fd',
+          backgroundColor: '#fee2e2',
           color: 'text.primary',
           boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.1), 0px 1px 2px rgba(0, 0, 0, 0.06)',
-          borderBottom: '1px solid #bbdefb',
+          borderBottom: '1px solid #fecaca',
         }}
       >
         <Toolbar>
@@ -88,62 +99,8 @@ export default function Layout() {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, fontWeight: 600, color: 'text.primary', display: { xs: 'none', md: 'block' } }}>
-            Quản lý công ty xây dựng
+            {getPageTitle()}
           </Typography>
-          <Box
-            sx={{
-              display: { xs: 'none', md: 'flex' },
-              alignItems: 'center',
-              gap: 1,
-              flex: { md: 1, lg: 'none' },
-              maxWidth: { md: '400px', lg: 'none' },
-              ml: { md: 2 },
-            }}
-          >
-            <Box
-              sx={{
-                position: 'relative',
-                borderRadius: 0,
-                backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 1)',
-                },
-                marginRight: 1,
-                marginLeft: 1,
-                width: '100%',
-                maxWidth: { md: '300px' },
-                transition: 'background-color 0.2s',
-                border: '1px solid #bbdefb',
-              }}
-            >
-              <Box
-                sx={{
-                  padding: '0 16px',
-                  height: '100%',
-                  position: 'absolute',
-                  pointerEvents: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'text.secondary',
-                }}
-              >
-                <SearchIcon />
-              </Box>
-              <InputBase
-                placeholder="Tìm kiếm..."
-                sx={{
-                  color: 'inherit',
-                  '& .MuiInputBase-input': {
-                    padding: '8px 8px 8px 48px',
-                    transition: theme.transitions.create('width'),
-                    width: '100%',
-                    fontSize: '0.875rem',
-                  },
-                }}
-              />
-            </Box>
-          </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <IconButton
               size="small"

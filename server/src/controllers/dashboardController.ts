@@ -5,9 +5,10 @@ import moment from 'moment';
 export const getDashboardStats = async (req: Request, res: Response) => {
   try {
     // Get all data from database
+    // Note: personnel data is now in users table
     const [projects, personnel, materials] = await Promise.all([
       query<any[]>('SELECT * FROM projects'),
-      query<any[]>('SELECT * FROM personnel'),
+      query<any[]>('SELECT * FROM users'),
       query<any[]>('SELECT * FROM materials'),
     ]);
 

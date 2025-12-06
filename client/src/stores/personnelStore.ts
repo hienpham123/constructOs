@@ -11,7 +11,7 @@ interface PersonnelState {
   selectedPersonnel: Personnel | null;
   isLoading: boolean;
   error: string | null;
-  fetchPersonnel: (pageSize?: number, pageIndex?: number) => Promise<void>;
+  fetchPersonnel: (pageSize?: number, pageIndex?: number, search?: string, sortBy?: string, sortOrder?: 'asc' | 'desc') => Promise<void>;
   fetchAttendance: (projectId?: string, date?: string) => Promise<void>;
   addPersonnel: (personnel: Omit<Personnel, 'id' | 'createdAt'>) => Promise<void>;
   updatePersonnel: (id: string, personnel: Partial<Personnel>) => Promise<void>;
@@ -29,10 +29,10 @@ export const usePersonnelStore = create<PersonnelState>((set) => ({
   isLoading: false,
   error: null,
 
-  fetchPersonnel: async (pageSize = 10, pageIndex = 0) => {
+  fetchPersonnel: async (pageSize = 10, pageIndex = 0, search?: string, sortBy?: string, sortOrder?: 'asc' | 'desc') => {
     set({ isLoading: true, error: null });
     try {
-      const response = await personnelAPI.getAll(pageSize, pageIndex);
+      const response = await personnelAPI.getAll(pageSize, pageIndex, search, sortBy, sortOrder);
       // Handle both old format (array) and new format (object with data, total)
       const personnel = Array.isArray(response) 
         ? response.map(normalizePersonnel) 

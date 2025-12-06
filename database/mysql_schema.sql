@@ -7,18 +7,28 @@
 -- ============================================
 CREATE TABLE users (
     id CHAR(36) PRIMARY KEY,
+    code VARCHAR(50) UNIQUE NULL COMMENT 'Mã nhân sự (có thể null cho user đăng ký)',
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     phone VARCHAR(20) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    role ENUM('admin', 'project_manager', 'accountant', 'warehouse', 'site_manager', 'engineer', 'client') NOT NULL,
-    status ENUM('active', 'inactive', 'banned') NOT NULL DEFAULT 'active',
+    role CHAR(36) NOT NULL COMMENT 'Role ID from roles table',
+    team VARCHAR(100) NULL COMMENT 'Tổ đội',
+    project_id CHAR(36) NULL COMMENT 'Dự án đang làm',
+    project_name VARCHAR(255) NULL COMMENT 'Tên dự án (denormalized)',
+    status ENUM('active', 'inactive', 'on_leave', 'banned') NOT NULL DEFAULT 'active',
+    hire_date DATE NULL COMMENT 'Ngày tuyển dụng',
     avatar TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (role) REFERENCES roles(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL ON UPDATE CASCADE,
     INDEX idx_email (email),
+    INDEX idx_code (code),
     INDEX idx_role (role),
-    INDEX idx_status (status)
+    INDEX idx_status (status),
+    INDEX idx_project_id (project_id),
+    INDEX idx_team (team)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
@@ -169,27 +179,10 @@ CREATE TABLE purchase_requests (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
--- 9. PERSONNEL TABLE
+-- 9. PERSONNEL TABLE (MERGED INTO USERS)
 -- ============================================
-CREATE TABLE personnel (
-    id CHAR(36) PRIMARY KEY,
-    code VARCHAR(50) UNIQUE NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    phone VARCHAR(20) NOT NULL,
-    email VARCHAR(255),
-    position ENUM('worker', 'engineer', 'supervisor', 'team_leader') NOT NULL,
-    team VARCHAR(100),
-    project_id CHAR(36),
-    project_name VARCHAR(255),
-    status ENUM('active', 'inactive', 'on_leave') NOT NULL DEFAULT 'active',
-    hire_date DATE NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (project_id) REFERENCES projects(id),
-    INDEX idx_code (code),
-    INDEX idx_project_id (project_id),
-    INDEX idx_status (status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- Personnel table has been merged into users table
+-- All personnel are now users with additional fields: code, team, project_id, project_name, hire_date
 
 -- ============================================
 -- 10. ATTENDANCE TABLE

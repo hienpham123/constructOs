@@ -13,10 +13,10 @@ import {
   IconButton,
 } from '@mui/material';
 import { Button } from '../components/common';
-import ConstructionIcon from '@mui/icons-material/Construction';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { useAuthStore } from '../stores/authStore';
+import logoImage from '../images/logo.svg';
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -80,159 +80,261 @@ export default function Register() {
   };
 
   return (
-    <Container component="main" maxWidth="sm">
-      <Box
-        sx={{
-          marginTop: 4,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        <ConstructionIcon sx={{ fontSize: 60, color: 'primary.main', mb: 2 }} />
-        <Typography component="h1" variant="h4" gutterBottom>
-          Đăng ký
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Tạo tài khoản mới
-        </Typography>
-        <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
-            {error && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {error}
-              </Alert>
-            )}
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <TextField
-                  required
-                  fullWidth
-                  id="name"
-                  label="Họ và tên"
-                  name="name"
-                  autoComplete="name"
-                  autoFocus
-                  value={formData.name}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  required
-                  fullWidth
-                  id="email"
-                  label="Email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  id="phone"
-                  label="Số điện thoại"
-                  name="phone"
-                  autoComplete="tel"
-                  value={formData.phone}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  required
-                  fullWidth
-                  id="role"
-                  select
-                  label="Vai trò"
-                  name="role"
-                  value={formData.role}
-                  onChange={handleChange}
-                >
-                  <MenuItem value="client">Khách hàng</MenuItem>
-                  <MenuItem value="engineer">Kỹ sư</MenuItem>
-                  <MenuItem value="site_manager">Quản lý công trường</MenuItem>
-                  <MenuItem value="warehouse">Kho</MenuItem>
-                  <MenuItem value="accountant">Kế toán</MenuItem>
-                  <MenuItem value="project_manager">Quản lý dự án</MenuItem>
-                  <MenuItem value="admin">Quản trị viên</MenuItem>
-                </TextField>
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  required
-                  fullWidth
-                  name="password"
-                  label="Mật khẩu"
-                  type={showPassword ? 'text' : 'password'}
-                  id="password"
-                  autoComplete="new-password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  helperText="Tối thiểu 6 ký tự"
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          aria-label="toggle password visibility"
-                          onClick={() => setShowPassword(!showPassword)}
-                          edge="end"
-                        >
-                          {showPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  required
-                  fullWidth
-                  name="confirmPassword"
-                  label="Xác nhận mật khẩu"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  id="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          aria-label="toggle confirm password visibility"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          edge="end"
-                        >
-                          {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-            </Grid>
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2 }}
-              disabled={loading}
-            >
-              {loading ? 'Đang đăng ký...' : 'Đăng ký'}
-            </Button>
-            <Typography variant="body2" color="text.secondary" align="center">
-              Đã có tài khoản?{' '}
-              <Link to="/login" style={{ textDecoration: 'none', color: 'inherit' }}>
-                Đăng nhập
-              </Link>
-            </Typography>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 50%, #fef2f2 100%)',
+        py: 4,
+      }}
+    >
+      <Container component="main" maxWidth="sm">
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+          }}
+        >
+          <Box
+            sx={{
+              mb: 3,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 120,
+              height: 120,
+              borderRadius: 2,
+              background: '#ffffff',
+              boxShadow: '0px 8px 24px rgba(220, 38, 38, 0.15)',
+              p: 2,
+            }}
+          >
+            <img
+              src={logoImage}
+              alt="Logo"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+              }}
+            />
           </Box>
-        </Paper>
-      </Box>
-    </Container>
+          <Typography
+            component="h1"
+            variant="h4"
+            sx={{
+              fontWeight: 700,
+              mb: 0.5,
+              background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+          >
+            Đăng ký
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
+            Tạo tài khoản mới để bắt đầu
+          </Typography>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 4,
+              width: '100%',
+              border: '1px solid rgba(220, 38, 38, 0.1)',
+              borderRadius: 2,
+              boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.08)',
+              background: '#ffffff',
+            }}
+          >
+            <Box component="form" onSubmit={handleSubmit}>
+              {error && (
+                <Alert severity="error" sx={{ mb: 3, borderRadius: 1 }}>
+                  {error}
+                </Alert>
+              )}
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField
+                    required
+                    fullWidth
+                    id="name"
+                    label="Họ và tên"
+                    name="name"
+                    autoComplete="name"
+                    autoFocus
+                    value={formData.name}
+                    onChange={handleChange}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 1,
+                      },
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    required
+                    fullWidth
+                    id="email"
+                    label="Email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 1,
+                      },
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    id="phone"
+                    label="Số điện thoại"
+                    name="phone"
+                    autoComplete="tel"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 1,
+                      },
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    required
+                    fullWidth
+                    id="role"
+                    select
+                    label="Vai trò"
+                    name="role"
+                    value={formData.role}
+                    onChange={handleChange}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 1,
+                      },
+                    }}
+                  >
+                    <MenuItem value="client">Khách hàng</MenuItem>
+                    <MenuItem value="engineer">Kỹ sư</MenuItem>
+                    <MenuItem value="site_manager">Quản lý công trường</MenuItem>
+                    <MenuItem value="warehouse">Kho</MenuItem>
+                    <MenuItem value="accountant">Kế toán</MenuItem>
+                    <MenuItem value="project_manager">Quản lý dự án</MenuItem>
+                    <MenuItem value="admin">Quản trị viên</MenuItem>
+                  </TextField>
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    required
+                    fullWidth
+                    name="password"
+                    label="Mật khẩu"
+                    type={showPassword ? 'text' : 'password'}
+                    id="password"
+                    autoComplete="new-password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    helperText="Tối thiểu 6 ký tự"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 1,
+                      },
+                    }}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            aria-label="toggle password visibility"
+                            onClick={() => setShowPassword(!showPassword)}
+                            edge="end"
+                          >
+                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    required
+                    fullWidth
+                    name="confirmPassword"
+                    label="Xác nhận mật khẩu"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    id="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 1,
+                      },
+                    }}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            aria-label="toggle confirm password visibility"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            edge="end"
+                          >
+                            {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Grid>
+              </Grid>
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                sx={{
+                  mt: 3,
+                  mb: 2,
+                  py: 1.5,
+                  borderRadius: 1,
+                  background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
+                  boxShadow: '0px 4px 12px rgba(220, 38, 38, 0.3)',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #b91c1c 0%, #dc2626 100%)',
+                    boxShadow: '0px 6px 16px rgba(220, 38, 38, 0.4)',
+                  },
+                }}
+                disabled={loading}
+              >
+                {loading ? 'Đang đăng ký...' : 'Đăng ký'}
+              </Button>
+              <Typography variant="body2" color="text.secondary" align="center">
+                Đã có tài khoản?{' '}
+                <Link
+                  to="/login"
+                  style={{
+                    textDecoration: 'none',
+                    color: '#dc2626',
+                    fontWeight: 600,
+                  }}
+                >
+                  Đăng nhập
+                </Link>
+              </Typography>
+            </Box>
+          </Paper>
+        </Box>
+      </Container>
+    </Box>
   );
 }
 

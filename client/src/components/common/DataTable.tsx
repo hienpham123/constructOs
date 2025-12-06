@@ -9,7 +9,10 @@ import {
   Paper,
   TablePagination,
   Typography,
+  Box,
 } from '@mui/material';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import ActionMenu from './ActionMenu';
 import ActionMenuWithCustomActions from './ActionMenuWithCustomActions';
 
@@ -20,6 +23,7 @@ export interface Column<T = any> {
   minWidth?: number;
   align?: 'left' | 'center' | 'right';
   render?: (value: any, row: T) => ReactNode;
+  sortable?: boolean; // Whether column can be sorted
 }
 
 export interface TableAction<T = any> {
@@ -56,6 +60,10 @@ export interface DataTableProps<T = any> {
   minWidth?: number;
   emptyMessage?: string;
   getRowId?: (row: T) => string | number;
+  sortable?: boolean; // Enable sorting on all columns by default
+  onSort?: (field: string, order: 'asc' | 'desc') => void; // Callback when column header is clicked
+  sortField?: string; // Current sort field
+  sortOrder?: 'asc' | 'desc'; // Current sort order
 }
 
 export default function DataTable<T = any>({
@@ -66,7 +74,41 @@ export default function DataTable<T = any>({
   minWidth = 800,
   emptyMessage = 'Không có dữ liệu',
   getRowId = (row: any) => row.id,
+  sortable = true,
+  onSort,
+  sortField,
+  sortOrder,
 }: DataTableProps<T>) {
+  const handleColumnClick = (column: Column<T>) => {
+    if (!sortable || !onSort) return;
+    // If column.sortable is explicitly false, don't sort
+    if (column.sortable === false) return;
+    
+    const field = column.field as string;
+    if (sortField === field) {
+      // Toggle order if same field
+      onSort(field, sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New field, default to asc
+      onSort(field, 'asc');
+    }
+  };
+
+  const getSortIcon = (column: Column<T>) => {
+    if (!sortable || !onSort) return null;
+    // If column.sortable is explicitly false, don't show icon
+    if (column.sortable === false) return null;
+    
+    const field = column.field as string;
+    if (sortField === field) {
+      return sortOrder === 'asc' ? (
+        <ArrowUpwardIcon sx={{ fontSize: 16, ml: 0.5, color: 'primary.main' }} />
+      ) : (
+        <ArrowDownwardIcon sx={{ fontSize: 16, ml: 0.5, color: 'primary.main' }} />
+      );
+    }
+    return null;
+  };
   return (
     <TableContainer
       component={Paper}
@@ -78,7 +120,7 @@ export default function DataTable<T = any>({
         border: '1px solid #e5e7eb',
       }}
     >
-      <MuiTable sx={{ minWidth }}>
+      <MuiTable sx={{ minWidth, borderCollapse: 'separate', borderSpacing: 0 }}>
         <TableHead>
           <TableRow
             sx={{
@@ -88,23 +130,49 @@ export default function DataTable<T = any>({
                 fontSize: '0.8125rem',
                 color: '#374151',
                 borderBottom: '1px solid #e5e7eb',
+                borderRight: '1px solid #e5e7eb',
                 py: 1.5,
                 whiteSpace: 'nowrap',
+                '&:last-child': {
+                  borderRight: 'none',
+                },
               },
             }}
           >
             {actions && (
               <TableCell sx={{ width: 60, minWidth: 60 }}>Thao tác</TableCell>
             )}
-            {columns.map((column, index) => (
-              <TableCell
-                key={index}
-                align={column.align || 'left'}
-                sx={{ width: column.width, minWidth: column.minWidth }}
-              >
-                {column.label}
-              </TableCell>
-            ))}
+            {columns.map((column, index) => {
+              const isSortable = sortable && (column.sortable !== false) && onSort;
+              return (
+                <TableCell
+                  key={index}
+                  align={column.align || 'left'}
+                  sx={{
+                    width: column.width,
+                    minWidth: column.minWidth,
+                    cursor: isSortable ? 'pointer' : 'default',
+                    userSelect: 'none',
+                    transition: 'background-color 0.2s',
+                    '&:hover': isSortable ? {
+                      backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                    } : {},
+                  }}
+                  onClick={() => isSortable && handleColumnClick(column)}
+                >
+                  <Box
+                    display="flex"
+                    alignItems="center"
+                    sx={{
+                      fontWeight: 600,
+                    }}
+                  >
+                    {column.label}
+                    {getSortIcon(column)}
+                  </Box>
+                </TableCell>
+              );
+            })}
           </TableRow>
         </TableHead>
         <TableBody>
@@ -121,21 +189,27 @@ export default function DataTable<T = any>({
               </TableCell>
             </TableRow>
           ) : (
-            data.map((row) => (
-              <TableRow
-                key={getRowId(row)}
-                hover
-                sx={{
-                  '&:hover': {
-                    backgroundColor: '#f9fafb',
-                  },
-                  '& .MuiTableCell-body': {
-                    borderBottom: '1px solid #f3f4f6',
-                    py: 1.5,
-                    whiteSpace: 'nowrap',
-                  },
-                }}
-              >
+            data.map((row, rowIndex) => {
+              const isLastRow = rowIndex === data.length - 1;
+              return (
+                <TableRow
+                  key={getRowId(row)}
+                  hover
+                  sx={{
+                    '&:hover': {
+                      backgroundColor: '#f9fafb',
+                    },
+                    '& .MuiTableCell-body': {
+                      borderBottom: isLastRow ? '1px solid #e5e7eb !important' : '1px solid #e5e7eb',
+                      borderRight: '1px solid #e5e7eb',
+                      py: 1.5,
+                      whiteSpace: 'nowrap',
+                      '&:last-child': {
+                        borderRight: 'none',
+                      },
+                    },
+                  }}
+                >
                 {actions && (
                   <TableCell>
                     {(() => {
@@ -178,7 +252,8 @@ export default function DataTable<T = any>({
                   );
                 })}
               </TableRow>
-            ))
+              );
+            })
           )}
         </TableBody>
       </MuiTable>
