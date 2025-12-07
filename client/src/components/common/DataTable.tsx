@@ -10,6 +10,7 @@ import {
   TablePagination,
   Typography,
   Box,
+  Skeleton,
 } from '@mui/material';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
@@ -66,6 +67,8 @@ export interface DataTableProps<T = any> {
   onSort?: (field: string, order: 'asc' | 'desc') => void; // Callback when column header is clicked
   sortField?: string; // Current sort field
   sortOrder?: 'asc' | 'desc'; // Current sort order
+  loading?: boolean; // Show skeleton loading state
+  loadingRows?: number; // Number of skeleton rows to show
 }
 
 export default function DataTable<T = any>({
@@ -80,6 +83,8 @@ export default function DataTable<T = any>({
   onSort,
   sortField,
   sortOrder,
+  loading = false,
+  loadingRows = 5,
 }: DataTableProps<T>) {
   const handleColumnClick = (column: Column<T>) => {
     if (!sortable || !onSort) return;
@@ -178,7 +183,23 @@ export default function DataTable<T = any>({
           </TableRow>
         </TableHead>
         <TableBody>
-          {data.length === 0 ? (
+          {loading ? (
+            // Skeleton loading rows
+            Array.from({ length: loadingRows }).map((_, index) => (
+              <TableRow key={`skeleton-${index}`}>
+                {actions && (
+                  <TableCell>
+                    <Skeleton variant="circular" width={32} height={32} />
+                  </TableCell>
+                )}
+                {columns.map((_, colIndex) => (
+                  <TableCell key={colIndex}>
+                    <Skeleton variant="text" width="80%" height={20} />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))
+          ) : data.length === 0 ? (
             <TableRow>
               <TableCell
                 colSpan={columns.length + (actions ? 1 : 0)}

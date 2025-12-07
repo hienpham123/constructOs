@@ -168,7 +168,7 @@ export default function MessageList({
                 }}
               >
                 <MessageItem
-                  message={message}
+                message={message}
                 isOwn={isOwn}
                 isEditing={isEditing}
                 isHovered={isHovered}

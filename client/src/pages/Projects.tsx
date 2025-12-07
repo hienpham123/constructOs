@@ -224,11 +224,6 @@ export default function Projects() {
         </Box>
       </Box>
 
-      {isLoading && projects.length > 0 && (
-        <Box sx={{ position: 'relative', mb: 1 }}>
-          <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1 }} />
-        </Box>
-      )}
       <DataTable<Project>
         columns={[
           {
@@ -363,6 +358,8 @@ export default function Projects() {
         onSort={handleSort}
         sortField={sortBy ? getReverseFieldMap('project')[sortBy] || sortBy : undefined}
         sortOrder={sortOrder}
+        loading={isLoading}
+        loadingRows={rowsPerPage}
       />
 
       <DeleteConfirmDialog

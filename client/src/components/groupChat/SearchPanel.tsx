@@ -6,13 +6,13 @@ import {
   IconButton,
   InputAdornment,
   Paper,
-  CircularProgress,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
 import SearchFilters from './SearchFilters';
 import SearchResults from './SearchResults';
+import SearchResultsSkeleton from './SearchResultsSkeleton';
 import type { GroupMessage, GroupMember } from '../../services/api/groupChats';
 import { groupChatsAPI } from '../../services/api/groupChats';
 import { Dayjs } from 'dayjs';
@@ -172,9 +172,7 @@ export default function SearchPanel({ groupId, members, onClose, onMessageClick 
       {/* Results */}
       <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
         {isSearching ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
-            <CircularProgress size={24} />
-          </Box>
+          <SearchResultsSkeleton />
         ) : hasSearched ? (
           <SearchResults
             results={results}

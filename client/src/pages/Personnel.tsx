@@ -117,11 +117,6 @@ export default function Personnel() {
         </Box>
       </Box>
 
-      {isLoading && personnel.length > 0 && (
-        <Box sx={{ position: 'relative', mb: 1 }}>
-          <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1 }} />
-        </Box>
-      )}
       <DataTable
         columns={[
           {
@@ -183,6 +178,8 @@ export default function Personnel() {
         onSort={handleSort}
         sortField={sortBy ? getReverseFieldMap('personnel')[sortBy] || sortBy : undefined}
         sortOrder={sortOrder}
+        loading={isLoading}
+        loadingRows={rowsPerPage}
       />
 
       <DeleteConfirmDialog

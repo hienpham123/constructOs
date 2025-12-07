@@ -356,11 +356,6 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
 
       {tab === 'list' && (
         <>
-          {isLoading && materials.length > 0 && (
-            <Box sx={{ position: 'relative', mb: 1 }}>
-              <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1 }} />
-            </Box>
-          )}
           <DataTable<Material>
           columns={[
             {
@@ -432,17 +427,14 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
           onSort={handleSort}
           sortField={sortBy ? getReverseFieldMap('material')[sortBy] || sortBy : undefined}
           sortOrder={sortOrder}
+          loading={isLoading}
+          loadingRows={rowsPerPage}
         />
         </>
       )}
 
       {tab === 'transactions' && (
         <>
-          {isLoading && transactions.length > 0 && (
-            <Box sx={{ position: 'relative', mb: 1 }}>
-              <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1 }} />
-            </Box>
-          )}
           <DataTable
           columns={[
             {
@@ -529,17 +521,14 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
           onSort={handleTransactionSort}
           sortField={transactionSortBy ? getReverseFieldMap('transaction')[transactionSortBy] || transactionSortBy : undefined}
           sortOrder={transactionSortOrder}
+          loading={isLoading}
+          loadingRows={rowsPerPage}
         />
         </>
       )}
 
       {tab === 'purchase-requests' && (
         <>
-          {isLoading && purchaseRequests.length > 0 && (
-            <Box sx={{ position: 'relative', mb: 1 }}>
-              <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1 }} />
-            </Box>
-          )}
           <DataTable
             columns={[
               {
@@ -667,6 +656,8 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
             onSort={handlePurchaseRequestSort}
             sortField={purchaseRequestSortBy ? getReverseFieldMap('purchaseRequest')[purchaseRequestSortBy] || purchaseRequestSortBy : undefined}
             sortOrder={purchaseRequestSortOrder}
+            loading={isLoading}
+            loadingRows={rowsPerPage}
           />
         </>
       )}
