@@ -1,5 +1,17 @@
 import api from './instance';
 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+  avatar?: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Users API
 export const usersAPI = {
   getCurrent: () => api.get('/users/me').then((res) => res.data),
@@ -11,6 +23,10 @@ export const usersAPI = {
     if (sortBy) params.sortBy = sortBy;
     if (sortOrder) params.sortOrder = sortOrder;
     return api.get('/users', { params }).then((res) => res.data);
+  },
+  getUsers: async (): Promise<User[]> => {
+    const response = await api.get('/users', { params: { pageSize: 1000 } });
+    return response.data.data || response.data || [];
   },
   getById: (id: string) => api.get(`/users/${id}`).then((res) => res.data),
   create: (data: any) => api.post('/users', data).then((res) => res.data),

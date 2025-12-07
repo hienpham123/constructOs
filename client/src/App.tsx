@@ -23,6 +23,8 @@ import RolesAddEdit from './pages/RolesAddEdit';
 import DailyReports from './pages/DailyReports';
 import DailyReportAddEdit from './pages/DailyReportAddEdit';
 import Profile from './pages/Profile';
+import GroupChats from './pages/GroupChats';
+import GroupChatDetail from './pages/GroupChatDetail';
 import { useAuthStore } from './stores/authStore';
 
 const theme = createTheme({
@@ -387,6 +389,8 @@ function App() {
           <Route path="daily-reports" element={<DailyReports />} />
           <Route path="daily-reports/edit/:userId/:date" element={<DailyReportAddEdit />} />
           <Route path="daily-reports/view/:userId/:date" element={<DailyReportAddEdit />} />
+          <Route path="group-chats" element={<GroupChats />} />
+          <Route path="group-chats/:id" element={<GroupChats />} />
           <Route path="profile" element={<Profile />} />
         </Route>
         </Routes>

@@ -62,6 +62,13 @@ export default function Layout() {
     }
   }, [user?.avatar]);
 
+  // Auto-collapse sidebar when entering group chat
+  useEffect(() => {
+    if (location.pathname.startsWith('/group-chats')) {
+      setCollapsed(true);
+    }
+  }, [location.pathname]);
+
   // Get avatar URL with cache busting
   const getAvatarUrl = () => {
     if (!user?.avatar) return undefined;
@@ -90,24 +97,26 @@ export default function Layout() {
   };
 
   const sidebarWidth = collapsed && !isMobile ? collapsedWidth : drawerWidth;
+  const isGroupChat = location.pathname.startsWith('/group-chats');
 
   return (
     <Box sx={{ display: 'flex' }}>
-      <AppBar
-        position="fixed"
-        sx={{
-          width: { sm: `calc(100% - ${sidebarWidth}px)` },
-          ml: { sm: `${sidebarWidth}px` },
-          transition: theme.transitions.create(['width', 'margin'], {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.enteringScreen,
-          }),
-          backgroundColor: '#fee2e2',
-          color: 'text.primary',
-          boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.1), 0px 1px 2px rgba(0, 0, 0, 0.06)',
-          borderBottom: '1px solid #fecaca',
-        }}
-      >
+      {!isGroupChat && (
+        <AppBar
+          position="fixed"
+          sx={{
+            width: { sm: `calc(100% - ${sidebarWidth}px)` },
+            ml: { sm: `${sidebarWidth}px` },
+            transition: theme.transitions.create(['width', 'margin'], {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.enteringScreen,
+            }),
+            backgroundColor: '#fee2e2',
+            color: 'text.primary',
+            boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.1), 0px 1px 2px rgba(0, 0, 0, 0.06)',
+            borderBottom: '1px solid #fecaca',
+          }}
+        >
         <Toolbar>
           <IconButton
             color="inherit"
@@ -184,6 +193,7 @@ export default function Layout() {
           </Menu>
         </Toolbar>
       </AppBar>
+      )}
       <Sidebar
         variant="temporary"
         mobileOpen={mobileOpen}
@@ -198,15 +208,15 @@ export default function Layout() {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
+          p: isGroupChat ? 0 : 3,
           width: { sm: `calc(100% - ${sidebarWidth}px)` },
-          mt: 8,
+          mt: isGroupChat ? 0 : 8,
           transition: theme.transitions.create(['width', 'margin'], {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.enteringScreen,
           }),
-          backgroundColor: '#f5f7fa',
-          minHeight: 'calc(100vh - 64px)',
+          backgroundColor: isGroupChat ? 'transparent' : '#f5f7fa',
+          minHeight: isGroupChat ? '100vh' : 'calc(100vh - 64px)',
         }}
       >
         <Outlet />

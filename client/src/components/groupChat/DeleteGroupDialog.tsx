@@ -1,0 +1,28 @@
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography } from '@mui/material';
+
+interface DeleteGroupDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  groupName: string | null;
+}
+
+export default function DeleteGroupDialog({ open, onClose, onConfirm, groupName }: DeleteGroupDialogProps) {
+  return (
+    <Dialog open={open} onClose={onClose}>
+      <DialogTitle>Xác nhận xóa nhóm</DialogTitle>
+      <DialogContent>
+        <Typography>
+          Bạn có chắc chắn muốn xóa nhóm "{groupName}"? Tất cả tin nhắn và thành viên sẽ bị xóa. Hành động này không thể hoàn tác.
+        </Typography>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Hủy</Button>
+        <Button onClick={onConfirm} color="error" variant="contained">
+          Xóa nhóm
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+

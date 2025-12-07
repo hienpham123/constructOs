@@ -27,6 +27,7 @@ import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import SecurityIcon from '@mui/icons-material/Security';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import DescriptionIcon from '@mui/icons-material/Description';
+import ChatIcon from '@mui/icons-material/Chat';
 import IconButton from '@mui/material/IconButton';
 import logoImage from '../../images/logo.svg';
 
@@ -55,6 +56,7 @@ const menuItems: MenuItem[] = [
   },
   { text: 'Nhân sự', icon: <PeopleIcon />, path: '/personnel' },
   { text: 'Vai trò', icon: <SecurityIcon />, path: '/roles' },
+  { text: 'Group Chat', icon: <ChatIcon />, path: '/group-chats' },
   {
     text: 'Báo cáo',
     icon: <AssessmentIcon />,

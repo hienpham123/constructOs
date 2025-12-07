@@ -8,6 +8,8 @@ export { dashboardAPI } from './dashboard';
 export { rolesAPI } from './roles';
 export type { Role, RolePermission } from './roles';
 export { dailyReportsAPI } from './dailyReports';
+export { groupChatsAPI } from './groupChats';
+export type { GroupChat, GroupDetail, GroupMember, GroupMessage, GroupMessageAttachment } from './groupChats';
 
 // Export default axios instance
 export { default as api } from './instance';
