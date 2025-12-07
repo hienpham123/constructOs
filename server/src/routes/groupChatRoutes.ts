@@ -9,6 +9,7 @@ import {
   removeMember,
   transferOwnership,
   getMessages,
+  searchMessages,
   sendMessage,
   updateMessage,
   deleteMessage,
@@ -37,6 +38,7 @@ router.post('/:id/transfer-ownership', transferOwnership);
 
 // Message routes
 router.get('/:id/messages', getMessages);
+router.get('/:id/messages/search', searchMessages);
 router.post('/:id/messages', uploadMessageFiles.array('files', 10), sendMessage);
 router.put('/messages/:messageId', updateMessage);
 router.delete('/messages/:messageId', deleteMessage);

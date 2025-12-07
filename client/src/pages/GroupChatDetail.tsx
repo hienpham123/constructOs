@@ -12,6 +12,7 @@ import MessageEditBar from '../components/groupChat/MessageEditBar';
 import MembersDialog from '../components/groupChat/MembersDialog';
 import DeleteMessageDialog from '../components/groupChat/DeleteMessageDialog';
 import DeleteGroupDialog from '../components/groupChat/DeleteGroupDialog';
+import SearchPanel from '../components/groupChat/SearchPanel';
 import {
   groupChatsAPI,
   type GroupDetail,
@@ -41,6 +42,7 @@ export default function GroupChatDetail() {
   const [groupMenuAnchor, setGroupMenuAnchor] = useState<HTMLElement | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteGroupConfirmOpen, setDeleteGroupConfirmOpen] = useState(false);
+  const [searchPanelOpen, setSearchPanelOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const socketRef = useRef<Socket | null>(null);
@@ -48,6 +50,7 @@ export default function GroupChatDetail() {
   const lastMessageRef = useRef<HTMLDivElement | null>(null);
   const editingMessageRef = useRef<HTMLDivElement | null>(null);
   const isSubmittingRef = useRef(false);
+  const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   useEffect(() => {
     if (id) {
@@ -372,6 +375,55 @@ export default function GroupChatDetail() {
     setImageErrors((prev) => new Set(prev).add(attachmentId));
   };
 
+  const handleSearchMessageClick = async (message: GroupMessage) => {
+    // Close search panel
+    setSearchPanelOpen(false);
+    
+    // Check if message is already in the current messages list
+    const messageExists = messages.some((m) => m.id === message.id);
+    
+    if (!messageExists) {
+      // Load messages around this message
+      // First, try to load messages before this one
+      try {
+        const allMessages = await groupChatsAPI.getMessages(id!, 100, 0);
+        const messageIndex = allMessages.findIndex((m) => m.id === message.id);
+        
+        if (messageIndex !== -1) {
+          // Message found in recent messages, set all messages
+          setMessages(allMessages);
+        } else {
+          // Message not in recent 100, need to search and load context
+          // For now, just add this message to the list
+          setMessages((prev) => {
+            const exists = prev.some((m) => m.id === message.id);
+            if (!exists) {
+              return [...prev, message].sort((a, b) => 
+                new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+              );
+            }
+            return prev;
+          });
+        }
+      } catch (error) {
+        console.error('Error loading messages:', error);
+      }
+    }
+    
+    // Scroll to message after a short delay to ensure DOM is updated
+    setTimeout(() => {
+      const messageElement = messageRefs.current.get(message.id);
+      if (messageElement) {
+        messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Highlight the message briefly
+        messageElement.style.backgroundColor = '#fff3cd';
+        setTimeout(() => {
+          messageElement.style.backgroundColor = '';
+        }, 2000);
+      }
+    }, 100);
+  };
+
   if (isLoading) {
     return <LinearProgress />;
   }
@@ -390,6 +442,7 @@ export default function GroupChatDetail() {
         group={group}
         onMembersClick={() => setMembersDialogOpen(true)}
         onMenuClick={(e) => setGroupMenuAnchor(e.currentTarget)}
+        onSearchClick={() => setSearchPanelOpen(true)}
       />
 
       <GroupMenuPopover
@@ -410,55 +463,69 @@ export default function GroupChatDetail() {
         onGroupUpdate={(updatedGroup) => setGroup(updatedGroup)}
       />
 
-      <MessageList
-        messages={messages}
-        currentUserId={user?.id}
-        editingMessageId={editingMessageId}
-        hoveredMessageId={hoveredMessageId}
-        imageErrors={imageErrors}
-        anchorEl={anchorEl}
-        lastMessageRef={lastMessageRef}
-        editingMessageRef={editingMessageRef}
-        hasMoreMessages={hasMoreMessages}
-        isLoadingMore={isLoadingMore}
-        onLoadMore={loadMoreMessages}
-        isLoadingMoreRef={isLoadingMoreRef}
-        onMessageHover={setHoveredMessageId}
-        onMessageLeave={() => setHoveredMessageId(null)}
-        onMenuClick={handleMenuClick}
-        onMenuClose={handleMenuClose}
-        onEditClick={handleEditClick}
-        onDeleteClick={handleDeleteClick}
-        onImageError={handleImageError}
-        getFileIcon={getFileIcon}
-        isImageFile={isImageFile}
-        formatFileSize={formatFileSize}
-      />
+      <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <MessageList
+            messages={messages}
+            currentUserId={user?.id}
+            editingMessageId={editingMessageId}
+            hoveredMessageId={hoveredMessageId}
+            imageErrors={imageErrors}
+            anchorEl={anchorEl}
+            lastMessageRef={lastMessageRef}
+            editingMessageRef={editingMessageRef}
+            messageRefs={messageRefs}
+            hasMoreMessages={hasMoreMessages}
+            isLoadingMore={isLoadingMore}
+            onLoadMore={loadMoreMessages}
+            isLoadingMoreRef={isLoadingMoreRef}
+            onMessageHover={setHoveredMessageId}
+            onMessageLeave={() => setHoveredMessageId(null)}
+            onMenuClick={handleMenuClick}
+            onMenuClose={handleMenuClose}
+            onEditClick={handleEditClick}
+            onDeleteClick={handleDeleteClick}
+            onImageError={handleImageError}
+            getFileIcon={getFileIcon}
+            isImageFile={isImageFile}
+            formatFileSize={formatFileSize}
+          />
 
-      {!editingMessageId && (
-        <MessageInput
-          groupName={group.name}
-          content={content}
-          selectedFiles={selectedFiles}
-          textInputRef={textInputRef}
-          imageInputRef={imageInputRef}
-          fileInputRef={fileInputRef}
-          onContentChange={setContent}
-          onFileSelect={handleFileSelect}
-          onRemoveFile={removeFile}
-          onSubmit={handleSubmit}
-        />
-      )}
+          {!editingMessageId && (
+            <MessageInput
+              groupName={group.name}
+              content={content}
+              selectedFiles={selectedFiles}
+              textInputRef={textInputRef}
+              imageInputRef={imageInputRef}
+              fileInputRef={fileInputRef}
+              onContentChange={setContent}
+              onFileSelect={handleFileSelect}
+              onRemoveFile={removeFile}
+              onSubmit={handleSubmit}
+            />
+          )}
 
-      {editingMessageId && (
-        <MessageEditBar
-          editingContent={editingContent}
-          onContentChange={setEditingContent}
-          onSave={handleEditSave}
-          onCancel={handleEditCancel}
-          disabled={!editingContent}
-        />
-      )}
+          {editingMessageId && (
+            <MessageEditBar
+              editingContent={editingContent}
+              onContentChange={setEditingContent}
+              onSave={handleEditSave}
+              onCancel={handleEditCancel}
+              disabled={!editingContent}
+            />
+          )}
+        </Box>
+
+        {searchPanelOpen && group && (
+          <SearchPanel
+            groupId={id!}
+            members={group.members}
+            onClose={() => setSearchPanelOpen(false)}
+            onMessageClick={handleSearchMessageClick}
+          />
+        )}
+      </Box>
 
       <MembersDialog
         open={membersDialogOpen}

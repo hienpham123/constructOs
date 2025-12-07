@@ -10,9 +10,10 @@ interface GroupChatHeaderProps {
   group: GroupDetail;
   onMembersClick: () => void;
   onMenuClick: (event: React.MouseEvent<HTMLElement>) => void;
+  onSearchClick: () => void;
 }
 
-export default function GroupChatHeader({ group, onMembersClick, onMenuClick }: GroupChatHeaderProps) {
+export default function GroupChatHeader({ group, onMembersClick, onMenuClick, onSearchClick }: GroupChatHeaderProps) {
   return (
     <Box
       sx={{
@@ -62,7 +63,7 @@ export default function GroupChatHeader({ group, onMembersClick, onMenuClick }: 
       <IconButton size="small" sx={{ color: '#65676b' }}>
         <VideocamIcon fontSize="small" />
       </IconButton>
-      <IconButton size="small" sx={{ color: '#65676b' }}>
+      <IconButton size="small" onClick={onSearchClick} sx={{ color: '#65676b' }}>
         <SearchIcon fontSize="small" />
       </IconButton>
       <IconButton size="small" sx={{ color: '#65676b' }}>

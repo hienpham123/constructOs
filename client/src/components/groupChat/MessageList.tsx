@@ -12,6 +12,7 @@ interface MessageListProps {
   anchorEl: HTMLElement | null;
   lastMessageRef: React.RefObject<HTMLDivElement>;
   editingMessageRef: React.RefObject<HTMLDivElement>;
+  messageRefs?: React.MutableRefObject<Map<string, HTMLDivElement>>;
   hasMoreMessages?: boolean;
   isLoadingMore?: boolean;
   onLoadMore?: () => void;
@@ -37,6 +38,7 @@ export default function MessageList({
   anchorEl,
   lastMessageRef,
   editingMessageRef,
+  messageRefs,
   hasMoreMessages = false,
   isLoadingMore = false,
   onLoadMore,
@@ -157,9 +159,16 @@ export default function MessageList({
             const isLastMessage = index === messages.length - 1;
 
             return (
-              <MessageItem
+              <Box
                 key={message.id}
-                message={message}
+                ref={(el: HTMLDivElement | null) => {
+                  if (el && messageRefs) {
+                    messageRefs.current.set(message.id, el);
+                  }
+                }}
+              >
+                <MessageItem
+                  message={message}
                 isOwn={isOwn}
                 isEditing={isEditing}
                 isHovered={isHovered}
@@ -176,9 +185,10 @@ export default function MessageList({
                 getFileIcon={getFileIcon}
                 isImageFile={isImageFile}
                 formatFileSize={formatFileSize}
-                lastMessageRef={isLastMessage ? lastMessageRef : null}
-                editingMessageRef={isEditing ? editingMessageRef : null}
-              />
+                  lastMessageRef={isLastMessage ? lastMessageRef : null}
+                  editingMessageRef={isEditing ? editingMessageRef : null}
+                />
+              </Box>
             );
           })}
         </>

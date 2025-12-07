@@ -825,6 +825,125 @@ export const getMessages = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// Search messages
+export const searchMessages = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Không có quyền truy cập' });
+    }
+
+    const { id } = req.params;
+    const { query: searchQueryParam, senderId, startDate, endDate, limit, offset } = req.query;
+
+    // Check if user is member
+    const member = await query<any[]>(
+      'SELECT * FROM group_members WHERE group_id = ? AND user_id = ?',
+      [id, userId]
+    );
+
+    if (member.length === 0) {
+      return res.status(403).json({ error: 'Bạn không phải thành viên của nhóm này' });
+    }
+
+    // Parse pagination params
+    const limitNum = limit ? parseInt(limit as string, 10) : 50;
+    const offsetNum = offset ? parseInt(offset as string, 10) : 0;
+
+    // Build WHERE clause
+    const conditions: string[] = ['gmsg.group_id = ?'];
+    const params: any[] = [id];
+
+    // Search by content
+    const searchQuery = typeof searchQueryParam === 'string' ? searchQueryParam.trim() : '';
+    if (searchQuery) {
+      conditions.push('gmsg.content LIKE ?');
+      params.push(`%${searchQuery}%`);
+    }
+
+    // Filter by sender
+    if (senderId) {
+      conditions.push('gmsg.user_id = ?');
+      params.push(senderId);
+    }
+
+    // Filter by date range
+    if (startDate) {
+      conditions.push('gmsg.created_at >= ?');
+      params.push(startDate);
+    }
+    if (endDate) {
+      conditions.push('gmsg.created_at <= ?');
+      params.push(endDate);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    // Get messages
+    const messages = await query<any[]>(
+      `SELECT 
+        gmsg.*,
+        u.name as user_name,
+        u.avatar as user_avatar
+      FROM group_messages gmsg
+      LEFT JOIN users u ON gmsg.user_id = u.id
+      ${whereClause}
+      ORDER BY gmsg.created_at DESC
+      LIMIT ${limitNum} OFFSET ${offsetNum}`,
+      params
+    );
+
+    // Get attachments for each message
+    const messagesWithAttachments = await Promise.all(
+      messages.map(async (msg: any) => {
+        const attachments = await query<any[]>(
+          'SELECT * FROM group_message_attachments WHERE message_id = ? ORDER BY created_at ASC',
+          [msg.id]
+        );
+
+        const attachmentsWithUrls = attachments.map((att: any) => ({
+          id: att.id,
+          messageId: att.message_id,
+          filename: att.filename,
+          originalFilename: att.original_filename,
+          fileType: att.file_type,
+          fileSize: att.file_size,
+          fileUrl: getMessageAttachmentUrl(att.filename),
+          createdAt: att.created_at,
+        }));
+
+        // Get avatar URL
+        let avatarUrl = null;
+        if (msg.user_avatar) {
+          const baseUrl = process.env.API_BASE_URL || 
+                          process.env.SERVER_URL || 
+                          (process.env.NODE_ENV === 'production' 
+                            ? process.env.PRODUCTION_API_URL || 'https://your-api-domain.com'
+                            : 'http://localhost:2222');
+          avatarUrl = `${baseUrl}/uploads/avatars/${msg.user_avatar}`;
+        }
+
+        return {
+          id: msg.id,
+          groupId: msg.group_id,
+          userId: msg.user_id,
+          userName: msg.user_name,
+          userAvatar: avatarUrl,
+          content: msg.content,
+          attachments: attachmentsWithUrls,
+          createdAt: msg.created_at,
+          updatedAt: msg.updated_at,
+        };
+      })
+    );
+
+    res.json(messagesWithAttachments);
+  } catch (error: any) {
+    console.error('Error searching messages:', error);
+    res.status(500).json({ error: 'Không thể tìm kiếm tin nhắn' });
+  }
+};
+
 // Send message
 export const sendMessage = async (req: AuthRequest, res: Response) => {
   try {

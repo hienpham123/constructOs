@@ -162,6 +162,27 @@ export const groupChatsAPI = {
     return response.data;
   },
 
+  // Search messages in a group
+  searchMessages: async (
+    groupId: string,
+    query: string,
+    filters?: {
+      senderId?: string;
+      startDate?: string;
+      endDate?: string;
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<GroupMessage[]> => {
+    const response = await api.get(`/group-chats/${groupId}/messages/search`, {
+      params: {
+        query,
+        ...filters,
+      },
+    });
+    return response.data;
+  },
+
   // Send message
   sendMessage: async (groupId: string, content: string, files?: File[]): Promise<GroupMessage> => {
     const formData = new FormData();
