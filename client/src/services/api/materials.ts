@@ -64,9 +64,9 @@ export const materialsAPI = {
     return api.delete(`/transaction-attachments/${attachmentId}`);
   },
   // Purchase Request Comments
-  getPurchaseRequestComments: (purchaseRequestId: string) => {
+  getPurchaseRequestComments: (purchaseRequestId: string, limit = 50, offset = 0) => {
     return api.get('/purchase-request-comments', {
-      params: { purchaseRequestId },
+      params: { purchaseRequestId, limit, offset },
     }).then((res) => res.data);
   },
   createPurchaseRequestComment: (formData: FormData) => {

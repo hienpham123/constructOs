@@ -176,8 +176,20 @@ export const groupChatsAPI = {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
-    });
+      showLoading: false, // Disable loading indicator for sending messages
+    } as any);
     return response.data;
+  },
+
+  // Update message
+  updateMessage: async (messageId: string, content: string): Promise<GroupMessage> => {
+    try {
+      const response = await api.put(`/group-chats/messages/${messageId}`, { content });
+      return response.data;
+    } catch (error: any) {
+      console.error('Update message API error:', error);
+      throw error;
+    }
   },
 
   // Delete message

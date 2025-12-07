@@ -13,8 +13,6 @@ import {
   FormControl,
   InputLabel,
   Select,
-  FormControlLabel,
-  Checkbox,
   Paper,
   Typography,
   CircularProgress,
@@ -71,7 +69,6 @@ export default function ProjectAddEdit() {
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
-    watch,
   } = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
     defaultValues: {

@@ -8,6 +8,7 @@ import GroupChatHeader from '../components/groupChat/GroupChatHeader';
 import GroupMenuPopover from '../components/groupChat/GroupMenuPopover';
 import MessageList from '../components/groupChat/MessageList';
 import MessageInput from '../components/groupChat/MessageInput';
+import MessageEditBar from '../components/groupChat/MessageEditBar';
 import MembersDialog from '../components/groupChat/MembersDialog';
 import DeleteMessageDialog from '../components/groupChat/DeleteMessageDialog';
 import DeleteGroupDialog from '../components/groupChat/DeleteGroupDialog';
@@ -25,10 +26,13 @@ export default function GroupChatDetail() {
   const [messages, setMessages] = useState<GroupMessage[]>([]);
   const [content, setContent] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const isLoadingMoreRef = useRef(false);
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState('');
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
@@ -39,14 +43,18 @@ export default function GroupChatDetail() {
   const [deleteGroupConfirmOpen, setDeleteGroupConfirmOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket | null>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
   const lastMessageRef = useRef<HTMLDivElement | null>(null);
+  const editingMessageRef = useRef<HTMLDivElement | null>(null);
   const isSubmittingRef = useRef(false);
 
   useEffect(() => {
     if (id) {
+      // Reset states when switching groups
+      setMessages([]);
+      setHasMoreMessages(true);
+      setIsLoading(true);
       loadGroup();
       loadMessages();
       connectSocket();
@@ -60,11 +68,31 @@ export default function GroupChatDetail() {
   }, [id]);
 
   useEffect(() => {
-    // Only auto-scroll if not currently submitting a message
-    if (!isSubmittingRef.current) {
-      scrollToBottom();
+    // Only auto-scroll if not currently submitting a message and not loading more messages
+    // Skip if messages array is empty (initial load will be handled by MessageList)
+    // Skip initial load - MessageList handles it
+    if (!isSubmittingRef.current && !isLoadingMoreRef.current && !isLoading && messages.length > 0) {
+      // Only scroll for new messages (not initial load)
+      // This is for when new messages arrive via socket
+      const timer = setTimeout(() => {
+        scrollToBottom();
+      }, 50);
+      return () => clearTimeout(timer);
     }
-  }, [messages]);
+  }, [messages, isLoading]);
+
+  useEffect(() => {
+    // Scroll to editing message when editingMessageId changes
+    if (editingMessageId && editingMessageRef.current) {
+      setTimeout(() => {
+        editingMessageRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+          inline: 'nearest',
+        });
+      }, 100);
+    }
+  }, [editingMessageId]);
 
   const connectSocket = () => {
     if (!id) return;
@@ -100,12 +128,28 @@ export default function GroupChatDetail() {
   };
 
   const scrollToBottom = (instant = false) => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({
+    // Try multiple methods to ensure scroll works
+    // First try the last message ref
+    if (lastMessageRef.current) {
+      lastMessageRef.current.scrollIntoView({
         behavior: instant ? 'auto' : 'smooth',
         block: 'end',
         inline: 'nearest',
       });
+      return;
+    }
+    
+    // Fallback: scroll the messages container directly
+    const messagesContainer = document.querySelector('[data-messages-container]') as HTMLElement;
+    if (messagesContainer) {
+      if (instant) {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      } else {
+        messagesContainer.scrollTo({
+          top: messagesContainer.scrollHeight,
+          behavior: 'smooth',
+        });
+      }
     }
   };
 
@@ -134,10 +178,67 @@ export default function GroupChatDetail() {
   const loadMessages = async () => {
     if (!id) return;
     try {
-      const data = await groupChatsAPI.getMessages(id, 100, 0);
+      const data = await groupChatsAPI.getMessages(id, 50, 0);
       setMessages(data);
+      // Check if there are more messages (if we got 50, there might be more)
+      setHasMoreMessages(data.length === 50);
+      // Don't scroll here - let MessageList handle initial scroll
+      // This prevents conflicts and ensures messages are fully rendered before scrolling
     } catch (error: any) {
       console.error('Error loading messages:', error);
+    }
+  };
+
+  const loadMoreMessages = async () => {
+    if (!id || isLoadingMore || !hasMoreMessages) return;
+    
+    setIsLoadingMore(true);
+    isLoadingMoreRef.current = true;
+    try {
+      const messagesContainer = document.querySelector('[data-messages-container]') as HTMLElement;
+      if (!messagesContainer) {
+        setIsLoadingMore(false);
+        isLoadingMoreRef.current = false;
+        return;
+      }
+      
+      // Get current scroll position and height before adding new messages
+      const previousScrollTop = messagesContainer.scrollTop;
+      const previousScrollHeight = messagesContainer.scrollHeight;
+      
+      // Load only 50 messages at a time
+      const currentOffset = messages.length;
+      const data = await groupChatsAPI.getMessages(id, 50, currentOffset);
+      
+      if (data.length === 0) {
+        setHasMoreMessages(false);
+      } else {
+        // Prepend older messages to the beginning
+        setMessages((prev) => [...data, ...prev]);
+        
+        // Restore scroll position after new messages are added
+        // Wait for React to update DOM, then restore scroll position
+        setTimeout(() => {
+          if (messagesContainer) {
+            const newScrollHeight = messagesContainer.scrollHeight;
+            const heightDifference = newScrollHeight - previousScrollHeight;
+            // Set scroll position to maintain the same visual position
+            messagesContainer.scrollTop = previousScrollTop + heightDifference;
+          }
+          // Reset ref after a bit more delay to ensure scroll position is set
+          setTimeout(() => {
+            isLoadingMoreRef.current = false;
+          }, 100);
+        }, 50);
+        
+        // Check if there are more messages (if we got less than 50, we've reached the end)
+        setHasMoreMessages(data.length === 50);
+      }
+    } catch (error: any) {
+      console.error('Error loading more messages:', error);
+      isLoadingMoreRef.current = false;
+    } finally {
+      setIsLoadingMore(false);
     }
   };
 
@@ -155,7 +256,8 @@ export default function GroupChatDetail() {
 
 
   const handleSubmit = async () => {
-    if (!content.trim() && selectedFiles.length === 0) {
+    // Allow sending if there's content (even with only spaces) or files
+    if (!content && selectedFiles.length === 0) {
       return;
     }
 
@@ -163,12 +265,11 @@ export default function GroupChatDetail() {
       return;
     }
 
-    setIsSubmitting(true);
     isSubmittingRef.current = true;
     try {
       const newMessage = await groupChatsAPI.sendMessage(
         id,
-        content.trim() || '',
+        content || '', // Don't trim - allow all content including spaces
         selectedFiles.length > 0 ? selectedFiles : undefined
       );
 
@@ -204,8 +305,6 @@ export default function GroupChatDetail() {
       console.error('Error sending message:', error);
       alert(error.response?.data?.error || 'Không thể gửi tin nhắn');
       isSubmittingRef.current = false;
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -229,8 +328,34 @@ export default function GroupChatDetail() {
   };
 
   const handleEditClick = (messageId: string) => {
-    setEditingMessageId(messageId);
+    const message = messages.find((m) => m.id === messageId);
+    if (message) {
+      setEditingMessageId(messageId);
+      setEditingContent(message.content);
+    }
     setAnchorEl(null);
+  };
+
+  const handleEditCancel = () => {
+    setEditingMessageId(null);
+    setEditingContent('');
+  };
+
+  const handleEditSave = async () => {
+    if (!editingMessageId || !editingContent) {
+      return;
+    }
+
+    try {
+      const updated = await groupChatsAPI.updateMessage(editingMessageId, editingContent);
+      setMessages((prev) => prev.map((m) => (m.id === editingMessageId ? updated : m)));
+      setEditingMessageId(null);
+      setEditingContent('');
+    } catch (error: any) {
+      console.error('Error updating message:', error);
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Không thể cập nhật tin nhắn';
+      alert(errorMessage);
+    }
   };
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>, messageId: string) => {
@@ -293,6 +418,11 @@ export default function GroupChatDetail() {
         imageErrors={imageErrors}
         anchorEl={anchorEl}
         lastMessageRef={lastMessageRef}
+        editingMessageRef={editingMessageRef}
+        hasMoreMessages={hasMoreMessages}
+        isLoadingMore={isLoadingMore}
+        onLoadMore={loadMoreMessages}
+        isLoadingMoreRef={isLoadingMoreRef}
         onMessageHover={setHoveredMessageId}
         onMessageLeave={() => setHoveredMessageId(null)}
         onMenuClick={handleMenuClick}
@@ -310,7 +440,6 @@ export default function GroupChatDetail() {
           groupName={group.name}
           content={content}
           selectedFiles={selectedFiles}
-          isSubmitting={isSubmitting}
           textInputRef={textInputRef}
           imageInputRef={imageInputRef}
           fileInputRef={fileInputRef}
@@ -318,6 +447,16 @@ export default function GroupChatDetail() {
           onFileSelect={handleFileSelect}
           onRemoveFile={removeFile}
           onSubmit={handleSubmit}
+        />
+      )}
+
+      {editingMessageId && (
+        <MessageEditBar
+          editingContent={editingContent}
+          onContentChange={setEditingContent}
+          onSave={handleEditSave}
+          onCancel={handleEditCancel}
+          disabled={!editingContent}
         />
       )}
 

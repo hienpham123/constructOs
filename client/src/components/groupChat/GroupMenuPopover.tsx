@@ -58,10 +58,26 @@ export default function GroupMenuPopover({
           borderRadius: '8px',
           minWidth: '200px',
           padding: '4px 0',
+          bgcolor: '#ffffff',
+          border: 'none',
         },
       }}
+      disableRestoreFocus
     >
-      <MenuList dense>
+      <MenuList 
+        dense
+        sx={{
+          padding: 0,
+          '& .MuiMenuItem-root': {
+            padding: '8px 16px',
+            fontSize: '14px',
+            minHeight: '36px',
+            '&:hover': {
+              bgcolor: '#f5f5f5',
+            },
+          },
+        }}
+      >
         <MenuItem
           onClick={() => {
             onClose();
@@ -76,16 +92,24 @@ export default function GroupMenuPopover({
           <ListItemText>{group?.pinned ? 'Bỏ ghim nhóm' : 'Ghim nhóm'}</ListItemText>
         </MenuItem>
         {group?.createdBy === currentUserId && (
-          <MenuItem
-            onClick={() => {
-              onClose();
-              onDeleteClick();
-            }}
-            sx={{ color: 'error.main' }}
-          >
-            <DeleteIcon sx={{ mr: 1, fontSize: 20 }} />
-            <ListItemText>Xóa nhóm</ListItemText>
-          </MenuItem>
+        <MenuItem
+          onClick={() => {
+            onClose();
+            onDeleteClick();
+          }}
+          sx={{
+            '& .MuiListItemText-primary': {
+              color: '#d32f2f',
+              fontSize: '14px',
+            },
+            '&:hover': {
+              bgcolor: '#ffebee',
+            },
+          }}
+        >
+          <DeleteIcon sx={{ mr: 1, fontSize: 20 }} />
+          <ListItemText>Xóa nhóm</ListItemText>
+        </MenuItem>
         )}
       </MenuList>
     </Popover>

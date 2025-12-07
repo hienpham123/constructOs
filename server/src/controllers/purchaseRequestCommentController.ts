@@ -44,11 +44,15 @@ export const uploadCommentFiles = multer({
 // Get comments for a purchase request
 export const getComments = async (req: Request, res: Response) => {
   try {
-    const { purchaseRequestId } = req.query;
+    const { purchaseRequestId, limit, offset } = req.query;
 
     if (!purchaseRequestId) {
       return res.status(400).json({ error: 'purchaseRequestId là bắt buộc' });
     }
+
+    // Parse pagination params
+    const limitNum = limit ? parseInt(limit as string, 10) : 50;
+    const offsetNum = offset ? parseInt(offset as string, 10) : 0;
 
     // Get comments with user names and avatars
     const comments = await query<any[]>(
@@ -59,7 +63,8 @@ export const getComments = async (req: Request, res: Response) => {
       FROM purchase_request_comments prc
       LEFT JOIN users u ON prc.created_by = u.id
       WHERE prc.purchase_request_id = ?
-      ORDER BY prc.created_at ASC`,
+      ORDER BY prc.created_at ASC
+      LIMIT ${limitNum} OFFSET ${offsetNum}`,
       [purchaseRequestId]
     );
 

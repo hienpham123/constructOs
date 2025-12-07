@@ -38,6 +38,8 @@ export default function PurchaseRequestCommentSection({ purchaseRequestId }: Pur
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMoreComments, setHasMoreComments] = useState(true);
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState('');
@@ -64,12 +66,59 @@ export default function PurchaseRequestCommentSection({ purchaseRequestId }: Pur
   const loadComments = async () => {
     setIsLoading(true);
     try {
-      const response = await materialsAPI.getPurchaseRequestComments(purchaseRequestId);
+      const response = await materialsAPI.getPurchaseRequestComments(purchaseRequestId, 50, 0);
       setComments(response);
+      // Check if there are more comments
+      setHasMoreComments(response.length === 50);
     } catch (error: any) {
       console.error('Error loading comments:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadMoreComments = async () => {
+    if (isLoadingMore || !hasMoreComments) return;
+    
+    setIsLoadingMore(true);
+    try {
+      const commentsContainer = document.querySelector('[data-comments-container]') as HTMLElement;
+      if (!commentsContainer) {
+        setIsLoadingMore(false);
+        return;
+      }
+      
+      // Get current scroll position and height before adding new comments
+      const previousScrollTop = commentsContainer.scrollTop;
+      const previousScrollHeight = commentsContainer.scrollHeight;
+      
+      // Load only 50 comments at a time
+      const currentOffset = comments.length;
+      const data = await materialsAPI.getPurchaseRequestComments(purchaseRequestId, 50, currentOffset);
+      
+      if (data.length === 0) {
+        setHasMoreComments(false);
+      } else {
+        // Prepend older comments to the beginning
+        setComments((prev) => [...data, ...prev]);
+        
+        // Restore scroll position after new comments are added
+        setTimeout(() => {
+          if (commentsContainer) {
+            const newScrollHeight = commentsContainer.scrollHeight;
+            const heightDifference = newScrollHeight - previousScrollHeight;
+            // Set scroll position to maintain the same visual position
+            commentsContainer.scrollTop = previousScrollTop + heightDifference;
+          }
+        }, 50);
+        
+        // Check if there are more comments (if we got less than 50, we've reached the end)
+        setHasMoreComments(data.length === 50);
+      }
+    } catch (error: any) {
+      console.error('Error loading more comments:', error);
+    } finally {
+      setIsLoadingMore(false);
     }
   };
 
@@ -200,6 +249,9 @@ export default function PurchaseRequestCommentSection({ purchaseRequestId }: Pur
         anchorEl={anchorEl}
         hoveredMoreButtonId={hoveredMoreButtonId}
         isLoading={isLoading}
+        hasMoreComments={hasMoreComments}
+        isLoadingMore={isLoadingMore}
+        onLoadMore={loadMoreComments}
         onMessageHover={handleMessageHover}
         onMessageLeave={handleMessageLeave}
         onMoreClick={handleMoreClick}

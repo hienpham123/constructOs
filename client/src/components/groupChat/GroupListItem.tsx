@@ -35,7 +35,7 @@ export default function GroupListItem({ group, isSelected, onClick }: GroupListI
           transition: 'all 0.2s',
         }}
       >
-        <ListItemAvatar sx={{ minWidth: 56 }}>
+        <ListItemAvatar sx={{ minWidth: 56, mr: 2 }}>
           <Badge
             badgeContent={group.unreadCount > 0 ? group.unreadCount : 0}
             color="error"

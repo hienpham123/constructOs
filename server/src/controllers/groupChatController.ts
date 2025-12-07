@@ -944,6 +944,98 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// Update message
+export const updateMessage = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Không có quyền truy cập' });
+    }
+
+    const { messageId } = req.params;
+    const { content } = req.body;
+
+    if (!content) {
+      return res.status(400).json({ error: 'Nội dung tin nhắn là bắt buộc' });
+    }
+
+    // Get message
+    const messages = await query<any[]>(
+      'SELECT * FROM group_messages WHERE id = ?',
+      [messageId]
+    );
+
+    if (messages.length === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy tin nhắn' });
+    }
+
+    const message = messages[0];
+
+    // Check if user is sender
+    if (message.user_id !== userId) {
+      return res.status(403).json({ error: 'Bạn chỉ có thể chỉnh sửa tin nhắn của chính mình' });
+    }
+
+    // Check if message has attachments (can't edit messages with attachments)
+    const attachments = await query<any[]>(
+      'SELECT * FROM group_message_attachments WHERE message_id = ?',
+      [messageId]
+    );
+
+    if (attachments.length > 0) {
+      return res.status(400).json({ error: 'Không thể chỉnh sửa tin nhắn có file đính kèm' });
+    }
+
+    const now = toMySQLDateTime();
+
+    // Update message
+    await query(
+      'UPDATE group_messages SET content = ?, updated_at = ? WHERE id = ?',
+      [content, now, messageId]
+    );
+
+    // Get updated message
+    const updated = await query<any[]>(
+      `SELECT 
+        gmsg.*,
+        u.name as user_name,
+        u.avatar as user_avatar
+      FROM group_messages gmsg
+      LEFT JOIN users u ON gmsg.user_id = u.id
+      WHERE gmsg.id = ?`,
+      [messageId]
+    );
+
+    // Get avatar URL
+    let avatarUrl = null;
+    if (updated[0].user_avatar) {
+      const baseUrl = process.env.API_BASE_URL || 
+                      process.env.SERVER_URL || 
+                      (process.env.NODE_ENV === 'production' 
+                        ? process.env.PRODUCTION_API_URL || 'https://your-api-domain.com'
+                        : 'http://localhost:2222');
+      avatarUrl = `${baseUrl}/uploads/avatars/${updated[0].user_avatar}`;
+    }
+
+    const updatedMessage = {
+      id: updated[0].id,
+      groupId: updated[0].group_id,
+      userId: updated[0].user_id,
+      userName: updated[0].user_name,
+      userAvatar: avatarUrl,
+      content: updated[0].content,
+      attachments: [],
+      createdAt: updated[0].created_at,
+      updatedAt: updated[0].updated_at,
+    };
+
+    res.json(updatedMessage);
+  } catch (error: any) {
+    console.error('Error updating message:', error);
+    res.status(500).json({ error: 'Không thể cập nhật tin nhắn' });
+  }
+};
+
 // Delete message
 export const deleteMessage = async (req: AuthRequest, res: Response) => {
   try {

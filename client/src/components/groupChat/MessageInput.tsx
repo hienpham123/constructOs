@@ -16,7 +16,6 @@ interface MessageInputProps {
   groupName: string;
   content: string;
   selectedFiles: File[];
-  isSubmitting: boolean;
   textInputRef: React.RefObject<HTMLInputElement>;
   imageInputRef: React.RefObject<HTMLInputElement>;
   fileInputRef: React.RefObject<HTMLInputElement>;
@@ -30,7 +29,6 @@ export default function MessageInput({
   groupName,
   content,
   selectedFiles,
-  isSubmitting,
   textInputRef,
   imageInputRef,
   fileInputRef,
@@ -105,7 +103,7 @@ export default function MessageInput({
               multiple
               hidden
               onChange={onFileSelect}
-              accept="application/pdf,.doc,.docx,.xls,.xlsx,.csv"
+              accept="*/*"
             />
           </IconButton>
         </Box>
@@ -147,7 +145,7 @@ export default function MessageInput({
             onKeyPress={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                if (content.trim() || selectedFiles.length > 0) {
+                if (content || selectedFiles.length > 0) {
                   onSubmit();
                 }
               }
@@ -204,7 +202,7 @@ export default function MessageInput({
           />
           <IconButton
             onClick={onSubmit}
-            disabled={isSubmitting || (!content.trim() && selectedFiles.length === 0)}
+            disabled={!content && selectedFiles.length === 0}
             sx={{
               color: '#1877f2',
               '&:hover': {
@@ -215,7 +213,7 @@ export default function MessageInput({
               },
             }}
           >
-            {content.trim() || selectedFiles.length > 0 ? (
+            {content || selectedFiles.length > 0 ? (
               <SendIcon fontSize="small" />
             ) : (
               <InsertEmoticonIcon fontSize="small" />

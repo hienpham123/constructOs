@@ -16,9 +16,9 @@ export const projectsAPI = {
   update: (id: string, data: any) => api.put(`/projects/${id}`, data).then((res) => res.data),
   delete: (id: string) => api.delete(`/projects/${id}`),
   // Comments
-  getComments: (projectId: string, category: 'contract' | 'project_files') => {
+  getComments: (projectId: string, category: 'contract' | 'project_files', limit = 50, offset = 0) => {
     return api.get('/project-comments', {
-      params: { projectId, category },
+      params: { projectId, category, limit, offset },
     }).then((res) => res.data);
   },
   createComment: (formData: FormData) => {

@@ -21,7 +21,8 @@ interface MessageItemProps {
   getFileIcon: (fileType: string) => React.ReactNode;
   isImageFile: (fileType: string, filename: string) => boolean;
   formatFileSize: (bytes: number) => string;
-  lastMessageRef: React.RefObject<HTMLDivElement>;
+  lastMessageRef: React.RefObject<HTMLDivElement> | null;
+  editingMessageRef: React.RefObject<HTMLDivElement> | null;
 }
 
 export default function MessageItem({
@@ -43,10 +44,14 @@ export default function MessageItem({
   isImageFile,
   formatFileSize,
   lastMessageRef,
+  editingMessageRef,
 }: MessageItemProps) {
+  // Use editingMessageRef if editing, otherwise use lastMessageRef if it's the last message
+  const messageRef = editingMessageRef || (isLastMessage ? lastMessageRef : null);
+
   return (
     <Box
-      ref={isLastMessage ? lastMessageRef : null}
+      ref={messageRef}
       sx={{
         display: 'flex',
         justifyContent: isOwn ? 'flex-end' : 'flex-start',
@@ -109,16 +114,22 @@ export default function MessageItem({
               flexDirection: 'row',
             }}
           >
-            {isOwn && isHovered && (
+            {isOwn && (
               <IconButton
                 size="small"
                 onClick={onMenuClick}
                 sx={{
                   p: 0.5,
                   color: '#65676b',
-                  opacity: 0.7,
+                  opacity: isHovered ? 0.7 : 0,
+                  visibility: isHovered ? 'visible' : 'hidden',
+                  width: 24,
+                  height: 24,
+                  minWidth: 24,
+                  flexShrink: 0,
+                  transition: 'opacity 0.2s ease',
                   '&:hover': {
-                    opacity: 1,
+                    opacity: isHovered ? 1 : 0,
                     bgcolor: 'rgba(0,0,0,0.05)',
                   },
                 }}
@@ -283,16 +294,56 @@ export default function MessageItem({
             vertical: 'top',
             horizontal: 'right',
           }}
+          sx={{
+            '& .MuiPopover-paper': {
+              boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
+              borderRadius: '8px',
+              minWidth: '180px',
+              padding: '4px 0',
+              bgcolor: '#ffffff',
+              border: 'none',
+            },
+          }}
+          disableRestoreFocus
         >
-          <MenuList dense>
+          <MenuList 
+            dense
+            sx={{
+              padding: 0,
+              '& .MuiMenuItem-root': {
+                padding: '8px 16px',
+                fontSize: '14px',
+                minHeight: '36px',
+                '&:hover': {
+                  bgcolor: '#f5f5f5',
+                },
+              },
+            }}
+          >
             {message.attachments.length === 0 && (
-              <MenuItem onClick={onEditClick}>
+              <MenuItem 
+                onClick={onEditClick}
+                sx={{
+                  '& .MuiListItemText-primary': {
+                    color: '#000000',
+                    fontSize: '14px',
+                  },
+                }}
+              >
                 <ListItemText>Chỉnh sửa</ListItemText>
               </MenuItem>
             )}
-            <MenuItem
+            <MenuItem 
               onClick={onDeleteClick}
-              sx={{ color: 'error.main' }}
+              sx={{
+                '& .MuiListItemText-primary': {
+                  color: '#d32f2f',
+                  fontSize: '14px',
+                },
+                '&:hover': {
+                  bgcolor: '#ffebee',
+                },
+              }}
             >
               <ListItemText>Xóa</ListItemText>
             </MenuItem>

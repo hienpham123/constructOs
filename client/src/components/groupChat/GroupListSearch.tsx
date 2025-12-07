@@ -12,7 +12,7 @@ export default function GroupListSearch({ searchTerm, onSearchChange }: GroupLis
       <TextField
         fullWidth
         size="small"
-        placeholder="Q Tìm kiếm"
+        placeholder="Nhập tên nhóm để tìm kiếm"
         value={searchTerm}
         onChange={(e) => onSearchChange(e.target.value)}
         InputProps={{
@@ -34,8 +34,7 @@ export default function GroupListSearch({ searchTerm, onSearchChange }: GroupLis
               borderColor: 'transparent',
             },
             '&.Mui-focused fieldset': {
-              borderColor: 'transparent',
-              bgcolor: 'white',
+              borderColor: 'transparent'
             },
           },
         }}

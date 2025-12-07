@@ -10,6 +10,7 @@ import {
   transferOwnership,
   getMessages,
   sendMessage,
+  updateMessage,
   deleteMessage,
   togglePinGroup,
   uploadGroupAvatar,
@@ -37,6 +38,7 @@ router.post('/:id/transfer-ownership', transferOwnership);
 // Message routes
 router.get('/:id/messages', getMessages);
 router.post('/:id/messages', uploadMessageFiles.array('files', 10), sendMessage);
+router.put('/messages/:messageId', updateMessage);
 router.delete('/messages/:messageId', deleteMessage);
 
 // Pin/Unpin group

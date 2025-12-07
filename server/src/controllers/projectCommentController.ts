@@ -45,7 +45,7 @@ export const uploadCommentFiles = multer({
 // Get comments for a project and category
 export const getComments = async (req: Request, res: Response) => {
   try {
-    const { projectId, category } = req.query;
+    const { projectId, category, limit, offset } = req.query;
 
     if (!projectId || !category) {
       return res.status(400).json({ error: 'projectId và category là bắt buộc' });
@@ -54,6 +54,10 @@ export const getComments = async (req: Request, res: Response) => {
     if (category !== 'contract' && category !== 'project_files') {
       return res.status(400).json({ error: 'category phải là contract hoặc project_files' });
     }
+
+    // Parse pagination params
+    const limitNum = limit ? parseInt(limit as string, 10) : 50;
+    const offsetNum = offset ? parseInt(offset as string, 10) : 0;
 
     // Get comments with user names and avatars
     const comments = await query<any[]>(
@@ -64,7 +68,8 @@ export const getComments = async (req: Request, res: Response) => {
       FROM project_comments pc
       LEFT JOIN users u ON pc.created_by = u.id
       WHERE pc.project_id = ? AND pc.category = ?
-      ORDER BY pc.created_at ASC`,
+      ORDER BY pc.created_at ASC
+      LIMIT ${limitNum} OFFSET ${offsetNum}`,
       [projectId, category]
     );
 
