@@ -28,7 +28,7 @@ export interface Column<T = any> {
 
 export interface TableAction<T = any> {
   onView?: (row: T) => void;
-  onEdit: (row: T) => void;
+  onEdit?: (row: T) => void;
   onDelete: (row: T) => void;
   customActions?: Array<{
     label: string;
@@ -49,7 +49,7 @@ export interface TableAction<T = any> {
 export interface DataTableProps<T = any> {
   columns: Column<T>[];
   data: T[];
-  actions?: TableAction<T>;
+  actions?: TableAction<T> | ((row: T) => TableAction<T>);
   pagination?: {
     count: number;
     page: number;
@@ -213,12 +213,15 @@ export default function DataTable<T = any>({
                 {actions && (
                   <TableCell>
                     {(() => {
-                      const customActions = typeof actions.customActions === 'function'
-                        ? actions.customActions(row)
-                        : actions.customActions;
+                      // Get actions for this row (can be a function or object)
+                      const rowActions = typeof actions === 'function' ? actions(row) : actions;
                       
-                      // If customActions is provided, only use it (even if empty)
-                      if (actions.customActions !== undefined) {
+                      const customActions = typeof rowActions.customActions === 'function'
+                        ? rowActions.customActions(row)
+                        : rowActions.customActions;
+                      
+                      // If customActions is provided, combine with standard actions
+                      if (rowActions.customActions !== undefined) {
                         if (customActions && customActions.length > 0) {
                           return (
                             <ActionMenuWithCustomActions
@@ -226,28 +229,41 @@ export default function DataTable<T = any>({
                                 ...action,
                                 onClick: () => action.onClick(row),
                               }))}
-                              onView={undefined}
-                              onEdit={undefined}
-                              onDelete={undefined}
-                              viewLabel={actions.viewLabel}
-                              editLabel={actions.editLabel}
-                              deleteLabel={actions.deleteLabel}
+                              onView={rowActions.onView ? () => rowActions.onView!(row) : undefined}
+                              onEdit={rowActions.onEdit ? () => rowActions.onEdit!(row) : undefined}
+                              onDelete={rowActions.onDelete ? () => rowActions.onDelete(row) : undefined}
+                              viewLabel={rowActions.viewLabel}
+                              editLabel={rowActions.editLabel}
+                              deleteLabel={rowActions.deleteLabel}
                             />
                           );
                         }
-                        // If customActions is empty, don't show menu
+                        // If customActions is empty but we have standard actions, show them
+                        if (rowActions.onView || rowActions.onEdit || rowActions.onDelete) {
+                          return (
+                            <ActionMenu
+                              onView={rowActions.onView ? () => rowActions.onView!(row) : undefined}
+                              onEdit={rowActions.onEdit ? () => rowActions.onEdit!(row) : undefined}
+                              onDelete={rowActions.onDelete ? () => rowActions.onDelete(row) : undefined}
+                              viewLabel={rowActions.viewLabel}
+                              editLabel={rowActions.editLabel}
+                              deleteLabel={rowActions.deleteLabel}
+                            />
+                          );
+                        }
+                        // If customActions is empty and no standard actions, don't show menu
                         return null;
                       }
                       
                       // Fallback to default ActionMenu if no customActions
                       return (
                         <ActionMenu
-                          onView={actions.onView ? () => actions.onView!(row) : undefined}
-                          onEdit={() => actions.onEdit(row)}
-                          onDelete={() => actions.onDelete(row)}
-                          viewLabel={actions.viewLabel}
-                          editLabel={actions.editLabel}
-                          deleteLabel={actions.deleteLabel}
+                          onView={rowActions.onView ? () => rowActions.onView!(row) : undefined}
+                          onEdit={rowActions.onEdit ? () => rowActions.onEdit!(row) : undefined}
+                          onDelete={rowActions.onDelete ? () => rowActions.onDelete(row) : undefined}
+                          viewLabel={rowActions.viewLabel}
+                          editLabel={rowActions.editLabel}
+                          deleteLabel={rowActions.deleteLabel}
                         />
                       );
                     })()}

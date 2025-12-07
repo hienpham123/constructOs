@@ -27,7 +27,6 @@ const PERMISSION_LABELS: Record<string, string> = {
   view_contract: 'Xem hợp đồng',
   view_report: 'Xem báo cáo',
   view_daily_report: 'Xem báo cáo ngày',
-  view_project_report: 'Xem báo cáo dự án',
 };
 
 const roleSchema = z.object({
@@ -38,7 +37,6 @@ const roleSchema = z.object({
     view_contract: z.boolean(),
     view_report: z.boolean(),
     view_daily_report: z.boolean(),
-    view_project_report: z.boolean(),
   }),
 });
 
@@ -68,7 +66,6 @@ export default function RolesAddEdit() {
               view_contract: false,
               view_report: false,
               view_daily_report: false,
-              view_project_report: false,
             },
           });
         } catch (error: any) {
@@ -181,6 +178,7 @@ export default function RolesAddEdit() {
           <Button
             type="submit"
             variant="contained"
+            color="primary"
             startIcon={<SaveIcon />}
             disabled={isSubmitting}
             onClick={handleSubmit(onSubmit)}

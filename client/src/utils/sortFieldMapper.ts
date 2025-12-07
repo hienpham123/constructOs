@@ -63,19 +63,12 @@ const purchaseRequestFieldMap: Record<string, string> = {
   approvedAt: 'approved_at',
 };
 
-// Field mapping for Project Reports
-const projectReportFieldMap: Record<string, string> = {
-  projectName: 'project_name',
-  reportDate: 'report_date',
-  createdAt: 'created_at',
-};
-
 /**
  * Map frontend field name to backend field name for sorting
  */
 export function mapSortField(
   frontendField: string,
-  type: 'personnel' | 'project' | 'material' | 'transaction' | 'purchaseRequest' | 'project-report'
+  type: 'personnel' | 'project' | 'material' | 'transaction' | 'purchaseRequest'
 ): string {
   let fieldMap: Record<string, string>;
   
@@ -95,9 +88,6 @@ export function mapSortField(
     case 'purchaseRequest':
       fieldMap = purchaseRequestFieldMap;
       break;
-    case 'project-report':
-      fieldMap = projectReportFieldMap;
-      break;
     default:
       return frontendField;
   }
@@ -109,7 +99,7 @@ export function mapSortField(
  * Get reverse mapping (backend -> frontend) for a given type
  */
 export function getReverseFieldMap(
-  type: 'personnel' | 'project' | 'material' | 'transaction' | 'purchaseRequest' | 'project-report'
+  type: 'personnel' | 'project' | 'material' | 'transaction' | 'purchaseRequest'
 ): Record<string, string> {
   let fieldMap: Record<string, string>;
   
@@ -128,9 +118,6 @@ export function getReverseFieldMap(
       break;
     case 'purchaseRequest':
       fieldMap = purchaseRequestFieldMap;
-      break;
-    case 'project-report':
-      fieldMap = projectReportFieldMap;
       break;
     default:
       return {};

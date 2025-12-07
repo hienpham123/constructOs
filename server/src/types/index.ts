@@ -59,6 +59,30 @@ export interface ProjectDocument {
   uploadedAt: string;
 }
 
+export interface CommentAttachment {
+  id: string;
+  commentId: string;
+  filename: string;
+  originalFilename: string;
+  fileType: string;
+  fileSize: number;
+  fileUrl: string;
+  createdAt: string;
+}
+
+export interface ProjectComment {
+  id: string;
+  projectId: string;
+  category: 'contract' | 'project_files';
+  content: string;
+  createdBy: string;
+  createdByName?: string;
+  createdByAvatar?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  attachments: CommentAttachment[];
+}
+
 
 // Material Management
 export interface Material {

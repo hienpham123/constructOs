@@ -101,6 +101,7 @@ export default function Personnel() {
         <Box sx={{ order: { xs: 2, md: 0 } }}>
           <Button
             variant="contained"
+            color="primary"
             startIcon={<AddIcon />}
             onClick={() => navigate('/personnel/add')}
             sx={{

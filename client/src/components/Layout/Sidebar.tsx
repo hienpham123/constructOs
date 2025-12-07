@@ -61,7 +61,6 @@ const menuItems: MenuItem[] = [
     path: '/reports',
     submenu: [
       { text: 'Báo cáo ngày', icon: <DescriptionIcon />, path: '/daily-reports' },
-      { text: 'Báo cáo dự án', icon: <DescriptionIcon />, path: '/project-reports' },
     ],
   },
 ];

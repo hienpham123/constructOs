@@ -108,7 +108,6 @@ export const createRole = async (req: Request, res: Response) => {
         'view_contract',
         'view_report',
         'view_daily_report',
-        'view_project_report',
       ];
 
       for (const permType of permissionTypes) {
@@ -180,7 +179,6 @@ export const updateRole = async (req: Request, res: Response) => {
         'view_contract',
         'view_report',
         'view_daily_report',
-        'view_project_report',
       ];
 
       for (const permType of permissionTypes) {
@@ -301,7 +299,6 @@ export const getUserPermissions = async (req: AuthRequest, res: Response) => {
       view_contract: false,
       view_report: false,
       view_daily_report: false,
-      view_project_report: false,
     };
 
     if (!roleId) {
@@ -313,7 +310,6 @@ export const getUserPermissions = async (req: AuthRequest, res: Response) => {
             view_contract: true,
             view_report: true,
             view_daily_report: true,
-            view_project_report: true,
           },
         });
       }

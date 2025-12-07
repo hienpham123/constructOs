@@ -229,6 +229,7 @@ export default function PersonnelAddEdit() {
             <Box display="flex" gap={1}>
               <Button
                 variant="contained"
+                color="primary"
                 startIcon={<SaveIcon />}
                 onClick={handleSubmit(onSubmit)}
                 disabled={isSubmitting}

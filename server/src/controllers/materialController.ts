@@ -473,17 +473,19 @@ export const getPurchaseRequests = async (req: Request, res: Response) => {
     const countResults = await query<any[]>(countQuery, queryParams);
     const total = countResults[0]?.total || 0;
     
-    // Get paginated data with JOIN to get user names
+    // Get paginated data with JOIN to get user names and project name
     // Note: LIMIT and OFFSET cannot use placeholders in MySQL, so we inject the values directly
     // but we've already validated them as numbers above
     const results = await query<any[]>(
       `SELECT 
         pr.*,
         u1.name as requested_by_name,
-        u2.name as approved_by_name
+        u2.name as approved_by_name,
+        p.name as project_name
       FROM purchase_requests pr
       LEFT JOIN users u1 ON pr.requested_by = u1.id
       LEFT JOIN users u2 ON pr.approved_by = u2.id
+      LEFT JOIN projects p ON pr.project_id = p.id
       ${searchClause} ${finalSortClause} LIMIT ${pageSizeNum} OFFSET ${offset}`,
       queryParams
     );
@@ -537,8 +539,8 @@ export const createPurchaseRequest = async (req: AuthRequest, res: Response) => 
     await query(
       `INSERT INTO purchase_requests (
         id, material_id, material_name, quantity, unit, reason,
-        requested_by, requested_at, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        requested_by, requested_at, status, project_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         requestData.materialId,
@@ -549,15 +551,18 @@ export const createPurchaseRequest = async (req: AuthRequest, res: Response) => 
         userId, // Use userId from JWT token, not the name
         requestedAt,
         'pending',
+        requestData.projectId || null,
       ]
     );
     
     const newRequest = await query<any[]>(
       `SELECT 
         pr.*,
-        u.name as requested_by_name
+        u.name as requested_by_name,
+        p.name as project_name
       FROM purchase_requests pr
       LEFT JOIN users u ON pr.requested_by = u.id
+      LEFT JOIN projects p ON pr.project_id = p.id
       WHERE pr.id = ?`,
       [id]
     );
@@ -593,7 +598,31 @@ export const getTransactionById = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Không tìm thấy giao dịch' });
     }
     
-    res.json(results[0]);
+    // Get attachments from transaction_attachments table
+    const attachments = await query<any[]>(
+      'SELECT * FROM transaction_attachments WHERE transaction_id = ? ORDER BY created_at ASC',
+      [id]
+    );
+    
+    // Convert attachments to full URLs
+    const { getTransactionAttachmentUrl } = await import('../middleware/upload.js');
+    const attachmentsWithUrls = attachments.map((att) => ({
+      id: att.id,
+      transactionId: att.transaction_id,
+      filename: att.filename,
+      originalFilename: att.original_filename,
+      fileType: att.file_type,
+      fileSize: att.file_size,
+      fileUrl: getTransactionAttachmentUrl(att.filename) || '',
+      createdAt: att.created_at,
+    }));
+    
+    // Return transaction with attachments
+    const transaction = results[0];
+    transaction.attachments = attachmentsWithUrls.map(att => att.fileUrl); // For backward compatibility
+    transaction.attachmentDetails = attachmentsWithUrls; // New detailed attachment info
+    
+    res.json(transaction);
   } catch (error: any) {
     console.error('Error fetching transaction:', error);
     res.status(500).json({ error: 'Không thể lấy thông tin giao dịch' });
@@ -987,10 +1016,12 @@ export const getPurchaseRequestById = async (req: Request, res: Response) => {
       `SELECT 
         pr.*,
         u1.name as requested_by_name,
-        u2.name as approved_by_name
+        u2.name as approved_by_name,
+        p.name as project_name
       FROM purchase_requests pr
       LEFT JOIN users u1 ON pr.requested_by = u1.id
       LEFT JOIN users u2 ON pr.approved_by = u2.id
+      LEFT JOIN projects p ON pr.project_id = p.id
       WHERE pr.id = ?`,
       [id]
     );
@@ -1009,7 +1040,7 @@ export const getPurchaseRequestById = async (req: Request, res: Response) => {
 export const updatePurchaseRequest = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, materialId, quantity, reason, projectId } = req.body;
     
     // Get userId from JWT token (for approved_by)
     const userId = req.userId;
@@ -1026,24 +1057,109 @@ export const updatePurchaseRequest = async (req: AuthRequest, res: Response) => 
     if (existing.length === 0) {
       return res.status(404).json({ error: 'Không tìm thấy yêu cầu mua hàng' });
     }
+
+    const currentStatus = existing[0].status;
     
-    // Only set approved_by and approved_at if status is approved or rejected
-    const approvedBy = (status === 'approved' || status === 'rejected') ? userId : null;
-    const approvedAt = (status === 'approved' || status === 'rejected') ? toMySQLDateTime() : null;
+    // If updating fields other than status, only allow if status is pending or rejected
+    if ((materialId || quantity || reason || projectId !== undefined) && 
+        currentStatus !== 'pending' && currentStatus !== 'rejected') {
+      return res.status(400).json({ error: 'Chỉ có thể chỉnh sửa đề xuất mua hàng khi trạng thái là "Chờ duyệt" hoặc "Từ chối"' });
+    }
+
+    // Build update query dynamically
+    const updates: string[] = [];
+    const values: any[] = [];
+
+    if (status !== undefined) {
+      updates.push('status = ?');
+      values.push(status);
+      
+      // Only set approved_by and approved_at if status is approved or rejected
+      // If changing to pending, clear approved_by and approved_at
+      if (status === 'approved' || status === 'rejected') {
+        updates.push('approved_by = ?');
+        updates.push('approved_at = ?');
+        values.push(userId);
+        values.push(toMySQLDateTime());
+      } else if (status === 'pending') {
+        // Clear approved_by and approved_at when resubmitting
+        updates.push('approved_by = ?');
+        updates.push('approved_at = ?');
+        values.push(null);
+        values.push(null);
+      }
+    }
+
+    if (materialId) {
+      // Check if material exists
+      const material = await query<any[]>(
+        'SELECT * FROM materials WHERE id = ?',
+        [materialId]
+      );
+      
+      if (material.length === 0) {
+        return res.status(404).json({ error: 'Không tìm thấy vật tư' });
+      }
+
+      updates.push('material_id = ?');
+      updates.push('material_name = ?');
+      values.push(materialId);
+      values.push(material[0].name);
+    }
+
+    if (quantity !== undefined) {
+      if (quantity <= 0) {
+        return res.status(400).json({ error: 'Số lượng phải lớn hơn 0' });
+      }
+      updates.push('quantity = ?');
+      values.push(quantity);
+    }
+
+    if (reason !== undefined) {
+      if (!reason.trim()) {
+        return res.status(400).json({ error: 'Lý do không được để trống' });
+      }
+      updates.push('reason = ?');
+      values.push(reason.trim());
+    }
+
+    if (projectId !== undefined) {
+      if (projectId) {
+        // Check if project exists
+        const project = await query<any[]>(
+          'SELECT id FROM projects WHERE id = ?',
+          [projectId]
+        );
+        
+        if (project.length === 0) {
+          return res.status(404).json({ error: 'Không tìm thấy dự án' });
+        }
+      }
+      updates.push('project_id = ?');
+      values.push(projectId || null);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'Không có dữ liệu để cập nhật' });
+    }
+
+    values.push(id);
     
     await query(
-      'UPDATE purchase_requests SET status = ?, approved_by = ?, approved_at = ? WHERE id = ?',
-      [status, approvedBy, approvedAt, id]
+      `UPDATE purchase_requests SET ${updates.join(', ')} WHERE id = ?`,
+      values
     );
     
     const updated = await query<any[]>(
       `SELECT 
         pr.*,
         u1.name as requested_by_name,
-        u2.name as approved_by_name
+        u2.name as approved_by_name,
+        p.name as project_name
       FROM purchase_requests pr
       LEFT JOIN users u1 ON pr.requested_by = u1.id
       LEFT JOIN users u2 ON pr.approved_by = u2.id
+      LEFT JOIN projects p ON pr.project_id = p.id
       WHERE pr.id = ?`,
       [id]
     );

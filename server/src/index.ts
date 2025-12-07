@@ -10,7 +10,9 @@ import userRoutes from './routes/userRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import roleRoutes from './routes/roleRoutes.js';
 import dailyReportRoutes from './routes/dailyReportRoutes.js';
-import projectReportRoutes from './routes/projectReportRoutes.js';
+import projectCommentRoutes from './routes/projectCommentRoutes.js';
+import purchaseRequestCommentRoutes from './routes/purchaseRequestCommentRoutes.js';
+import transactionAttachmentRoutes from './routes/transactionAttachmentRoutes.js';
 // Import database connection (test connection on startup)
 import './config/db.js';
 
@@ -27,8 +29,11 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Serve static files (avatars, project reports)
-app.use('/uploads', express.static(path.join(process.cwd(), 'server', 'uploads')));
+// Serve static files (avatars, project reports, transaction attachments)
+// Server runs from server/ directory, so uploads is directly in process.cwd()
+const uploadsPath = path.join(process.cwd(), 'uploads');
+console.log('Serving static files from:', uploadsPath);
+app.use('/uploads', express.static(uploadsPath));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -39,7 +44,9 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/personnel', personnelRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/daily-reports', dailyReportRoutes);
-app.use('/api/project-reports', projectReportRoutes);
+app.use('/api/project-comments', projectCommentRoutes);
+app.use('/api/purchase-request-comments', purchaseRequestCommentRoutes);
+app.use('/api/transaction-attachments', transactionAttachmentRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

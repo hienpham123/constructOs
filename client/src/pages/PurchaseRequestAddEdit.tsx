@@ -12,26 +12,30 @@ import {
   Typography,
   Breadcrumbs,
   Link,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
   CircularProgress,
+  Tabs,
+  Tab,
+  Chip,
 } from '@mui/material';
 import { Button } from '../components/common';
 import HomeIcon from '@mui/icons-material/Home';
 import SaveIcon from '@mui/icons-material/Save';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { PurchaseRequest } from '../types';
 import { useMaterialStore } from '../stores/materialStore';
+import { useProjectStore } from '../stores/projectStore';
 import { useAuthStore } from '../stores/authStore';
 import { materialsAPI } from '../services/api';
 import { normalizePurchaseRequest } from '../utils/normalize';
+import PurchaseRequestCommentSection from '../components/PurchaseRequestCommentSection';
+import { showError } from '../utils/notifications';
 
 const purchaseRequestSchema = z.object({
   materialId: z.string().min(1, 'Vật tư là bắt buộc'),
   quantity: z.number().min(0.01, 'Số lượng phải > 0'),
   reason: z.string().min(1, 'Lý do là bắt buộc'),
+  projectId: z.string().optional(),
 });
 
 type PurchaseRequestFormData = z.infer<typeof purchaseRequestSchema>;
@@ -39,7 +43,8 @@ type PurchaseRequestFormData = z.infer<typeof purchaseRequestSchema>;
 export default function PurchaseRequestAddEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { purchaseRequests, fetchPurchaseRequests, materials, fetchMaterials, addPurchaseRequest } = useMaterialStore();
+  const { purchaseRequests, materials, fetchMaterials, addPurchaseRequest, updatePurchaseRequest } = useMaterialStore();
+  const { projects, fetchProjects } = useProjectStore();
   const { user } = useAuthStore();
   const isSubmittingRef = useRef(false);
   const isEditMode = Boolean(id);
@@ -47,12 +52,35 @@ export default function PurchaseRequestAddEdit() {
   const [isLoading, setIsLoading] = useState(false);
   
   const requestId = isEditMode && id ? id : null;
+  const canEdit = purchaseRequest && (purchaseRequest.status === 'pending' || purchaseRequest.status === 'rejected');
+  const [tabValue, setTabValue] = useState(0);
+
+  const getRequestStatusLabel = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'Chờ duyệt';
+      case 'approved':
+        return 'Đã duyệt';
+      case 'rejected':
+        return 'Từ chối';
+      case 'ordered':
+        return 'Đã đặt hàng';
+      default:
+        return status;
+    }
+  };
 
   useEffect(() => {
     if (materials.length === 0) {
       fetchMaterials(1000, 0);
     }
   }, [materials.length, fetchMaterials]);
+
+  useEffect(() => {
+    if (projects.length === 0) {
+      fetchProjects();
+    }
+  }, [projects.length, fetchProjects]);
 
   // Fetch purchase request by ID when in edit mode
   useEffect(() => {
@@ -96,6 +124,7 @@ export default function PurchaseRequestAddEdit() {
       materialId: '',
       quantity: 0,
       reason: '',
+      projectId: '',
     },
   });
 
@@ -108,12 +137,14 @@ export default function PurchaseRequestAddEdit() {
         materialId: purchaseRequest.materialId || '',
         quantity: purchaseRequest.quantity || 0,
         reason: purchaseRequest.reason || '',
+        projectId: purchaseRequest.projectId || '',
       });
     } else if (!isEditMode) {
       reset({
         materialId: '',
         quantity: 0,
         reason: '',
+        projectId: '',
       });
     }
   }, [purchaseRequest, isEditMode, reset]);
@@ -137,7 +168,19 @@ export default function PurchaseRequestAddEdit() {
       const selectedMaterialObj = materials.find((m) => m.id === data.materialId);
 
       if (purchaseRequest?.id) {
-        // For update, we only allow status change via separate action
+        // Check if can edit (only if status is pending or rejected)
+        if (purchaseRequest.status !== 'pending' && purchaseRequest.status !== 'rejected') {
+          navigate('/materials/purchase-requests');
+          return;
+        }
+
+        // Update purchase request
+        await updatePurchaseRequest(purchaseRequest.id, {
+          materialId: data.materialId,
+          quantity: data.quantity,
+          reason: data.reason,
+          projectId: data.projectId || undefined,
+        });
         navigate('/materials/purchase-requests');
         return;
       }
@@ -149,6 +192,7 @@ export default function PurchaseRequestAddEdit() {
         unit: selectedMaterialObj?.unit || '',
         reason: data.reason,
         requestedBy: user?.name || user?.email || '',
+        projectId: data.projectId || undefined,
       };
 
       await addPurchaseRequest(requestData);
@@ -162,6 +206,27 @@ export default function PurchaseRequestAddEdit() {
 
   const handleExit = () => {
     navigate('/materials/purchase-requests');
+  };
+
+  const handleResubmit = async () => {
+    if (!purchaseRequest || purchaseRequest.status !== 'rejected') {
+      return;
+    }
+
+    try {
+      await updatePurchaseRequest(purchaseRequest.id, {
+        status: 'pending',
+      });
+      // Reload purchase request to get updated data
+      if (requestId) {
+        const data = await materialsAPI.getPurchaseRequestById(requestId);
+        const normalized = normalizePurchaseRequest(data);
+        setPurchaseRequest(normalized);
+      }
+    } catch (error: any) {
+      console.error('Error resubmitting purchase request:', error);
+      showError(error.message || 'Không thể gửi lại yêu cầu');
+    }
   };
 
   return (
@@ -186,23 +251,43 @@ export default function PurchaseRequestAddEdit() {
             Đề xuất mua hàng
           </Link>
           <Typography color="text.primary">
-            {isEditMode ? 'Xem đề xuất mua hàng' : 'Thêm đề xuất mua hàng'}
+            {isEditMode 
+              ? (purchaseRequest && (purchaseRequest.status === 'pending' || purchaseRequest.status === 'rejected') 
+                  ? 'Chỉnh sửa đề xuất mua hàng' 
+                  : 'Xem đề xuất mua hàng')
+              : 'Thêm đề xuất mua hàng'}
           </Typography>
         </Breadcrumbs>
         
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Typography variant="h5" sx={{ fontWeight: 600 }}>
-            {isEditMode ? 'Xem đề xuất mua hàng' : 'Thêm đề xuất mua hàng'}
+            {isEditMode 
+              ? (purchaseRequest && (purchaseRequest.status === 'pending' || purchaseRequest.status === 'rejected') 
+                  ? 'Chỉnh sửa đề xuất mua hàng' 
+                  : 'Xem đề xuất mua hàng')
+              : 'Thêm đề xuất mua hàng'}
           </Typography>
           <Box display="flex" gap={1}>
-            {!isEditMode && (
+            {purchaseRequest && purchaseRequest.status === 'rejected' && (
               <Button
                 variant="contained"
+                color="warning"
+                startIcon={<RefreshIcon />}
+                onClick={handleResubmit}
+                disabled={isSubmitting}
+              >
+                Gửi lại yêu cầu
+              </Button>
+            )}
+            {(!isEditMode || canEdit) && (
+              <Button
+                variant="contained"
+                color="primary"
                 startIcon={<SaveIcon />}
                 onClick={handleSubmit(onSubmit)}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Đang lưu...' : 'Lưu dữ liệu'}
+                {isSubmitting ? 'Đang lưu...' : isEditMode ? 'Cập nhật' : 'Lưu dữ liệu'}
               </Button>
             )}
             <Button
@@ -216,110 +301,293 @@ export default function PurchaseRequestAddEdit() {
         </Box>
       </Box>
 
-      <Paper sx={{ p: 3 }}>
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
-              <Controller
-                name="materialId"
-                control={control}
-                render={({ field }) => (
-                  <Autocomplete
-                    options={materials}
-                    getOptionLabel={(option) => option ? option.name : ''}
-                    value={materials.find((m) => m.id === field.value) || null}
-                    onChange={(_, newValue) => field.onChange(newValue?.id || '')}
-                    disabled={!!purchaseRequest}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="Vật tư *"
-                        placeholder="Tìm kiếm vật tư..."
-                        error={!!errors.materialId}
-                        helperText={errors.materialId?.message}
+      {isEditMode && purchaseRequest ? (
+        <>
+          <Paper sx={{ mt: 2 }}>
+            <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
+              <Tab label="Thông tin" />
+              <Tab label="Bình luận" />
+            </Tabs>
+            
+            {tabValue === 0 && (
+              <Box sx={{ p: 3 }}>
+                <form onSubmit={handleSubmit(onSubmit)}>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="materialId"
+                        control={control}
+                        render={({ field }) => (
+                          <Autocomplete
+                            options={materials}
+                            getOptionLabel={(option) => option ? option.name : ''}
+                            value={materials.find((m) => m.id === field.value) || null}
+                            onChange={(_, newValue) => field.onChange(newValue?.id || '')}
+                            disabled={!canEdit && !!purchaseRequest}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label="Vật tư *"
+                                placeholder="Tìm kiếm vật tư..."
+                                error={!!errors.materialId}
+                                helperText={errors.materialId?.message}
+                              />
+                            )}
+                            filterOptions={(options, { inputValue }) => {
+                              const searchValue = inputValue.toLowerCase();
+                              return options.filter(
+                                (option) =>
+                                  option.name.toLowerCase().includes(searchValue) ||
+                                  (option.type || (option as any).category || '').toLowerCase().includes(searchValue)
+                              );
+                            }}
+                            isOptionEqualToValue={(option, value) => option.id === value.id}
+                          />
+                        )}
                       />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="quantity"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            fullWidth
+                            label="Số lượng *"
+                            type="number"
+                            inputProps={{ step: '0.01', min: '0.01' }}
+                            error={!!errors.quantity}
+                            helperText={errors.quantity?.message || (selectedMaterial ? `Đơn vị: ${selectedMaterial.unit}` : '')}
+                            disabled={!canEdit && !!purchaseRequest}
+                            value={field.value || ''}
+                            onChange={(e) => {
+                              const value = parseFloat(e.target.value) || 0;
+                              field.onChange(value);
+                            }}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="projectId"
+                        control={control}
+                        render={({ field }) => (
+                          <Autocomplete
+                            options={projects}
+                            getOptionLabel={(option) => option ? option.name : ''}
+                            value={projects.find((p) => p.id === field.value) || null}
+                            onChange={(_, newValue) => field.onChange(newValue?.id || '')}
+                            disabled={!canEdit && !!purchaseRequest}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label="Dự án"
+                                placeholder="Chọn dự án (tùy chọn)..."
+                                error={!!errors.projectId}
+                                helperText={errors.projectId?.message}
+                              />
+                            )}
+                            filterOptions={(options, { inputValue }) => {
+                              const searchValue = inputValue.toLowerCase();
+                              return options.filter(
+                                (option) =>
+                                  option.name.toLowerCase().includes(searchValue) ||
+                                  (option.name || '').toLowerCase().includes(searchValue)
+                              );
+                            }}
+                            isOptionEqualToValue={(option, value) => option.id === value.id}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Controller
+                        name="reason"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Lý do *"
+                            multiline
+                            rows={3}
+                            error={!!errors.reason}
+                            helperText={errors.reason?.message}
+                            disabled={!canEdit && !!purchaseRequest}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <Box>
+                        <Typography variant="body2" sx={{ mb: 1, color: 'text.secondary' }}>
+                          Trạng thái
+                        </Typography>
+                        <Chip
+                          label={getRequestStatusLabel(purchaseRequest.status)}
+                          size="small"
+                          sx={(() => {
+                            const statusColors: Record<string, { bg: string; text: string }> = {
+                              pending: { bg: '#ed6c02', text: '#ffffff' }, // Orange
+                              approved: { bg: '#2e7d32', text: '#ffffff' }, // Green
+                              rejected: { bg: '#d32f2f', text: '#ffffff' }, // Red
+                              ordered: { bg: '#0288d1', text: '#ffffff' }, // Blue
+                            };
+                            const colors = statusColors[purchaseRequest.status] || { bg: '#757575', text: '#ffffff' };
+                            return {
+                              bgcolor: colors.bg,
+                              color: colors.text,
+                              '& .MuiChip-label': {
+                                color: colors.text,
+                              },
+                            };
+                          })()}
+                        />
+                      </Box>
+                    </Grid>
+                    {purchaseRequest.approvedBy && (
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          label="Người duyệt"
+                          value={purchaseRequest.approvedBy}
+                          disabled
+                        />
+                      </Grid>
                     )}
-                    filterOptions={(options, { inputValue }) => {
-                      const searchValue = inputValue.toLowerCase();
-                      return options.filter(
-                        (option) =>
-                          option.name.toLowerCase().includes(searchValue) ||
-                          (option.type || (option as any).category || '').toLowerCase().includes(searchValue)
-                      );
-                    }}
-                    isOptionEqualToValue={(option, value) => option.id === value.id}
-                  />
-                )}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Controller
-                name="quantity"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    fullWidth
-                    label="Số lượng *"
-                    type="number"
-                    inputProps={{ step: '0.01', min: '0.01' }}
-                    error={!!errors.quantity}
-                    helperText={errors.quantity?.message || (selectedMaterial ? `Đơn vị: ${selectedMaterial.unit}` : '')}
-                    disabled={!!purchaseRequest}
-                    value={field.value || ''}
-                    onChange={(e) => {
-                      const value = parseFloat(e.target.value) || 0;
-                      field.onChange(value);
-                    }}
-                  />
-                )}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <Controller
-                name="reason"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label="Lý do *"
-                    multiline
-                    rows={3}
-                    error={!!errors.reason}
-                    helperText={errors.reason?.message}
-                    disabled={!!purchaseRequest}
-                  />
-                )}
-              />
-            </Grid>
-            {purchaseRequest && (
-              <>
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Trạng thái</InputLabel>
-                    <Select value={purchaseRequest.status} label="Trạng thái" disabled>
-                      <MenuItem value="pending">Chờ duyệt</MenuItem>
-                      <MenuItem value="approved">Đã duyệt</MenuItem>
-                      <MenuItem value="rejected">Từ chối</MenuItem>
-                      <MenuItem value="ordered">Đã đặt hàng</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                {purchaseRequest.approvedBy && (
-                  <Grid item xs={12} sm={6}>
+                    {purchaseRequest.projectName && (
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          label="Dự án"
+                          value={purchaseRequest.projectName}
+                          disabled
+                        />
+                      </Grid>
+                    )}
+                  </Grid>
+                </form>
+              </Box>
+            )}
+            
+            {tabValue === 1 && (
+              <Box sx={{ p: 2 }}>
+                <PurchaseRequestCommentSection purchaseRequestId={purchaseRequest.id} />
+              </Box>
+            )}
+          </Paper>
+        </>
+      ) : (
+        <Paper sx={{ p: 3 }}>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={6}>
+                <Controller
+                  name="materialId"
+                  control={control}
+                  render={({ field }) => (
+                    <Autocomplete
+                      options={materials}
+                      getOptionLabel={(option) => option ? option.name : ''}
+                      value={materials.find((m) => m.id === field.value) || null}
+                      onChange={(_, newValue) => field.onChange(newValue?.id || '')}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Vật tư *"
+                          placeholder="Tìm kiếm vật tư..."
+                          error={!!errors.materialId}
+                          helperText={errors.materialId?.message}
+                        />
+                      )}
+                      filterOptions={(options, { inputValue }) => {
+                        const searchValue = inputValue.toLowerCase();
+                        return options.filter(
+                          (option) =>
+                            option.name.toLowerCase().includes(searchValue) ||
+                            (option.type || (option as any).category || '').toLowerCase().includes(searchValue)
+                        );
+                      }}
+                      isOptionEqualToValue={(option, value) => option.id === value.id}
+                    />
+                  )}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Controller
+                  name="quantity"
+                  control={control}
+                  render={({ field }) => (
                     <TextField
                       fullWidth
-                      label="Người duyệt"
-                      value={purchaseRequest.approvedBy}
-                      disabled
+                      label="Số lượng *"
+                      type="number"
+                      inputProps={{ step: '0.01', min: '0.01' }}
+                      error={!!errors.quantity}
+                      helperText={errors.quantity?.message || (selectedMaterial ? `Đơn vị: ${selectedMaterial.unit}` : '')}
+                      value={field.value || ''}
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value) || 0;
+                        field.onChange(value);
+                      }}
                     />
-                  </Grid>
-                )}
-              </>
-            )}
-          </Grid>
-        </form>
-      </Paper>
+                  )}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Controller
+                  name="projectId"
+                  control={control}
+                  render={({ field }) => (
+                    <Autocomplete
+                      options={projects}
+                      getOptionLabel={(option) => option ? option.name : ''}
+                      value={projects.find((p) => p.id === field.value) || null}
+                      onChange={(_, newValue) => field.onChange(newValue?.id || '')}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Dự án"
+                          placeholder="Chọn dự án (tùy chọn)..."
+                          error={!!errors.projectId}
+                          helperText={errors.projectId?.message}
+                        />
+                      )}
+                      filterOptions={(options, { inputValue }) => {
+                        const searchValue = inputValue.toLowerCase();
+                        return options.filter(
+                          (option) =>
+                            option.name.toLowerCase().includes(searchValue) ||
+                            (option.name || '').toLowerCase().includes(searchValue)
+                        );
+                      }}
+                      isOptionEqualToValue={(option, value) => option.id === value.id}
+                    />
+                  )}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Controller
+                  name="reason"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label="Lý do *"
+                      multiline
+                      rows={3}
+                      error={!!errors.reason}
+                      helperText={errors.reason?.message}
+                    />
+                  )}
+                />
+              </Grid>
+            </Grid>
+          </form>
+        </Paper>
+      )}
     </Box>
   );
 }

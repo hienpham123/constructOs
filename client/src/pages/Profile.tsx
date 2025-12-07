@@ -340,6 +340,7 @@ export default function Profile() {
                   <Button
                     type="submit"
                     variant="contained"
+                    color="primary"
                     startIcon={loading ? <CircularProgress size={20} /> : <SaveIcon />}
                     disabled={loading}
                   >

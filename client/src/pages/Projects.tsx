@@ -198,15 +198,23 @@ export default function Projects() {
         </Box>
         <Box display="flex" gap={1} sx={{ order: { xs: 2, md: 0 } }}>
           <Button
-            variant="outlined"
+            variant="contained"
+            color="success"
             startIcon={<FileDownloadIcon />}
             onClick={handleExport}
             disabled={isExporting}
+            sx={{
+              color: '#ffffff',
+              '& .MuiButton-startIcon': {
+                color: '#ffffff',
+              },
+            }}
           >
             {isExporting ? 'Đang xuất...' : 'Xuất Excel'}
           </Button>
           <Button
             variant="contained"
+            color="primary"
             startIcon={<AddIcon />}
             onClick={handleAdd}
             sx={{ px: 2 }}
@@ -302,14 +310,38 @@ export default function Projects() {
             width: 150,
             minWidth: 120,
             sortable: true,
-            render: (value) => (
-              <Chip
-                label={getStatusLabel(value)}
-                color={getStatusColor(value) as any}
-                size="small"
-                sx={{ fontWeight: 500 }}
-              />
-            ),
+            render: (value) => {
+              const statusColors: Record<string, { bg: string; text: string }> = {
+                quoting: { bg: '#9e9e9e', text: '#ffffff' }, // Gray
+                contract_signed_in_progress: { bg: '#1976d2', text: '#ffffff' }, // Blue
+                in_progress: { bg: '#1976d2', text: '#ffffff' }, // Blue
+                completed: { bg: '#2e7d32', text: '#ffffff' }, // Green
+                on_hold: { bg: '#ed6c02', text: '#ffffff' }, // Orange
+                design_consulting: { bg: '#0288d1', text: '#ffffff' }, // Light Blue
+                design_appraisal: { bg: '#0288d1', text: '#ffffff' }, // Light Blue
+                preparing_acceptance: { bg: '#1976d2', text: '#ffffff' }, // Blue
+                failed: { bg: '#d32f2f', text: '#ffffff' }, // Red
+              };
+              const colors = statusColors[value] || { bg: '#757575', text: '#ffffff' };
+              
+              return (
+                <Chip
+                  label={getStatusLabel(value)}
+                  size="small"
+                  sx={{
+                    bgcolor: colors.bg,
+                    color: colors.text,
+                    fontWeight: 500,
+                    fontSize: '0.8125rem',
+                    height: '28px',
+                    '& .MuiChip-label': {
+                      color: colors.text,
+                      padding: '0 12px',
+                    },
+                  }}
+                />
+              );
+            },
           },
         ]}
         data={projects}

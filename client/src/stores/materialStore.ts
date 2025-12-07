@@ -24,7 +24,7 @@ interface MaterialState {
   updateTransaction: (id: string, transaction: Partial<MaterialTransaction>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   addPurchaseRequest: (request: Omit<PurchaseRequest, 'id' | 'requestedAt' | 'status'>) => Promise<void>;
-  updatePurchaseRequest: (id: string, status: PurchaseRequest['status']) => Promise<void>;
+  updatePurchaseRequest: (id: string, data: { status?: PurchaseRequest['status']; materialId?: string; quantity?: number; reason?: string; projectId?: string }) => Promise<void>;
   deletePurchaseRequest: (id: string) => Promise<void>;
   setSelectedMaterial: (material: Material | null) => void;
 }
@@ -223,10 +223,10 @@ export const useMaterialStore = create<MaterialState>((set) => ({
     }
   },
 
-  updatePurchaseRequest: async (id, status) => {
+  updatePurchaseRequest: async (id, data) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await materialsAPI.updatePurchaseRequest(id, { status });
+      const response = await materialsAPI.updatePurchaseRequest(id, data);
       const updatedRequest = normalizePurchaseRequest(response);
       set((state) => ({
         purchaseRequests: state.purchaseRequests.map((request) =>
@@ -234,7 +234,13 @@ export const useMaterialStore = create<MaterialState>((set) => ({
         ),
         isLoading: false,
       }));
-      showSuccess('Cập nhật yêu cầu mua hàng thành công');
+      // Show appropriate message based on action
+      if (data.status === 'pending' && data.materialId === undefined && data.quantity === undefined && data.reason === undefined && data.projectId === undefined) {
+        // Only status changed to pending (resubmit)
+        showSuccess('Đã gửi lại yêu cầu thành công');
+      } else {
+        showSuccess('Cập nhật yêu cầu mua hàng thành công');
+      }
     } catch (error: any) {
       set({ error: error.message || 'Không thể cập nhật yêu cầu mua hàng', isLoading: false });
       throw error;

@@ -1,9 +1,6 @@
 import { useState, MouseEvent, ReactNode } from 'react';
-import { IconButton, Popover, MenuList, MenuItem, ListItemIcon, ListItemText, Tooltip } from '@mui/material';
+import { IconButton, Popover, MenuList, MenuItem, ListItemText, Tooltip } from '@mui/material';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
 
 interface CustomAction {
   label: string;
@@ -77,49 +74,90 @@ export default function ActionMenuWithCustomActions({
           horizontal: 'right',
         }}
         onClick={(e) => e.stopPropagation()}
+        sx={{
+          '& .MuiPopover-paper': {
+            boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
+            borderRadius: '8px',
+            minWidth: '150px',
+            padding: '4px 0',
+            bgcolor: '#ffffff',
+            border: 'none',
+          },
+        }}
       >
-        <MenuList dense>
+        <MenuList 
+          dense
+          sx={{
+            padding: 0,
+            '& .MuiMenuItem-root': {
+              padding: '8px 16px',
+              fontSize: '14px',
+              minHeight: '36px',
+              '&:hover': {
+                bgcolor: '#f5f5f5',
+              },
+            },
+          }}
+        >
+          {onView && (
+            <MenuItem 
+              onClick={() => handleAction(onView!)}
+              sx={{
+                '& .MuiListItemText-primary': {
+                  color: '#000000',
+                  fontSize: '14px',
+                },
+              }}
+            >
+              <ListItemText>{viewLabel}</ListItemText>
+            </MenuItem>
+          )}
+          {onEdit && (
+            <MenuItem 
+              onClick={() => handleAction(onEdit!)}
+              sx={{
+                '& .MuiListItemText-primary': {
+                  color: '#000000',
+                  fontSize: '14px',
+                },
+              }}
+            >
+              <ListItemText>{editLabel}</ListItemText>
+            </MenuItem>
+          )}
           {customActions.map((action, index) => (
             <MenuItem
               key={index}
               onClick={() => handleAction(action.onClick)}
-              sx={action.color === 'error' ? { color: 'error.main' } : action.color === 'success' ? { color: 'success.main' } : {}}
+              sx={{
+                '& .MuiListItemText-primary': {
+                  color: action.color === 'error' ? '#d32f2f' : action.color === 'success' ? '#2e7d32' : '#000000',
+                  fontSize: '14px',
+                },
+                '&:hover': {
+                  bgcolor: action.color === 'error' ? '#ffebee' : action.color === 'success' ? '#e8f5e9' : '#f5f5f5',
+                },
+              }}
             >
-              <ListItemIcon sx={action.color === 'error' ? { color: 'error.main' } : action.color === 'success' ? { color: 'success.main' } : {}}>
-                {action.icon}
-              </ListItemIcon>
               <ListItemText>{action.label}</ListItemText>
             </MenuItem>
           ))}
-          {/* Only show default actions if no customActions or customActions is empty */}
-          {customActions.length === 0 && (
-            <>
-              {onView && (
-                <MenuItem onClick={() => handleAction(onView)}>
-                  <ListItemIcon>
-                    <VisibilityIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText>{viewLabel}</ListItemText>
-                </MenuItem>
-              )}
-              {onEdit && (
-                <MenuItem onClick={() => handleAction(onEdit)}>
-                  <ListItemIcon>
-                    <EditIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText>{editLabel}</ListItemText>
-                </MenuItem>
-              )}
-              {onDelete && (
-                <MenuItem onClick={() => handleAction(onDelete)} sx={{ color: 'error.main' }}>
-                  <ListItemIcon>
-                    <DeleteIcon fontSize="small" sx={{ color: 'error.main' }} />
-                  </ListItemIcon>
+          {onDelete && (
+            <MenuItem 
+                  onClick={() => handleAction(onDelete!)}
+                  sx={{
+                    '& .MuiListItemText-primary': {
+                      color: '#d32f2f',
+                      fontSize: '14px',
+                    },
+                    '&:hover': {
+                      bgcolor: '#ffebee',
+                    },
+                  }}
+                >
                   <ListItemText>{deleteLabel}</ListItemText>
                 </MenuItem>
               )}
-            </>
-          )}
         </MenuList>
       </Popover>
     </>

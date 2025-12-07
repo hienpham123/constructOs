@@ -5,21 +5,20 @@ import {
   Typography,
   Paper,
   Grid,
-  Chip,
   LinearProgress,
   Tabs,
   Tab,
   List,
   ListItem,
   ListItemText,
-  Checkbox,
 } from '@mui/material';
 import { Button } from '../components/common';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useProjectStore } from '../stores/projectStore';
-import { formatDate, formatDateTime } from '../utils/dateFormat';
+import { formatDate } from '../utils/dateFormat';
 import { usePermissions } from '../hooks/usePermissions';
 import { Alert } from '@mui/material';
+import CommentSection from '../components/CommentSection';
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -43,13 +42,6 @@ export default function ProjectDetail() {
     }
   }, [id, projects, setSelectedProject]);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-    }).format(value);
-  };
-
   if (!selectedProject) {
     return <LinearProgress />;
   }
@@ -68,106 +60,89 @@ export default function ProjectDetail() {
         {selectedProject.name}
       </Typography>
 
-      <Grid container spacing={3} sx={{ mt: 1 }}>
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 2, mb: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Thông tin dự án
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <Typography variant="body2" color="text.secondary">
-                  Chủ đầu tư
-                </Typography>
-                <Typography variant="body1">{selectedProject.investor || (selectedProject as any).client}</Typography>
+      <Paper sx={{ p: 2, mt: 2 }}>
+        <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)}>
+          <Tab label="Thông tin dự án" />
+          <Tab label="Hợp đồng" />
+          <Tab label="Hồ sơ dự án" />
+        </Tabs>
+
+        {tabValue === 0 && (
+          <Box sx={{ mt: 2 }}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={8}>
+                <Paper sx={{ p: 2 }}>
+                  <Grid container spacing={2}>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">
+                        Chủ đầu tư
+                      </Typography>
+                      <Typography variant="body1">{selectedProject.investor || (selectedProject as any).client}</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">
+                        Đầu mối
+                      </Typography>
+                      <Typography variant="body1">{selectedProject.contactPerson || (selectedProject as any).contact_person || '-'}</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">
+                        Địa điểm
+                      </Typography>
+                      <Typography variant="body1">{selectedProject.location}</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">
+                        Quản lý dự án
+                      </Typography>
+                      <Typography variant="body1">{selectedProject.managerName}</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">
+                        Ngày bắt đầu
+                      </Typography>
+                      <Typography variant="body1">
+                        {formatDate(selectedProject.startDate)}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">
+                        Ngày kết thúc
+                      </Typography>
+                      <Typography variant="body1">
+                        {formatDate(selectedProject.endDate)}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Typography variant="body2" color="text.secondary">
+                        Mô tả
+                      </Typography>
+                      <Typography variant="body1">{selectedProject.description}</Typography>
+                    </Grid>
+                  </Grid>
+                </Paper>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="body2" color="text.secondary">
-                  Đầu mối
-                </Typography>
-                <Typography variant="body1">{selectedProject.contactPerson || (selectedProject as any).contact_person || '-'}</Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="body2" color="text.secondary">
-                  Địa điểm
-                </Typography>
-                <Typography variant="body1">{selectedProject.location}</Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="body2" color="text.secondary">
-                  Quản lý dự án
-                </Typography>
-                <Typography variant="body1">{selectedProject.managerName}</Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="body2" color="text.secondary">
-                  Ngày bắt đầu
-                </Typography>
-                <Typography variant="body1">
-                  {formatDate(selectedProject.startDate)}
-                </Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="body2" color="text.secondary">
-                  Ngày kết thúc
-                </Typography>
-                <Typography variant="body1">
-                  {formatDate(selectedProject.endDate)}
-                </Typography>
-              </Grid>
-              <Grid item xs={12}>
-                <Typography variant="body2" color="text.secondary">
-                  Mô tả
-                </Typography>
-                <Typography variant="body1">{selectedProject.description}</Typography>
+
+              <Grid item xs={12} md={4}>
+                <Paper sx={{ p: 2 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Tiến độ
+                  </Typography>
+                  <Box sx={{ mt: 2 }}>
+                    <LinearProgress
+                      variant="determinate"
+                      value={selectedProject.progress}
+                      sx={{ height: 20, borderRadius: 0, mb: 1 }}
+                    />
+                    <Typography variant="h4" align="center">
+                      {selectedProject.progress}%
+                    </Typography>
+                  </Box>
+                </Paper>
               </Grid>
             </Grid>
-          </Paper>
-
-          <Paper sx={{ p: 2 }}>
-            <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)}>
-              <Tab label="Giai đoạn" />
-              <Tab label="Tài liệu" />
-            </Tabs>
-
-            {tabValue === 0 && (
-              <Box sx={{ mt: 2 }}>
-                {selectedProject.stages.map((stage) => (
-                  <Paper key={stage.id} sx={{ p: 2, mb: 2 }}>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                      <Typography variant="h6">{stage.name}</Typography>
-                      <Chip
-                        label={`${stage.progress}%`}
-                        color={stage.progress === 100 ? 'success' : 'primary'}
-                      />
-                    </Box>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      {stage.description}
-                    </Typography>
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Checklist:
-                      </Typography>
-                      <List>
-                        {stage.checklist.map((item) => (
-                          <ListItem key={item.id}>
-                            <Checkbox checked={item.completed} disabled />
-                            <ListItemText
-                              primary={item.task}
-                              secondary={
-                                item.completed && item.completedAt
-                                  ? `Hoàn thành: ${formatDate(item.completedAt)}`
-                                  : ''
-                              }
-                            />
-                          </ListItem>
-                        ))}
-                      </List>
-                    </Box>
-                  </Paper>
-                ))}
-              </Box>
-            )}
+          </Box>
+        )}
 
             {tabValue === 1 && (
               <Box sx={{ mt: 2 }}>
@@ -175,76 +150,66 @@ export default function ProjectDetail() {
                   <LinearProgress />
                 ) : (
                   <>
-                    {selectedProject.documents.filter((doc) => canViewDocumentType(doc.type, doc.name)).length === 0 ? (
-                      <Alert severity="info">
-                        Không có tài liệu nào bạn có quyền xem hoặc chưa có tài liệu nào.
-                      </Alert>
-                    ) : (
-                      <List>
+                    {selectedProject.documents
+                      .filter((doc) => doc.type === 'contract' && canViewDocumentType(doc.type, doc.name))
+                      .length > 0 && (
+                      <List sx={{ mb: 2 }}>
                         {selectedProject.documents
-                          .filter((doc) => canViewDocumentType(doc.type, doc.name))
+                          .filter((doc) => doc.type === 'contract' && canViewDocumentType(doc.type, doc.name))
                           .map((doc) => (
                             <ListItem key={doc.id}>
-                              <ListItemText
+                            <ListItemText
                                 primary={doc.name}
-                                secondary={`${doc.type} - ${formatDate(doc.uploadedAt)}`}
-                              />
-                            </ListItem>
-                          ))}
+                                secondary={`Hợp đồng - ${formatDate(doc.uploadedAt)}`}
+                            />
+                          </ListItem>
+                        ))}
                       </List>
                     )}
-                    {selectedProject.documents.filter((doc) => !canViewDocumentType(doc.type, doc.name)).length > 0 && (
-                      <Alert severity="warning" sx={{ mt: 2 }}>
-                        Có {selectedProject.documents.filter((doc) => !canViewDocumentType(doc.type, doc.name)).length} tài liệu bạn không có quyền xem.
+                    {selectedProject.documents.filter((doc) => doc.type === 'contract' && !canViewDocumentType(doc.type, doc.name)).length > 0 && (
+                      <Alert severity="warning" sx={{ mb: 2 }}>
+                        Có {selectedProject.documents.filter((doc) => doc.type === 'contract' && !canViewDocumentType(doc.type, doc.name)).length} hợp đồng bạn không có quyền xem.
                       </Alert>
                     )}
+                    <CommentSection projectId={selectedProject.id} category="contract" />
                   </>
                 )}
               </Box>
             )}
-          </Paper>
-        </Grid>
 
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 2, mb: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Tiến độ
-            </Typography>
-            <Box sx={{ mt: 2 }}>
-              <LinearProgress
-                variant="determinate"
-                value={selectedProject.progress}
-                sx={{ height: 20, borderRadius: 0, mb: 1 }}
-              />
-              <Typography variant="h4" align="center">
-                {selectedProject.progress}%
-              </Typography>
-            </Box>
-          </Paper>
-
-          <Paper sx={{ p: 2, mb: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Tài chính
-            </Typography>
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="body2" color="text.secondary">
-                Ngân sách
-              </Typography>
-              <Typography variant="h6">{formatCurrency(selectedProject.budget)}</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Chi phí thực tế
-              </Typography>
-              <Typography variant="h6">{formatCurrency(selectedProject.actualCost)}</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Tỷ lệ chi phí
-              </Typography>
-              <Typography variant="h6">
-                {((selectedProject.actualCost / selectedProject.budget) * 100).toFixed(1)}%
-              </Typography>
-            </Box>
-          </Paper>
-        </Grid>
-      </Grid>
+        {tabValue === 2 && (
+          <Box sx={{ mt: 2 }}>
+            {permissionsLoading ? (
+              <LinearProgress />
+            ) : (
+              <>
+                {selectedProject.documents
+                  .filter((doc) => doc.type !== 'contract' && canViewDocumentType(doc.type, doc.name))
+                  .length > 0 && (
+                  <List sx={{ mb: 2 }}>
+                    {selectedProject.documents
+                      .filter((doc) => doc.type !== 'contract' && canViewDocumentType(doc.type, doc.name))
+                      .map((doc) => (
+                        <ListItem key={doc.id}>
+                          <ListItemText
+                            primary={doc.name}
+                            secondary={`${doc.type} - ${formatDate(doc.uploadedAt)}`}
+                          />
+                        </ListItem>
+                      ))}
+                  </List>
+                )}
+                {selectedProject.documents.filter((doc) => doc.type !== 'contract' && !canViewDocumentType(doc.type, doc.name)).length > 0 && (
+                  <Alert severity="warning" sx={{ mb: 2 }}>
+                    Có {selectedProject.documents.filter((doc) => doc.type !== 'contract' && !canViewDocumentType(doc.type, doc.name)).length} hồ sơ dự án bạn không có quyền xem.
+                  </Alert>
+                )}
+                <CommentSection projectId={selectedProject.id} category="project_files" />
+              </>
+            )}
+          </Box>
+        )}
+      </Paper>
     </Box>
   );
 }

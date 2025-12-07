@@ -6,7 +6,9 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "fix-port": "./fix-port.sh"
+    "fix-port": "./fix-port.sh",
+    "migrate:comments": "tsx src/scripts/runMigration.ts",
+    "verify:migration": "tsx src/scripts/verifyMigration.ts"
   },
   "dependencies": {
     "@types/bcryptjs": "^3.0.0",

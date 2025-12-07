@@ -22,7 +22,6 @@ import Roles from './pages/Roles';
 import RolesAddEdit from './pages/RolesAddEdit';
 import DailyReports from './pages/DailyReports';
 import DailyReportAddEdit from './pages/DailyReportAddEdit';
-import ProjectReports from './pages/ProjectReports';
 import Profile from './pages/Profile';
 import { useAuthStore } from './stores/authStore';
 
@@ -30,15 +29,15 @@ const theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#dc2626', // Đỏ phòng cháy chữa cháy
-      light: '#ef4444',
-      dark: '#b91c1c',
-      contrastText: '#ffffff',
-    },
-    secondary: {
       main: '#3b82f6', // Xanh dương
       light: '#60a5fa',
       dark: '#2563eb',
+      contrastText: '#ffffff',
+    },
+    secondary: {
+      main: '#dc2626', // Đỏ
+      light: '#ef4444',
+      dark: '#b91c1c',
     },
     background: {
       default: '#f5f7fa',
@@ -52,6 +51,7 @@ const theme = createTheme({
       main: '#10b981',
       light: '#34d399',
       dark: '#059669',
+      contrastText: '#ffffff',
     },
     warning: {
       main: '#f59e0b',
@@ -281,15 +281,31 @@ const theme = createTheme({
             borderRadius: 0,
             fontSize: '0.875rem',
             '& fieldset': {
-              borderColor: '#d1d5db',
+              borderColor: '#3b82f6', // Blue border
             },
             '&:hover fieldset': {
-              borderColor: '#9ca3af',
+              borderColor: '#2563eb', // Darker blue on hover
             },
             '&.Mui-focused fieldset': {
-              borderColor: '#dc2626',
-              borderWidth: '1.5px',
+              borderColor: '#3b82f6', // Blue when focused
+              borderWidth: '2px',
             },
+          },
+        },
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          '& fieldset': {
+            borderColor: '#3b82f6', // Blue border
+          },
+          '&:hover fieldset': {
+            borderColor: '#2563eb', // Darker blue on hover
+          },
+          '&.Mui-focused fieldset': {
+            borderColor: '#3b82f6', // Blue when focused
+            borderWidth: '2px',
           },
         },
       },
@@ -371,7 +387,6 @@ function App() {
           <Route path="daily-reports" element={<DailyReports />} />
           <Route path="daily-reports/edit/:userId/:date" element={<DailyReportAddEdit />} />
           <Route path="daily-reports/view/:userId/:date" element={<DailyReportAddEdit />} />
-          <Route path="project-reports" element={<ProjectReports />} />
           <Route path="profile" element={<Profile />} />
         </Route>
         </Routes>

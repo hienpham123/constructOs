@@ -1,13 +1,10 @@
 import { useState, MouseEvent } from 'react';
-import { IconButton, Popover, MenuList, MenuItem, ListItemIcon, ListItemText, Tooltip } from '@mui/material';
+import { IconButton, Popover, MenuList, MenuItem, ListItemText, Tooltip } from '@mui/material';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
 
 interface ActionMenuProps {
   onView?: () => void;
-  onEdit: () => void;
+  onEdit?: () => void;
   onDelete: () => void;
   viewLabel?: string;
   editLabel?: string;
@@ -42,7 +39,9 @@ export default function ActionMenu({
   };
 
   const handleEdit = () => {
-    onEdit();
+    if (onEdit) {
+      onEdit();
+    }
     handleClose();
   };
 
@@ -80,26 +79,69 @@ export default function ActionMenu({
           horizontal: 'right',
         }}
         onClick={(e) => e.stopPropagation()}
+        sx={{
+          '& .MuiPopover-paper': {
+            boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
+            borderRadius: '8px',
+            minWidth: '150px',
+            padding: '4px 0',
+            bgcolor: '#ffffff',
+            border: 'none',
+          },
+        }}
       >
-        <MenuList dense>
+        <MenuList 
+          dense
+          sx={{
+            padding: 0,
+            '& .MuiMenuItem-root': {
+              padding: '8px 16px',
+              fontSize: '14px',
+              minHeight: '36px',
+              '&:hover': {
+                bgcolor: '#f5f5f5',
+              },
+            },
+          }}
+        >
           {onView && (
-            <MenuItem onClick={handleView}>
-              <ListItemIcon>
-                <VisibilityIcon fontSize="small" />
-              </ListItemIcon>
+            <MenuItem 
+              onClick={handleView}
+              sx={{
+                '& .MuiListItemText-primary': {
+                  color: '#000000',
+                  fontSize: '14px',
+                },
+              }}
+            >
               <ListItemText>{viewLabel}</ListItemText>
             </MenuItem>
           )}
-          <MenuItem onClick={handleEdit}>
-            <ListItemIcon>
-              <EditIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>{editLabel}</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
-            <ListItemIcon>
-              <DeleteIcon fontSize="small" sx={{ color: 'error.main' }} />
-            </ListItemIcon>
+          {onEdit && (
+            <MenuItem 
+              onClick={handleEdit}
+              sx={{
+                '& .MuiListItemText-primary': {
+                  color: '#000000',
+                  fontSize: '14px',
+                },
+              }}
+            >
+              <ListItemText>{editLabel}</ListItemText>
+            </MenuItem>
+          )}
+          <MenuItem 
+            onClick={handleDelete}
+            sx={{
+              '& .MuiListItemText-primary': {
+                color: '#d32f2f',
+                fontSize: '14px',
+              },
+              '&:hover': {
+                bgcolor: '#ffebee',
+              },
+            }}
+          >
             <ListItemText>{deleteLabel}</ListItemText>
           </MenuItem>
         </MenuList>

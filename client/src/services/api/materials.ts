@@ -62,5 +62,45 @@ export const materialsAPI = {
     }
     return api.delete(`/materials/transactions/files/${actualFilename}`).then((res) => res.data);
   },
+  // Transaction Attachments (new API)
+  getTransactionAttachments: (transactionId: string) => {
+    return api.get('/transaction-attachments', {
+      params: { transactionId },
+    }).then((res) => res.data);
+  },
+  createTransactionAttachments: (transactionId: string, files: File[]) => {
+    const formData = new FormData();
+    formData.append('transactionId', transactionId);
+    files.forEach((file) => {
+      formData.append('files', file);
+    });
+    return api.post('/transaction-attachments', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }).then((res) => res.data);
+  },
+  deleteTransactionAttachment: (attachmentId: string) => {
+    return api.delete(`/transaction-attachments/${attachmentId}`);
+  },
+  // Purchase Request Comments
+  getPurchaseRequestComments: (purchaseRequestId: string) => {
+    return api.get('/purchase-request-comments', {
+      params: { purchaseRequestId },
+    }).then((res) => res.data);
+  },
+  createPurchaseRequestComment: (formData: FormData) => {
+    return api.post('/purchase-request-comments', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }).then((res) => res.data);
+  },
+  updatePurchaseRequestComment: (commentId: string, content: string) => {
+    return api.put(`/purchase-request-comments/${commentId}`, { content }).then((res) => res.data);
+  },
+  deletePurchaseRequestComment: (commentId: string) => {
+    return api.delete(`/purchase-request-comments/${commentId}`);
+  },
 };
 

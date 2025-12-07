@@ -9,7 +9,6 @@ const defaultPermissions: UserPermissions = {
   view_contract: false,
   view_report: false,
   view_daily_report: false,
-  view_project_report: false,
 };
 
 export function usePermissions() {
@@ -44,7 +43,6 @@ export function usePermissions() {
   const canViewContract = permissions.view_contract;
   const canViewReport = permissions.view_report;
   const canViewDailyReport = permissions.view_daily_report;
-  const canViewProjectReport = permissions.view_project_report;
 
   // Check if user can view a specific document type
   // For reports, we check the document name to determine if it's a daily report or project report
@@ -69,17 +67,9 @@ export function usePermissions() {
           ) {
             return canViewDailyReport;
           }
-          // Check for project report keywords
-          if (
-            nameLower.includes('báo cáo dự án') ||
-            nameLower.includes('project report') ||
-            nameLower.includes('báo cáo')
-          ) {
-            return canViewProjectReport;
-          }
         }
-        // Default: if user has either permission, allow viewing
-        return canViewDailyReport || canViewProjectReport;
+        // Default: allow viewing if user has daily report permission
+        return canViewDailyReport;
       case 'photo':
       case 'other':
         // Photos and other documents are generally viewable
@@ -96,7 +86,6 @@ export function usePermissions() {
     canViewContract,
     canViewReport,
     canViewDailyReport,
-    canViewProjectReport,
     canViewDocumentType,
     refreshPermissions: fetchPermissions,
   };

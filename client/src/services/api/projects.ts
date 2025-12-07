@@ -15,5 +15,24 @@ export const projectsAPI = {
   create: (data: any) => api.post('/projects', data).then((res) => res.data),
   update: (id: string, data: any) => api.put(`/projects/${id}`, data).then((res) => res.data),
   delete: (id: string) => api.delete(`/projects/${id}`),
+  // Comments
+  getComments: (projectId: string, category: 'contract' | 'project_files') => {
+    return api.get('/project-comments', {
+      params: { projectId, category },
+    }).then((res) => res.data);
+  },
+  createComment: (formData: FormData) => {
+    return api.post('/project-comments', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }).then((res) => res.data);
+  },
+  updateComment: (commentId: string, content: string) => {
+    return api.put(`/project-comments/${commentId}`, { content }).then((res) => res.data);
+  },
+  deleteComment: (commentId: string) => {
+    return api.delete(`/project-comments/${commentId}`);
+  },
 };
 

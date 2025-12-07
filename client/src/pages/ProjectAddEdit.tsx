@@ -68,8 +68,6 @@ export default function ProjectAddEdit() {
   
   const projectId = isEditMode && id ? id : null;
   
-  const [autoCalculateProgress, setAutoCalculateProgress] = useState(false);
-
   const {
     control,
     handleSubmit,
@@ -136,10 +134,6 @@ export default function ProjectAddEdit() {
         status: project.status || 'quoting',
         progress: project.progress || 0,
       });
-      
-      if (project.stages && project.stages.length > 0) {
-        setAutoCalculateProgress(true);
-      }
     } else if (!isEditMode) {
       reset({
         name: '',
@@ -153,25 +147,8 @@ export default function ProjectAddEdit() {
         status: 'quoting',
         progress: 0,
       });
-      setAutoCalculateProgress(false);
     }
   }, [project, isEditMode, reset]);
-
-  const calculateProgressFromStages = (stages: any[]) => {
-    if (!stages || stages.length === 0) return 0;
-    const completed = stages.filter((s) => s.status === 'completed').length;
-    return Math.round((completed / stages.length) * 100);
-  };
-
-  useEffect(() => {
-    if (autoCalculateProgress && project?.stages) {
-      const calculatedProgress = calculateProgressFromStages(project.stages);
-      reset({
-        ...watch(),
-        progress: calculatedProgress,
-      });
-    }
-  }, [autoCalculateProgress, project?.stages, reset, watch]);
 
   const onSubmit = async (data: ProjectFormData) => {
     if (isSubmittingRef.current) return;
@@ -188,9 +165,7 @@ export default function ProjectAddEdit() {
         endDate: (data.endDate as Dayjs).format('YYYY-MM-DD'),
         budget: normalizeNumber(data.budget),
         actualCost: project?.actualCost || 0,
-        progress: autoCalculateProgress && project?.stages
-          ? calculateProgressFromStages(project.stages)
-          : normalizeNumber(data.progress),
+        progress: normalizeNumber(data.progress),
         managerId: user?.id || '',
         managerName: user?.name || '',
         status: data.status,
@@ -257,6 +232,7 @@ export default function ProjectAddEdit() {
             <Box display="flex" gap={1}>
               <Button
                 variant="contained"
+                color="primary"
                 startIcon={<SaveIcon />}
                 onClick={handleSubmit(onSubmit)}
                 disabled={isSubmitting}
@@ -438,17 +414,6 @@ export default function ProjectAddEdit() {
                   )}
                 />
               </Grid>
-              <Grid item xs={12}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={autoCalculateProgress}
-                      onChange={(e) => setAutoCalculateProgress(e.target.checked)}
-                    />
-                  }
-                  label="Tự động tính tiến độ từ stages"
-                />
-              </Grid>
               <Grid item xs={12} sm={6}>
                 <Controller
                   name="progress"
@@ -461,16 +426,9 @@ export default function ProjectAddEdit() {
                       type="number"
                       inputProps={{ min: 0, max: 100 }}
                       error={!!errors.progress}
-                      helperText={
-                        autoCalculateProgress && project?.stages && project.stages.length > 0
-                          ? `Tự động: ${calculateProgressFromStages(project.stages)}% (${project.stages.filter((s) => s.status === 'completed').length}/${project.stages.length} stages hoàn thành)`
-                          : errors.progress?.message || 'Nhập từ 0-100'
-                      }
+                      helperText={errors.progress?.message || 'Nhập từ 0-100'}
                       value={field.value || ''}
                       onChange={(e) => {
-                        if (autoCalculateProgress) {
-                          return;
-                        }
                         const value = parseInt(e.target.value, 10);
                         if (isNaN(value)) {
                           field.onChange(0);
@@ -478,7 +436,6 @@ export default function ProjectAddEdit() {
                           field.onChange(Math.min(100, Math.max(0, value)));
                         }
                       }}
-                      disabled={autoCalculateProgress}
                     />
                   )}
                 />

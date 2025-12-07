@@ -50,6 +50,9 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [selectedPurchaseRequest, setSelectedPurchaseRequest] = useState<any>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [approveRejectDialogOpen, setApproveRejectDialogOpen] = useState(false);
+  const [approveRejectAction, setApproveRejectAction] = useState<'approve' | 'reject' | null>(null);
+  const [approveRejectRequest, setApproveRejectRequest] = useState<any>(null);
   
   // Search and sort states for each tab
   const [search, setSearch] = useState('');
@@ -225,6 +228,7 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
     }
   };
 
+
   // Only show full page loading if no data exists yet
   const hasData = tab === 'list' ? materials.length > 0 : 
                   tab === 'transactions' ? transactions.length > 0 : 
@@ -292,14 +296,21 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
             </Box>
             <Box display="flex" gap={1} sx={{ order: { xs: 2, md: 0 } }}>
               <Button 
-                variant="outlined" 
+                variant="contained"
+                color="success"
                 startIcon={<FileDownloadIcon />} 
                 onClick={handleExportMaterials}
                 disabled={isExporting}
+                sx={{
+                  color: '#ffffff',
+                  '& .MuiButton-startIcon': {
+                    color: '#ffffff',
+                  },
+                }}
               >
                 {isExporting ? 'Đang xuất...' : 'Xuất Excel'}
               </Button>
-              <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/materials/add')} sx={{ px: 2 }}>
+              <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => navigate('/materials/add')} sx={{ px: 2 }}>
                 Thêm vật tư
               </Button>
             </Box>
@@ -317,7 +328,7 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
               />
             </Box>
             <Box sx={{ order: { xs: 2, md: 0 } }}>
-              <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/materials/transactions/add')} sx={{ px: 2 }}>
+              <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => navigate('/materials/transactions/add')} sx={{ px: 2 }}>
                 Thêm giao dịch
               </Button>
             </Box>
@@ -335,7 +346,7 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
               />
             </Box>
             <Box sx={{ order: { xs: 2, md: 0 } }}>
-              <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/materials/purchase-requests/add')} sx={{ px: 2 }}>
+              <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => navigate('/materials/purchase-requests/add')} sx={{ px: 2 }}>
                 Thêm đề xuất mua hàng
               </Button>
             </Box>
@@ -555,6 +566,14 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
                 render: (value, row) => `${value} ${row.unit}`,
               },
               {
+                label: 'Dự án',
+                field: 'projectName',
+                width: 200,
+                minWidth: 150,
+                sortable: true,
+                render: (value) => value || '-',
+              },
+              {
                 label: 'Lý do',
                 field: 'reason',
                 width: 200,
@@ -567,53 +586,74 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
                 width: 150,
                 minWidth: 120,
                 sortable: true,
-                render: (value) => (
-                  <Chip
-                    label={getRequestStatusLabel(value)}
-                    color={value === 'approved' ? 'success' : value === 'pending' ? 'warning' : 'default'}
-                    size="small"
-                  />
-                ),
+                render: (value) => {
+                  const statusColors: Record<string, { bg: string; text: string }> = {
+                    pending: { bg: '#ed6c02', text: '#ffffff' }, // Orange
+                    approved: { bg: '#2e7d32', text: '#ffffff' }, // Green
+                    rejected: { bg: '#d32f2f', text: '#ffffff' }, // Red
+                    ordered: { bg: '#0288d1', text: '#ffffff' }, // Blue
+                  };
+                  const colors = statusColors[value] || { bg: '#757575', text: '#ffffff' };
+                  
+                  return (
+                    <Chip
+                      label={getRequestStatusLabel(value)}
+                      size="small"
+                      sx={{
+                        bgcolor: colors.bg,
+                        color: colors.text,
+                        '& .MuiChip-label': {
+                          color: colors.text,
+                        },
+                      }}
+                    />
+                  );
+                },
               },
             ]}
             data={purchaseRequests}
-            actions={{
-              customActions: (request) =>
-                request.status === 'pending'
-                  ? [
-                      {
-                        label: 'Duyệt',
-                        icon: <CheckIcon fontSize="small" />,
-                        onClick: async () => {
-                          await updatePurchaseRequest(request.id, 'approved');
-                          if (tab === 'purchase-requests') {
-                            fetchPurchaseRequests(rowsPerPage, page, purchaseRequestSearch.trim() || undefined, purchaseRequestSortBy, purchaseRequestSortOrder);
-                          }
-                        },
-                        color: 'success' as const,
-                      },
-                      {
-                        label: 'Từ chối',
-                        icon: <CloseIcon fontSize="small" />,
-                        onClick: async () => {
-                          await updatePurchaseRequest(request.id, 'rejected');
-                          if (tab === 'purchase-requests') {
-                            fetchPurchaseRequests(rowsPerPage, page, purchaseRequestSearch.trim() || undefined, purchaseRequestSortBy, purchaseRequestSortOrder);
-                          }
-                        },
-                        color: 'error' as const,
-                      },
-                    ]
-                  : [],
-              onEdit: (request) => {
+            actions={(request) => ({
+              onView: () => {
                 navigate(`/materials/purchase-requests/edit/${request.id}`);
               },
-              onDelete: (request) => {
+              onEdit: (request.status === 'pending' || request.status === 'rejected') ? () => {
+                navigate(`/materials/purchase-requests/edit/${request.id}`);
+              } : undefined,
+              onDelete: () => {
                 setSelectedPurchaseRequest(request);
                 setPurchaseRequestDeleteOpen(true);
               },
-              editLabel: 'Xem chi tiết',
-            }}
+              viewLabel: 'Xem chi tiết',
+              editLabel: 'Chỉnh sửa',
+              customActions: (() => {
+                const actions = [];
+                if (request.status === 'pending') {
+                  actions.push(
+                    {
+                      label: 'Duyệt',
+                      icon: <CheckIcon fontSize="small" />,
+                      onClick: () => {
+                        setApproveRejectRequest(request);
+                        setApproveRejectAction('approve');
+                        setApproveRejectDialogOpen(true);
+                      },
+                      color: 'success' as const,
+                    },
+                    {
+                      label: 'Từ chối',
+                      icon: <CloseIcon fontSize="small" />,
+                      onClick: () => {
+                        setApproveRejectRequest(request);
+                        setApproveRejectAction('reject');
+                        setApproveRejectDialogOpen(true);
+                      },
+                      color: 'error' as const,
+                    }
+                  );
+                }
+                return actions;
+              })(),
+            })}
             pagination={{
               count: purchaseRequestsTotal,
               page,
@@ -683,6 +723,34 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
         }}
         title="Xóa đề xuất mua hàng"
         message={`Bạn có chắc chắn muốn xóa đề xuất mua hàng này?`}
+      />
+
+      <DeleteConfirmDialog
+        open={approveRejectDialogOpen}
+        onClose={() => {
+          setApproveRejectDialogOpen(false);
+          setApproveRejectAction(null);
+          setApproveRejectRequest(null);
+        }}
+        onConfirm={async () => {
+          if (approveRejectRequest && approveRejectAction) {
+            await updatePurchaseRequest(approveRejectRequest.id, { 
+              status: approveRejectAction === 'approve' ? 'approved' : 'rejected' 
+            });
+            setApproveRejectDialogOpen(false);
+            setApproveRejectAction(null);
+            setApproveRejectRequest(null);
+            if (tab === 'purchase-requests') {
+              fetchPurchaseRequests(rowsPerPage, page, purchaseRequestSearch.trim() || undefined, purchaseRequestSortBy, purchaseRequestSortOrder);
+            }
+          }
+        }}
+        title={approveRejectAction === 'approve' ? 'Xác nhận duyệt' : 'Xác nhận từ chối'}
+        message={approveRejectAction === 'approve' 
+          ? `Bạn có chắc chắn muốn duyệt đề xuất mua hàng "${approveRejectRequest?.materialName}"?`
+          : `Bạn có chắc chắn muốn từ chối đề xuất mua hàng "${approveRejectRequest?.materialName}"?`}
+        confirmButtonText={approveRejectAction === 'approve' ? 'Duyệt' : 'Từ chối'}
+        confirmButtonColor={approveRejectAction === 'approve' ? 'success' : 'error'}
       />
     </Box>
   );

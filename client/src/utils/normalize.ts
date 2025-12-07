@@ -201,5 +201,7 @@ export const normalizePurchaseRequest = (data: any): any => {
     status: data.status || 'pending',
     approvedBy: data.approved_by_name || data.approvedBy || data.approved_by || undefined, // Prioritize name
     approvedAt: data.approvedAt || data.approved_at || undefined,
+    projectId: data.projectId || data.project_id || undefined,
+    projectName: data.projectName || data.project_name || undefined,
   };
 };

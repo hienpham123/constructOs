@@ -26,6 +26,7 @@ export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [avatarKey, setAvatarKey] = useState(0);
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout, refreshUser } = useAuthStore();
@@ -47,9 +48,28 @@ export default function Layout() {
   // Refresh user data when component mounts to get latest avatar
   useEffect(() => {
     if (user) {
-      refreshUser();
+      refreshUser().then(() => {
+        // Force avatar reload after refresh
+        setAvatarKey(prev => prev + 1);
+      });
     }
   }, []); // Only run once on mount
+
+  // Update avatar key when user avatar changes
+  useEffect(() => {
+    if (user?.avatar) {
+      setAvatarKey(prev => prev + 1);
+    }
+  }, [user?.avatar]);
+
+  // Get avatar URL with cache busting
+  const getAvatarUrl = () => {
+    if (!user?.avatar) return undefined;
+    // Add timestamp to force browser to reload image
+    const separator = user.avatar.includes('?') ? '&' : '?';
+    const cacheBuster = user.updatedAt ? new Date(user.updatedAt).getTime() : Date.now();
+    return `${user.avatar}${separator}_t=${cacheBuster}`;
+  };
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -133,7 +153,8 @@ export default function Layout() {
                   border: '2px solid',
                   borderColor: 'primary.light',
                 }}
-                src={user?.avatar || undefined}
+                src={getAvatarUrl()}
+                key={`avatar-${avatarKey}-${user?.avatar || ''}`}
               >
                 {user?.name?.charAt(0).toUpperCase() || 'U'}
               </Avatar>

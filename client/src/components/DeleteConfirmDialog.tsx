@@ -17,6 +17,8 @@ interface DeleteConfirmDialogProps {
   message?: string;
   itemName?: string;
   allowedRoles?: string[];
+  confirmButtonText?: string;
+  confirmButtonColor?: 'error' | 'success' | 'primary' | 'warning' | 'info';
 }
 
 export default function DeleteConfirmDialog({
@@ -27,6 +29,8 @@ export default function DeleteConfirmDialog({
   message = 'Bạn có chắc chắn muốn xóa mục này?',
   itemName,
   allowedRoles,
+  confirmButtonText = 'Xóa',
+  confirmButtonColor = 'error',
 }: DeleteConfirmDialogProps) {
   const { user } = useAuthStore();
   
@@ -58,11 +62,11 @@ export default function DeleteConfirmDialog({
         <Button onClick={onClose}>Hủy</Button>
         <Button 
           onClick={handleConfirm} 
-          color="error" 
+          color={confirmButtonColor} 
           variant="contained"
           disabled={!hasPermission}
         >
-          Xóa
+          {confirmButtonText}
         </Button>
       </DialogActions>
     </Dialog>

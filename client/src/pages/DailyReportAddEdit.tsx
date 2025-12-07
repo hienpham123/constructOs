@@ -209,6 +209,7 @@ export default function DailyReportAddEdit() {
                 <Button
                   type="submit"
                   variant="contained"
+                  color="primary"
                   startIcon={<SaveIcon />}
                   disabled={loading}
                 >

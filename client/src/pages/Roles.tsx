@@ -18,7 +18,6 @@ const PERMISSION_LABELS: Record<string, string> = {
   view_contract: 'Xem hợp đồng',
   view_report: 'Xem báo cáo',
   view_daily_report: 'Xem báo cáo ngày',
-  view_project_report: 'Xem báo cáo dự án',
 };
 
 export default function Roles() {
@@ -118,15 +117,10 @@ export default function Roles() {
         <Box sx={{ order: { xs: 2, md: 0 } }}>
           <Button
             variant="contained"
+            color="primary"
             startIcon={<AddIcon />}
             onClick={() => navigate('/roles/add')}
-            sx={{
-              px: 2,
-            boxShadow: '0px 4px 12px rgba(220, 38, 38, 0.3)',
-            '&:hover': {
-              boxShadow: '0px 6px 16px rgba(220, 38, 38, 0.4)',
-            },
-            }}
+            sx={{ px: 2 }}
           >
             Thêm vai trò
           </Button>

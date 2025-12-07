@@ -71,7 +71,8 @@ export default function TransactionAddEdit() {
   const isEditMode = Boolean(id);
   const fileInfoMapRef = useRef<Map<string, { name: string; type: string }>>(new Map());
   const pendingFilesRef = useRef<File[]>([]);
-  const deletedFilesRef = useRef<string[]>([]);
+  const deletedFilesRef = useRef<string[]>([]); // Store URLs for deletion
+  const attachmentIdMapRef = useRef<Map<string, string>>(new Map()); // Map URL to attachment ID
   const [transaction, setTransaction] = useState<MaterialTransaction | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -96,6 +97,26 @@ export default function TransactionAddEdit() {
           const foundInStore = transactions.find((t) => String(t.id) === String(transactionId));
           if (foundInStore) {
             setTransaction(foundInStore);
+          // Load attachments from new API
+          try {
+            const attachments = await materialsAPI.getTransactionAttachments(transactionId);
+            if (attachments && attachments.length > 0) {
+              const attachmentUrls = attachments.map((att: any) => att.fileUrl);
+              // Map URLs to attachment IDs for deletion and store file info
+              attachments.forEach((att: any) => {
+                attachmentIdMapRef.current.set(att.fileUrl, att.id);
+                // Store original filename and file type in fileInfoMap
+                fileInfoMapRef.current.set(att.fileUrl, {
+                  name: att.originalFilename || att.filename,
+                  type: att.fileType || 'application/octet-stream',
+                });
+              });
+              // Update transaction with attachments
+              setTransaction((prev) => prev ? { ...prev, attachments: attachmentUrls } : null);
+            }
+          } catch (attError) {
+            console.error('Error loading attachments:', attError);
+          }
             setIsLoading(false);
             return;
           }
@@ -104,6 +125,26 @@ export default function TransactionAddEdit() {
           const data = await materialsAPI.getTransactionById(transactionId);
           const normalized = normalizeMaterialTransaction(data);
           setTransaction(normalized);
+          
+          // Load attachments from new API
+          try {
+            const attachments = await materialsAPI.getTransactionAttachments(transactionId);
+            if (attachments && attachments.length > 0) {
+              const attachmentUrls = attachments.map((att: any) => att.fileUrl);
+              // Map URLs to attachment IDs for deletion and store file info
+              attachments.forEach((att: any) => {
+                attachmentIdMapRef.current.set(att.fileUrl, att.id);
+                // Store original filename and file type in fileInfoMap
+                fileInfoMapRef.current.set(att.fileUrl, {
+                  name: att.originalFilename || att.filename,
+                  type: att.fileType || 'application/octet-stream',
+                });
+              });
+              setTransaction((prev) => prev ? { ...prev, attachments: attachmentUrls } : null);
+            }
+          } catch (attError) {
+            console.error('Error loading attachments:', attError);
+          }
         } catch (error: any) {
           console.error('Error fetching transaction:', error);
           setIsLoading(false);
@@ -182,25 +223,29 @@ export default function TransactionAddEdit() {
 
   useEffect(() => {
     if (transaction) {
-      fileInfoMapRef.current.clear();
+      // Don't clear fileInfoMap here - it's already populated when loading attachments from API
+      // Only populate if not already set (for backward compatibility with old data)
       if (transaction.attachments && Array.isArray(transaction.attachments)) {
         transaction.attachments.forEach((url: string) => {
-          const urlParts = url.split('/');
-          const filename = urlParts[urlParts.length - 1];
-          const lowerUrl = url.toLowerCase();
-          let fileType = 'application/octet-stream';
-          if (lowerUrl.includes('.jpg') || lowerUrl.includes('.jpeg') || lowerUrl.includes('.png') || lowerUrl.includes('.gif') || lowerUrl.includes('.webp')) {
-            fileType = 'image/jpeg';
-          } else if (lowerUrl.includes('.pdf')) {
-            fileType = 'application/pdf';
-          } else if (lowerUrl.includes('.xls') || lowerUrl.includes('.xlsx')) {
-            fileType = 'application/vnd.ms-excel';
-          } else if (lowerUrl.includes('.doc') || lowerUrl.includes('.docx')) {
-            fileType = 'application/msword';
-          } else if (lowerUrl.includes('.csv')) {
-            fileType = 'text/csv';
+          // Only set if not already in map (from API response)
+          if (!fileInfoMapRef.current.has(url)) {
+            const urlParts = url.split('/');
+            const filename = urlParts[urlParts.length - 1];
+            const lowerUrl = url.toLowerCase();
+            let fileType = 'application/octet-stream';
+            if (lowerUrl.includes('.jpg') || lowerUrl.includes('.jpeg') || lowerUrl.includes('.png') || lowerUrl.includes('.gif') || lowerUrl.includes('.webp')) {
+              fileType = 'image/jpeg';
+            } else if (lowerUrl.includes('.pdf')) {
+              fileType = 'application/pdf';
+            } else if (lowerUrl.includes('.xls') || lowerUrl.includes('.xlsx')) {
+              fileType = 'application/vnd.ms-excel';
+            } else if (lowerUrl.includes('.doc') || lowerUrl.includes('.docx')) {
+              fileType = 'application/msword';
+            } else if (lowerUrl.includes('.csv')) {
+              fileType = 'text/csv';
+            }
+            fileInfoMapRef.current.set(url, { name: filename, type: fileType });
           }
-          fileInfoMapRef.current.set(url, { name: filename, type: fileType });
         });
       }
 
@@ -245,17 +290,13 @@ export default function TransactionAddEdit() {
 
     isSubmittingRef.current = true;
 
-    let uploadedUrls: string[] = [];
     const blobUrls: string[] = [];
-    const serverUrls: string[] = [];
 
     try {
       if (data.attachments && data.attachments.length > 0) {
         data.attachments.forEach((url: string) => {
           if (url.startsWith('blob:')) {
             blobUrls.push(url);
-          } else {
-            serverUrls.push(url);
           }
         });
       }
@@ -263,7 +304,7 @@ export default function TransactionAddEdit() {
       const selectedMaterialObj = materials.find((m) => m.id === data.materialId);
       const selectedProject = data.projectId ? projects.find((p) => p.id === data.projectId) : null;
 
-      const finalAttachments = serverUrls.length > 0 ? serverUrls : (deletedFilesRef.current.length > 0 ? [] : undefined);
+      // Don't include attachments in transaction data - they'll be handled separately
       const transactionData = {
         materialId: data.materialId,
         materialName: selectedMaterialObj?.name || '',
@@ -273,7 +314,6 @@ export default function TransactionAddEdit() {
         projectId: data.projectId || undefined,
         projectName: selectedProject?.name || undefined,
         reason: data.reason,
-        attachments: finalAttachments,
         performedBy: user?.name || user?.email || '',
       };
 
@@ -281,6 +321,7 @@ export default function TransactionAddEdit() {
       try {
         if (transaction?.id) {
           await updateTransaction(transaction.id, transactionData);
+          newTransactionId = transaction.id;
         } else {
           const { normalizeMaterialTransaction, normalizeMaterial } = await import('../utils/normalize');
           const newTransaction = await materialsAPI.createTransaction(transactionData);
@@ -299,60 +340,29 @@ export default function TransactionAddEdit() {
         throw transactionError;
       }
 
-      if (pendingFilesRef.current.length > 0) {
+      // Handle new file uploads using new API
+      if (pendingFilesRef.current.length > 0 && newTransactionId) {
         try {
-          const response = await materialsAPI.uploadTransactionFiles(pendingFilesRef.current);
-          uploadedUrls = response.files || [];
+          await materialsAPI.createTransactionAttachments(newTransactionId, pendingFilesRef.current);
         } catch (uploadError: any) {
-          console.error('Error uploading files after transaction:', uploadError);
+          console.error('Error uploading files:', uploadError);
           alert('Giao dịch đã được lưu nhưng không thể tải lên file. Vui lòng thử lại.');
           isSubmittingRef.current = false;
           return;
         }
       }
 
-      if (uploadedUrls.length > 0 || deletedFilesRef.current.length > 0) {
-        const allAttachments = [...serverUrls, ...uploadedUrls];
-        const updateData = {
-          attachments: allAttachments.length > 0 ? allAttachments : undefined,
-        };
-
-        try {
-          const transactionIdToUpdate = transaction?.id || newTransactionId;
-          if (transactionIdToUpdate) {
-            const { normalizeMaterialTransaction } = await import('../utils/normalize');
-            const response = await materialsAPI.updateTransaction(transactionIdToUpdate, updateData);
-            const updatedTransaction = normalizeMaterialTransaction(response);
-            const store = useMaterialStore.getState();
-            store.transactions = store.transactions.map((t) =>
-              t.id === transactionIdToUpdate ? updatedTransaction : t
-            );
-          }
-        } catch (updateError: any) {
-          console.error('Error updating transaction with attachments:', updateError);
-          if (uploadedUrls.length > 0) {
-            for (const fileUrl of uploadedUrls) {
-              try {
-                const urlParts = fileUrl.split('/');
-                const filename = urlParts[urlParts.length - 1];
-                await materialsAPI.deleteTransactionFile(filename);
-              } catch (deleteError: any) {
-                console.error('Error deleting uploaded file:', deleteError);
-              }
+      // Handle deleted files using new API
+      if (deletedFilesRef.current.length > 0 && newTransactionId) {
+        for (const deletedUrl of deletedFilesRef.current) {
+          // Find attachment ID from map
+          const attachmentId = attachmentIdMapRef.current.get(deletedUrl);
+          if (attachmentId) {
+            try {
+              await materialsAPI.deleteTransactionAttachment(attachmentId);
+            } catch (deleteError: any) {
+              console.error('Error deleting attachment:', deleteError);
             }
-          }
-          throw updateError;
-        }
-      }
-      
-      if (deletedFilesRef.current.length > 0) {
-        for (const fileUrl of deletedFilesRef.current) {
-          try {
-            const urlParts = fileUrl.split('/');
-            const filename = urlParts[urlParts.length - 1];
-            await materialsAPI.deleteTransactionFile(filename);
-          } catch (error: any) {
-            console.error('Error deleting file from server:', error);
           }
         }
       }
@@ -420,6 +430,7 @@ export default function TransactionAddEdit() {
           <Box display="flex" gap={1}>
             <Button
               variant="contained"
+              color="primary"
               startIcon={<SaveIcon />}
               onClick={handleSubmit(onSubmit)}
               disabled={isSubmitting}
@@ -666,7 +677,19 @@ export default function TransactionAddEdit() {
                                       target.style.display = 'none';
                                     }}
                                   />
-                                  <Typography variant="caption" color="textSecondary" noWrap>
+                                  <Typography 
+                                    variant="caption" 
+                                    color="textSecondary" 
+                                    noWrap
+                                    title={getFileName(url)}
+                                    sx={{ 
+                                      display: 'block',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap',
+                                      width: '100%'
+                                    }}
+                                  >
                                     {getFileName(url)}
                                   </Typography>
                                 </Paper>
@@ -709,11 +732,33 @@ export default function TransactionAddEdit() {
                                   </IconButton>
                                   <Box display="flex" alignItems="center" gap={1} mb={1}>
                                     {getFileIcon(url)}
-                                    <Box flex={1} sx={{ minWidth: 0 }}>
-                                      <Typography variant="body2" fontWeight="medium" noWrap>
+                                    <Box flex={1} sx={{ minWidth: 0, overflow: 'hidden' }}>
+                                      <Typography 
+                                        variant="body2" 
+                                        fontWeight="medium" 
+                                        noWrap
+                                        title={getFileName(url)}
+                                        sx={{ 
+                                          overflow: 'hidden',
+                                          textOverflow: 'ellipsis',
+                                          whiteSpace: 'nowrap',
+                                          width: '100%'
+                                        }}
+                                      >
                                         {getFileName(url)}
                                       </Typography>
-                                      <Typography variant="caption" color="textSecondary" noWrap>
+                                      <Typography 
+                                        variant="caption" 
+                                        color="textSecondary" 
+                                        noWrap
+                                        title={getFileType(url)}
+                                        sx={{ 
+                                          overflow: 'hidden',
+                                          textOverflow: 'ellipsis',
+                                          whiteSpace: 'nowrap',
+                                          width: '100%'
+                                        }}
+                                      >
                                         {getFileType(url)}
                                       </Typography>
                                     </Box>
@@ -723,6 +768,28 @@ export default function TransactionAddEdit() {
                                     download={getFileName(url)}
                                     target="_blank"
                                     rel="noopener noreferrer"
+                                    onClick={async (e) => {
+                                      // Ensure download with correct filename
+                                      const fileName = getFileName(url);
+                                      if (fileName && !url.startsWith('blob:')) {
+                                        try {
+                                          const response = await fetch(url);
+                                          const blob = await response.blob();
+                                          const downloadUrl = window.URL.createObjectURL(blob);
+                                          const link = document.createElement('a');
+                                          link.href = downloadUrl;
+                                          link.download = fileName;
+                                          document.body.appendChild(link);
+                                          link.click();
+                                          document.body.removeChild(link);
+                                          window.URL.revokeObjectURL(downloadUrl);
+                                          e.preventDefault();
+                                        } catch (error) {
+                                          console.error('Error downloading file:', error);
+                                          // Fallback to normal download
+                                        }
+                                      }
+                                    }}
                                     sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.75rem' }}
                                   >
                                     <DownloadIcon fontSize="small" />
@@ -745,4 +812,5 @@ export default function TransactionAddEdit() {
     </Box>
   );
 }
+
 
