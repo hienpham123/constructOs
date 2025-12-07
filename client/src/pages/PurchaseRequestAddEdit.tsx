@@ -231,7 +231,16 @@ export default function PurchaseRequestAddEdit() {
             ]}
           />
         
-        <Box display="flex" justifyContent="space-between" alignItems="center">
+        <Box 
+          display="flex" 
+          justifyContent="space-between" 
+          alignItems="center"
+          sx={{
+            flexDirection: { xs: 'column', sm: 'row' },
+            gap: { xs: 2, sm: 0 },
+            alignItems: { xs: 'stretch', sm: 'center' },
+          }}
+        >
           <Typography variant="h5" sx={{ fontWeight: 600 }}>
             {isEditMode 
               ? (purchaseRequest && (purchaseRequest.status === 'pending' || purchaseRequest.status === 'rejected') 
@@ -239,7 +248,14 @@ export default function PurchaseRequestAddEdit() {
                   : 'Xem đề xuất mua hàng')
               : 'Thêm đề xuất mua hàng'}
           </Typography>
-          <Box display="flex" gap={1}>
+          <Box 
+            display="flex" 
+            gap={1}
+            sx={{
+              width: { xs: '100%', sm: 'auto' },
+              flexDirection: { xs: 'column', sm: 'row' },
+            }}
+          >
             {purchaseRequest && purchaseRequest.status === 'rejected' && (
               <Button
                 variant="contained"
@@ -247,6 +263,9 @@ export default function PurchaseRequestAddEdit() {
                 startIcon={<RefreshIcon />}
                 onClick={handleResubmit}
                 disabled={isSubmitting}
+                sx={{
+                  width: { xs: '100%', sm: 'auto' },
+                }}
               >
                 Gửi lại yêu cầu
               </Button>
@@ -258,6 +277,9 @@ export default function PurchaseRequestAddEdit() {
                 startIcon={<SaveIcon />}
                 onClick={handleSubmit(onSubmit)}
                 disabled={isSubmitting}
+                sx={{
+                  width: { xs: '100%', sm: 'auto' },
+                }}
               >
                 {isSubmitting ? 'Đang lưu...' : isEditMode ? 'Cập nhật' : 'Lưu dữ liệu'}
               </Button>
@@ -266,6 +288,9 @@ export default function PurchaseRequestAddEdit() {
               variant="outlined"
               startIcon={<ExitToAppIcon />}
               onClick={handleExit}
+              sx={{
+                width: { xs: '100%', sm: 'auto' },
+              }}
             >
               Thoát
             </Button>

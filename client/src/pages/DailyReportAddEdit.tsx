@@ -204,7 +204,15 @@ export default function DailyReportAddEdit() {
           ) : (
             <Box component="form" onSubmit={handleSubmit(onSubmit)}>
             {/* Buttons at the top */}
-            <Box sx={{ display: 'flex', gap: 2, mb: 3, justifyContent: 'flex-end' }}>
+            <Box 
+              sx={{ 
+                display: 'flex', 
+                gap: 2, 
+                mb: 3, 
+                justifyContent: { xs: 'stretch', sm: 'flex-end' },
+                flexDirection: { xs: 'column', sm: 'row' },
+              }}
+            >
               {!isViewMode && (
                 <Button
                   type="submit"
@@ -212,6 +220,9 @@ export default function DailyReportAddEdit() {
                   color="primary"
                   startIcon={<SaveIcon />}
                   disabled={loading}
+                  sx={{
+                    width: { xs: '100%', sm: 'auto' },
+                  }}
                 >
                   {loading ? 'Đang lưu...' : 'Lưu'}
                 </Button>
@@ -221,6 +232,9 @@ export default function DailyReportAddEdit() {
                 startIcon={<ExitToAppIcon />}
                 onClick={() => navigate('/daily-reports')}
                 disabled={loading}
+                sx={{
+                  width: { xs: '100%', sm: 'auto' },
+                }}
               >
                 Quay lại
               </Button>

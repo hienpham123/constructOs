@@ -16,6 +16,8 @@ import {
   ListItemAvatar,
   ListItemText,
   ListItemSecondaryAction,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
@@ -39,6 +41,8 @@ export default function EditGroupDialog({
   onSuccess,
 }: EditGroupDialogProps) {
   const { user } = useAuthStore();
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [avatar, setAvatar] = useState<File | null>(null);
@@ -148,7 +152,7 @@ export default function EditGroupDialog({
                          group?.members.find((m) => m.userId === user?.id)?.role === 'admin';
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth fullScreen={fullScreen}>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="h6">Chỉnh sửa nhóm</Typography>
         <IconButton onClick={handleClose} size="small">

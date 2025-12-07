@@ -10,6 +10,8 @@ import {
   Avatar,
   IconButton,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
@@ -27,6 +29,8 @@ export default function CreateGroupDialog({
   onClose,
   onSuccess,
 }: CreateGroupDialogProps) {
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<PeoplePickerOption[]>([]);
@@ -95,7 +99,7 @@ export default function CreateGroupDialog({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth fullScreen={fullScreen}>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="h6">Tạo nhóm chat mới</Typography>
         <IconButton onClick={handleClose} size="small">

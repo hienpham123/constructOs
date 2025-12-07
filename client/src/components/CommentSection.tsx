@@ -221,7 +221,7 @@ export default function CommentSection({ projectId, category }: CommentSectionPr
   };
 
   return (
-    <Box sx={{ height: '600px', display: 'flex', flexDirection: 'column', bgcolor: '#f0f0f0', overflow: 'hidden' }}>
+    <Box sx={{ height: { xs: '100%', sm: '600px' }, display: 'flex', flexDirection: 'column', bgcolor: '#f0f0f0', overflow: 'hidden' }}>
       <CommentList
         comments={comments}
         currentUserId={user?.id}
@@ -273,6 +273,16 @@ export default function CommentSection({ projectId, category }: CommentSectionPr
         onClose={() => {
           setDeleteConfirmOpen(false);
           setCommentToDelete(null);
+        }}
+        fullWidth
+        maxWidth="sm"
+        sx={{
+          '& .MuiDialog-container': {
+            '& .MuiPaper-root': {
+              width: '100%',
+              maxWidth: { xs: '100%', sm: '500px' },
+            },
+          },
         }}
       >
         <DialogTitle>Xác nhận xóa</DialogTitle>

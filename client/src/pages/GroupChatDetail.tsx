@@ -13,6 +13,7 @@ import MembersDialog from '../components/groupChat/MembersDialog';
 import DeleteMessageDialog from '../components/groupChat/DeleteMessageDialog';
 import DeleteGroupDialog from '../components/groupChat/DeleteGroupDialog';
 import SearchPanel from '../components/groupChat/SearchPanel';
+import FilePanel from '../components/groupChat/FilePanel';
 import {
   groupChatsAPI,
   type GroupDetail,
@@ -43,6 +44,7 @@ export default function GroupChatDetail() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteGroupConfirmOpen, setDeleteGroupConfirmOpen] = useState(false);
   const [searchPanelOpen, setSearchPanelOpen] = useState(false);
+  const [filePanelOpen, setFilePanelOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const socketRef = useRef<Socket | null>(null);
@@ -442,7 +444,14 @@ export default function GroupChatDetail() {
         group={group}
         onMembersClick={() => setMembersDialogOpen(true)}
         onMenuClick={(e) => setGroupMenuAnchor(e.currentTarget)}
-        onSearchClick={() => setSearchPanelOpen(true)}
+        onSearchClick={() => {
+          setFilePanelOpen(false);
+          setSearchPanelOpen(true);
+        }}
+        onFilesClick={() => {
+          setSearchPanelOpen(false);
+          setFilePanelOpen(true);
+        }}
       />
 
       <GroupMenuPopover
@@ -463,8 +472,8 @@ export default function GroupChatDetail() {
         onGroupUpdate={(updatedGroup) => setGroup(updatedGroup)}
       />
 
-      <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative', flexDirection: { xs: 'column', md: 'row' } }}>
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
           <MessageList
             messages={messages}
             currentUserId={user?.id}
@@ -525,6 +534,12 @@ export default function GroupChatDetail() {
             onMessageClick={handleSearchMessageClick}
           />
         )}
+
+        <FilePanel
+          open={filePanelOpen}
+          onClose={() => setFilePanelOpen(false)}
+          messages={messages}
+        />
       </Box>
 
       <MembersDialog

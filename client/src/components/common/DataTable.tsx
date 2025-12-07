@@ -125,6 +125,20 @@ export default function DataTable<T = any>({
         overflowY: 'hidden',
         borderRadius: 0,
         border: '1px solid #e5e7eb',
+        width: '100%',
+        '&::-webkit-scrollbar': {
+          height: '8px',
+        },
+        '&::-webkit-scrollbar-track': {
+          backgroundColor: '#f1f1f1',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          backgroundColor: '#888',
+          borderRadius: '4px',
+          '&:hover': {
+            backgroundColor: '#555',
+          },
+        },
       }}
     >
       <MuiTable sx={{ minWidth, borderCollapse: 'separate', borderSpacing: 0 }}>

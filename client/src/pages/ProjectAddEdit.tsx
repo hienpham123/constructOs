@@ -205,17 +205,36 @@ export default function ProjectAddEdit() {
             ]}
           />
           
-          <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Box 
+            display="flex" 
+            justifyContent="space-between" 
+            alignItems="center"
+            sx={{
+              flexDirection: { xs: 'column', sm: 'row' },
+              gap: { xs: 2, sm: 0 },
+              alignItems: { xs: 'stretch', sm: 'center' },
+            }}
+          >
             <Typography variant="h5" sx={{ fontWeight: 600 }}>
               {isEditMode ? 'Chỉnh sửa dự án' : 'Thêm dự án mới'}
             </Typography>
-            <Box display="flex" gap={1}>
+            <Box 
+              display="flex" 
+              gap={1}
+              sx={{
+                width: { xs: '100%', sm: 'auto' },
+                flexDirection: { xs: 'column', sm: 'row' },
+              }}
+            >
               <Button
                 variant="contained"
                 color="primary"
                 startIcon={<SaveIcon />}
                 onClick={handleSubmit(onSubmit)}
                 disabled={isSubmitting}
+                sx={{
+                  width: { xs: '100%', sm: 'auto' },
+                }}
               >
                 {isSubmitting ? 'Đang lưu...' : 'Lưu dữ liệu'}
               </Button>
@@ -223,6 +242,9 @@ export default function ProjectAddEdit() {
                 variant="outlined"
                 startIcon={<ExitToAppIcon />}
                 onClick={handleExit}
+                sx={{
+                  width: { xs: '100%', sm: 'auto' },
+                }}
               >
                 Thoát
               </Button>

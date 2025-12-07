@@ -6,6 +6,9 @@ import {
   IconButton,
   InputAdornment,
   Paper,
+  useMediaQuery,
+  useTheme,
+  Backdrop,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
@@ -33,6 +36,8 @@ export default function SearchPanel({ groupId, members, onClose, onMessageClick 
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // Auto search when query or filters change
   useEffect(() => {
@@ -88,16 +93,34 @@ export default function SearchPanel({ groupId, members, onClose, onMessageClick 
   };
 
   return (
-    <Paper
-      sx={{
-        width: 360,
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        bgcolor: 'white',
-        borderLeft: '1px solid #e4e6eb',
-      }}
-    >
+    <>
+      {/* Backdrop for mobile */}
+      {isMobile && (
+        <Backdrop
+          open={true}
+          onClick={onClose}
+          sx={{
+            zIndex: (theme) => theme.zIndex.drawer - 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          }}
+        />
+      )}
+
+      <Paper
+        sx={{
+          position: isMobile ? 'fixed' : 'absolute',
+          top: 0,
+          right: 0,
+          width: isMobile ? '100%' : 400,
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          bgcolor: 'white',
+          boxShadow: isMobile ? 'none' : '-2px 0 8px rgba(0,0,0,0.1)',
+          zIndex: isMobile ? (theme) => theme.zIndex.drawer : 1000,
+          maxWidth: isMobile ? '100%' : 400,
+        }}
+      >
       {/* Header */}
       <Box
         sx={{
@@ -188,6 +211,7 @@ export default function SearchPanel({ groupId, members, onClose, onMessageClick 
         )}
       </Box>
     </Paper>
+    </>
   );
 }
 

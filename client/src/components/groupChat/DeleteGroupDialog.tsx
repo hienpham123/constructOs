@@ -1,4 +1,4 @@
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, useMediaQuery, useTheme } from '@mui/material';
 
 interface DeleteGroupDialogProps {
   open: boolean;
@@ -8,8 +8,11 @@ interface DeleteGroupDialogProps {
 }
 
 export default function DeleteGroupDialog({ open, onClose, onConfirm, groupName }: DeleteGroupDialogProps) {
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  
   return (
-    <Dialog open={open} onClose={onClose}>
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" fullScreen={fullScreen}>
       <DialogTitle>Xác nhận xóa nhóm</DialogTitle>
       <DialogContent>
         <Typography>

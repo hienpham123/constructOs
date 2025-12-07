@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
-import { Box, LinearProgress } from '@mui/material';
+import { Box, LinearProgress, useMediaQuery, useTheme } from '@mui/material';
 import { groupChatsAPI, type GroupChat } from '../services/api/groupChats';
 import CreateGroupDialog from '../components/groupChat/CreateGroupDialog';
 import GroupChatDetail from './GroupChatDetail';
@@ -12,6 +12,8 @@ export default function GroupChats() {
   const navigate = useNavigate();
   const location = useLocation();
   const { id: groupId } = useParams<{ id?: string }>();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [groups, setGroups] = useState<GroupChat[]>([]);
   const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -92,25 +94,58 @@ export default function GroupChats() {
   }
 
   const selectedGroupId = groupId || location.pathname.split('/')[2];
+  
+  // On mobile, show sidebar only when no group is selected
+  const showSidebar = !isMobile || !selectedGroupId;
+  const showDetail = selectedGroupId;
+  const showMainContent = !selectedGroupId;
 
   return (
     <Box sx={{ display: 'flex', height: '100vh', bgcolor: '#f0f2f5', overflow: 'hidden' }}>
-      <GroupListSidebar
-        groups={groups}
-        searchTerm={searchTerm}
-        activeTab={activeTab}
-        selectedGroupId={selectedGroupId}
-        onCreateGroup={() => setCreateDialogOpen(true)}
-        onSearchChange={setSearchTerm}
-        onTabChange={setActiveTab}
-        onGroupClick={handleGroupClick}
-        onUpdateGroup={handleUpdateGroup}
-      />
+      {showSidebar && (
+        <Box
+          sx={{
+            display: { xs: showSidebar ? 'flex' : 'none', md: 'flex' },
+            width: { xs: '100%', md: '360px' },
+            flexShrink: 0,
+          }}
+        >
+          <GroupListSidebar
+            groups={groups}
+            searchTerm={searchTerm}
+            activeTab={activeTab}
+            selectedGroupId={selectedGroupId}
+            onCreateGroup={() => setCreateDialogOpen(true)}
+            onSearchChange={setSearchTerm}
+            onTabChange={setActiveTab}
+            onGroupClick={handleGroupClick}
+            onUpdateGroup={handleUpdateGroup}
+          />
+        </Box>
+      )}
 
-      {selectedGroupId ? (
-        <GroupChatDetail />
-      ) : (
-        <GroupListMainContent />
+      {showDetail && (
+        <Box
+          sx={{
+            display: { xs: showDetail ? 'flex' : 'none', md: 'flex' },
+            flex: 1,
+            minWidth: 0,
+          }}
+        >
+          <GroupChatDetail />
+        </Box>
+      )}
+
+      {showMainContent && (
+        <Box
+          sx={{
+            display: { xs: showMainContent ? 'flex' : 'none', md: 'flex' },
+            flex: 1,
+            minWidth: 0,
+          }}
+        >
+          <GroupListMainContent />
+        </Box>
       )}
 
       <CreateGroupDialog

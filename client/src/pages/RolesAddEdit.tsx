@@ -133,7 +133,17 @@ export default function RolesAddEdit() {
         ]}
       />
 
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+      <Box 
+        display="flex" 
+        justifyContent="space-between" 
+        alignItems="center" 
+        mb={3}
+        sx={{
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: { xs: 2, sm: 0 },
+          alignItems: { xs: 'stretch', sm: 'center' },
+        }}
+      >
         <Typography
           variant="h4"
           sx={{
@@ -146,12 +156,22 @@ export default function RolesAddEdit() {
         >
           {isEditMode ? 'Chỉnh sửa vai trò' : 'Thêm vai trò mới'}
         </Typography>
-        <Box display="flex" gap={2}>
+        <Box 
+          display="flex" 
+          gap={2}
+          sx={{
+            width: { xs: '100%', sm: 'auto' },
+            flexDirection: { xs: 'column', sm: 'row' },
+          }}
+        >
           <Button
             variant="outlined"
             startIcon={<ArrowBackIcon />}
             onClick={() => navigate('/roles')}
-            sx={{ minHeight: '36px' }}
+            sx={{ 
+              minHeight: '36px',
+              width: { xs: '100%', sm: 'auto' },
+            }}
           >
             Quay lại
           </Button>
@@ -162,7 +182,10 @@ export default function RolesAddEdit() {
             startIcon={<SaveIcon />}
             disabled={isSubmitting}
             onClick={handleSubmit(onSubmit)}
-            sx={{ minHeight: '36px' }}
+            sx={{ 
+              minHeight: '36px',
+              width: { xs: '100%', sm: 'auto' },
+            }}
           >
             {isSubmitting ? 'Đang lưu...' : 'Lưu'}
           </Button>

@@ -1,8 +1,10 @@
-import { Box, Avatar, Typography, IconButton } from '@mui/material';
+import { Box, Avatar, Typography, IconButton, useMediaQuery, useTheme } from '@mui/material';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import SearchIcon from '@mui/icons-material/Search';
 import FolderIcon from '@mui/icons-material/Folder';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { useNavigate } from 'react-router-dom';
 import type { GroupDetail } from '../../services/api/groupChats';
 
 interface GroupChatHeaderProps {
@@ -10,9 +12,18 @@ interface GroupChatHeaderProps {
   onMembersClick: () => void;
   onMenuClick: (event: React.MouseEvent<HTMLElement>) => void;
   onSearchClick: () => void;
+  onFilesClick: () => void;
 }
 
-export default function GroupChatHeader({ group, onMembersClick, onMenuClick, onSearchClick }: GroupChatHeaderProps) {
+export default function GroupChatHeader({ group, onMembersClick, onMenuClick, onSearchClick, onFilesClick }: GroupChatHeaderProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const navigate = useNavigate();
+
+  const handleBack = () => {
+    navigate('/group-chats');
+  };
+
   return (
     <Box
       sx={{
@@ -25,6 +36,15 @@ export default function GroupChatHeader({ group, onMembersClick, onMenuClick, on
         gap: 1.5,
       }}
     >
+      {isMobile && (
+        <IconButton
+          size="small"
+          onClick={handleBack}
+          sx={{ color: '#65676b', mr: -0.5 }}
+        >
+          <ArrowBackIcon fontSize="small" />
+        </IconButton>
+      )}
       <Avatar
         src={group.avatar || undefined}
         sx={{
@@ -62,7 +82,7 @@ export default function GroupChatHeader({ group, onMembersClick, onMenuClick, on
       <IconButton size="small" onClick={onSearchClick} sx={{ color: '#65676b' }}>
         <SearchIcon fontSize="small" />
       </IconButton>
-      <IconButton size="small" sx={{ color: '#65676b' }}>
+      <IconButton size="small" onClick={onFilesClick} sx={{ color: '#65676b' }}>
         <FolderIcon fontSize="small" />
       </IconButton>
       <IconButton
