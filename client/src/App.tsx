@@ -3,7 +3,6 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { SnackbarProvider } from 'notistack';
 import Layout from './components/Layout/Layout';
-import LoadingOverlay from './components/LoadingOverlay';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
@@ -351,7 +350,6 @@ function App() {
         autoHideDuration={3000}
         dense
       >
-        <LoadingOverlay />
         <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />

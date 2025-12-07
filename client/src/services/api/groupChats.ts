@@ -197,8 +197,7 @@ export const groupChatsAPI = {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
-      showLoading: false, // Disable loading indicator for sending messages
-    } as any);
+    });
     return response.data;
   },
 
