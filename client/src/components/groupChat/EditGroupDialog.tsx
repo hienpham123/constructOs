@@ -23,6 +23,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { groupChatsAPI, type GroupDetail, type GroupMember } from '../../services/api/groupChats';
 import { useAuthStore } from '../../stores/authStore';
 import PeoplePicker, { type PeoplePickerOption } from '../common/PeoplePicker';
+import ConfirmDialog from '../common/ConfirmDialog';
 
 interface EditGroupDialogProps {
   open: boolean;
@@ -44,6 +45,8 @@ export default function EditGroupDialog({
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [members, setMembers] = useState<GroupMember[]>([]);
+  const [deleteMemberDialogOpen, setDeleteMemberDialogOpen] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<GroupMember | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -51,7 +54,7 @@ export default function EditGroupDialog({
       setName(group.name);
       setDescription(group.description || '');
       setAvatarPreview(group.avatar || null);
-      setMembers(group.members || []);
+      loadGroup();
     }
   }, [group, open]);
 
@@ -77,15 +80,20 @@ export default function EditGroupDialog({
     }
   };
 
-  const handleRemoveMember = async (memberId: string) => {
-    if (!group) return;
-    if (!confirm('Bạn có chắc chắn muốn xóa thành viên này?')) return;
+  const handleRemoveMemberClick = (memberId: string) => {
+    const member = members.find((m) => m.id === memberId);
+    if (member) {
+      setMemberToDelete(member);
+      setDeleteMemberDialogOpen(true);
+    }
+  };
+
+  const handleRemoveMemberConfirm = async () => {
+    if (!group || !memberToDelete) return;
     try {
-      const member = members.find((m) => m.id === memberId);
-      if (member) {
-        await groupChatsAPI.removeMember(group.id, member.userId);
-        await loadGroup();
-      }
+      await groupChatsAPI.removeMember(group.id, memberToDelete.userId);
+      await loadGroup();
+      setMemberToDelete(null);
     } catch (error: any) {
       alert(error.response?.data?.error || 'Không thể xóa thành viên');
     }
@@ -235,7 +243,7 @@ export default function EditGroupDialog({
                       <IconButton
                         edge="end"
                         size="small"
-                        onClick={() => handleRemoveMember(member.id)}
+                        onClick={() => handleRemoveMemberClick(member.id)}
                         color="error"
                       >
                         <DeleteIcon fontSize="small" />
@@ -282,6 +290,20 @@ export default function EditGroupDialog({
           </Button>
         )}
       </DialogActions>
+
+      <ConfirmDialog
+        open={deleteMemberDialogOpen}
+        onClose={() => {
+          setDeleteMemberDialogOpen(false);
+          setMemberToDelete(null);
+        }}
+        onConfirm={handleRemoveMemberConfirm}
+        title="Xác nhận xóa"
+        message="Bạn có chắc chắn muốn xóa thành viên này?"
+        confirmButtonText="Xóa"
+        cancelButtonText="Hủy"
+        confirmButtonColor="error"
+      />
     </Dialog>
   );
 }

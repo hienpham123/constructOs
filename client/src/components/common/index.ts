@@ -10,4 +10,6 @@ export { default as SearchSortControls } from './SearchSortControls';
 export type { SortOption } from './SearchSortControls';
 export { default as PeoplePicker } from './PeoplePicker';
 export type { PeoplePickerOption, PeoplePickerProps } from './PeoplePicker';
+export { default as ConfirmDialog } from './ConfirmDialog';
+export type { ConfirmDialogProps } from './ConfirmDialog';
 
