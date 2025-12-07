@@ -92,23 +92,7 @@ CREATE TABLE stage_checklists (
 CREATE INDEX idx_stage_checklists_stage_id ON stage_checklists(stage_id);
 
 -- ============================================
--- 5. PROJECT DOCUMENTS TABLE
--- ============================================
-CREATE TABLE project_documents (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    name VARCHAR(255) NOT NULL,
-    type VARCHAR(20) NOT NULL CHECK (type IN ('drawing', 'contract', 'report', 'photo', 'other')),
-    url TEXT NOT NULL,
-    uploaded_by UUID NOT NULL REFERENCES users(id),
-    uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_project_documents_project_id ON project_documents(project_id);
-CREATE INDEX idx_project_documents_type ON project_documents(type);
-
--- ============================================
--- 6. MATERIALS TABLE
+-- 5. MATERIALS TABLE
 -- ============================================
 CREATE TABLE materials (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -182,32 +166,7 @@ CREATE INDEX idx_purchase_requests_requested_at ON purchase_requests(requested_a
 -- All personnel are now users with additional fields: code, team, project_id, project_name, hire_date
 
 -- ============================================
--- 10. ATTENDANCE TABLE
--- ============================================
-CREATE TABLE attendance (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    personnel_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    personnel_name VARCHAR(255) NOT NULL,
-    project_id UUID NOT NULL REFERENCES projects(id),
-    project_name VARCHAR(255) NOT NULL,
-    date DATE NOT NULL,
-    check_in TIME NOT NULL,
-    check_out TIME,
-    location_lat DECIMAL(10, 8),
-    location_lng DECIMAL(11, 8),
-    hours DECIMAL(5, 2) NOT NULL DEFAULT 0,
-    shift VARCHAR(20) NOT NULL CHECK (shift IN ('morning', 'afternoon', 'night', 'full_day')),
-    status VARCHAR(20) NOT NULL CHECK (status IN ('present', 'absent', 'late', 'early_leave')),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_attendance_personnel_id ON attendance(personnel_id);
-CREATE INDEX idx_attendance_project_id ON attendance(project_id);
-CREATE INDEX idx_attendance_date ON attendance(date);
-CREATE UNIQUE INDEX idx_attendance_unique ON attendance(personnel_id, project_id, date);
-
--- ============================================
--- 11. SITE LOGS TABLE
+-- 10. SITE LOGS TABLE
 -- ============================================
 CREATE TABLE site_logs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

@@ -91,24 +91,7 @@ CREATE TABLE stage_checklists (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
--- 5. PROJECT DOCUMENTS TABLE
--- ============================================
-CREATE TABLE project_documents (
-    id CHAR(36) PRIMARY KEY,
-    project_id CHAR(36) NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    type ENUM('drawing', 'contract', 'report', 'photo', 'other') NOT NULL,
-    url TEXT NOT NULL,
-    uploaded_by CHAR(36) NOT NULL,
-    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-    FOREIGN KEY (uploaded_by) REFERENCES users(id),
-    INDEX idx_project_id (project_id),
-    INDEX idx_type (type)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ============================================
--- 6. MATERIALS TABLE
+-- 5. MATERIALS TABLE
 -- ============================================
 CREATE TABLE materials (
     id CHAR(36) PRIMARY KEY,
@@ -185,33 +168,7 @@ CREATE TABLE purchase_requests (
 -- All personnel are now users with additional fields: code, team, project_id, project_name, hire_date
 
 -- ============================================
--- 10. ATTENDANCE TABLE
--- ============================================
-CREATE TABLE attendance (
-    id CHAR(36) PRIMARY KEY,
-    personnel_id CHAR(36) NOT NULL,
-    personnel_name VARCHAR(255) NOT NULL,
-    project_id CHAR(36) NOT NULL,
-    project_name VARCHAR(255) NOT NULL,
-    date DATE NOT NULL,
-    check_in TIME NOT NULL,
-    check_out TIME,
-    location_lat DECIMAL(10, 8),
-    location_lng DECIMAL(11, 8),
-    hours DECIMAL(5, 2) NOT NULL DEFAULT 0,
-    shift ENUM('morning', 'afternoon', 'night', 'full_day') NOT NULL,
-    status ENUM('present', 'absent', 'late', 'early_leave') NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (personnel_id) REFERENCES personnel(id),
-    FOREIGN KEY (project_id) REFERENCES projects(id),
-    UNIQUE KEY unique_attendance (personnel_id, project_id, date),
-    INDEX idx_personnel_id (personnel_id),
-    INDEX idx_project_id (project_id),
-    INDEX idx_date (date)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ============================================
--- 11. SITE LOGS TABLE
+-- 10. SITE LOGS TABLE
 -- ============================================
 -- Note: MySQL không hỗ trợ arrays, dùng JSON hoặc bảng riêng
 CREATE TABLE site_logs (

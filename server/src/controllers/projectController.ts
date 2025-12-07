@@ -37,30 +37,9 @@ export const getProjects = async (req: Request, res: Response) => {
       queryParams
     );
     
-    // For each project, get stages and documents
+    // For each project, get manager name (stages and documents are no longer loaded)
     const projectsWithRelations = await Promise.all(
       results.map(async (project) => {
-        const stages = await query<any[]>(
-          'SELECT * FROM project_stages WHERE project_id = ? ORDER BY start_date',
-          [project.id]
-        );
-        
-        // Get checklists for each stage
-        const stagesWithChecklists = await Promise.all(
-          stages.map(async (stage) => {
-            const checklists = await query<any[]>(
-              'SELECT * FROM stage_checklists WHERE stage_id = ?',
-              [stage.id]
-            );
-            return { ...stage, checklist: checklists };
-          })
-        );
-        
-        const documents = await query<any[]>(
-          'SELECT * FROM project_documents WHERE project_id = ? ORDER BY uploaded_at DESC',
-          [project.id]
-        );
-        
         // Get manager name
         let managerName = '';
         if (project.manager_id) {
@@ -80,8 +59,8 @@ export const getProjects = async (req: Request, res: Response) => {
           createdAt: project.created_at,
           investor: project.investor || project.client || '',
           contactPerson: project.contact_person || null,
-          stages: stagesWithChecklists,
-          documents,
+          stages: [],
+          documents: [],
           managerName,
         };
       })
@@ -113,29 +92,7 @@ export const getProjectById = async (req: Request, res: Response) => {
     
     const project = results[0];
     
-    // Get stages with checklists
-    const stages = await query<any[]>(
-      'SELECT * FROM project_stages WHERE project_id = ? ORDER BY start_date',
-      [id]
-    );
-    
-    const stagesWithChecklists = await Promise.all(
-      stages.map(async (stage) => {
-        const checklists = await query<any[]>(
-          'SELECT * FROM stage_checklists WHERE stage_id = ?',
-          [stage.id]
-        );
-        return { ...stage, checklist: checklists };
-      })
-    );
-    
-    // Get documents
-    const documents = await query<any[]>(
-      'SELECT * FROM project_documents WHERE project_id = ? ORDER BY uploaded_at DESC',
-      [id]
-    );
-    
-    // Get manager name
+    // Get manager name (stages and documents are no longer loaded)
     let managerName = '';
     if (project.manager_id) {
       const manager = await query<any[]>(
@@ -154,8 +111,8 @@ export const getProjectById = async (req: Request, res: Response) => {
       createdAt: project.created_at,
       investor: project.investor || project.client || '',
       contactPerson: project.contact_person || null,
-      stages: stagesWithChecklists,
-      documents,
+      stages: [],
+      documents: [],
       managerName,
     });
   } catch (error: any) {
@@ -270,19 +227,9 @@ export const updateProject = async (req: Request, res: Response) => {
       [id]
     );
     
-    // Get related data
-    const stages = await query<any[]>(
-      'SELECT * FROM project_stages WHERE project_id = ?',
-      [id]
-    );
-    const documents = await query<any[]>(
-      'SELECT * FROM project_documents WHERE project_id = ?',
-      [id]
-    );
-    
     const updatedProject = updated[0];
     
-    // Get manager name
+    // Get manager name (stages and documents are no longer loaded)
     let managerName = '';
     if (updatedProject.manager_id) {
       const manager = await query<any[]>(
@@ -301,8 +248,8 @@ export const updateProject = async (req: Request, res: Response) => {
       createdAt: updatedProject.created_at,
       investor: updatedProject.investor || updatedProject.client || '',
       contactPerson: updatedProject.contact_person || null,
-      stages,
-      documents,
+      stages: [],
+      documents: [],
       managerName,
     });
   } catch (error: any) {
@@ -325,9 +272,8 @@ export const deleteProject = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Không tìm thấy dự án' });
     }
     
-    // Delete related data first (or use CASCADE)
-    await query('DELETE FROM project_stages WHERE project_id = ?', [id]);
-    await query('DELETE FROM project_documents WHERE project_id = ?', [id]);
+    // Delete project (related data will be automatically deleted via CASCADE)
+    // Note: project_stages and project_documents will be automatically deleted via CASCADE
     await query('DELETE FROM projects WHERE id = ?', [id]);
     
     res.status(204).send();
