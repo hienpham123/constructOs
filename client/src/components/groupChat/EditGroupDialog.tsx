@@ -298,9 +298,8 @@ export default function EditGroupDialog({
           setMemberToDelete(null);
         }}
         onConfirm={handleRemoveMemberConfirm}
-        title="Xác nhận xóa"
         message="Bạn có chắc chắn muốn xóa thành viên này?"
-        confirmButtonText="Xóa"
+        confirmButtonText="OK"
         cancelButtonText="Hủy"
         confirmButtonColor="error"
       />
