@@ -10,15 +10,12 @@ import {
   Autocomplete,
   Paper,
   Typography,
-  Breadcrumbs,
-  Link,
   CircularProgress,
   Tabs,
   Tab,
   Chip,
 } from '@mui/material';
 import { Button } from '../components/common';
-import HomeIcon from '@mui/icons-material/Home';
 import SaveIcon from '@mui/icons-material/Save';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -30,6 +27,8 @@ import { materialsAPI } from '../services/api';
 import { normalizePurchaseRequest } from '../utils/normalize';
 import PurchaseRequestCommentSection from '../components/PurchaseRequestCommentSection';
 import { showError } from '../utils/notifications';
+import Breadcrumb from '../components/common/Breadcrumb';
+import { getPurchaseRequestStatusLabel, getPurchaseRequestStatusColor } from '../utils/statusHelpers';
 
 const purchaseRequestSchema = z.object({
   materialId: z.string().min(1, 'Vật tư là bắt buộc'),
@@ -55,20 +54,6 @@ export default function PurchaseRequestAddEdit() {
   const canEdit = purchaseRequest && (purchaseRequest.status === 'pending' || purchaseRequest.status === 'rejected');
   const [tabValue, setTabValue] = useState(0);
 
-  const getRequestStatusLabel = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'Chờ duyệt';
-      case 'approved':
-        return 'Đã duyệt';
-      case 'rejected':
-        return 'Từ chối';
-      case 'ordered':
-        return 'Đã đặt hàng';
-      default:
-        return status;
-    }
-  };
 
   useEffect(() => {
     if (materials.length === 0) {
@@ -230,34 +215,21 @@ export default function PurchaseRequestAddEdit() {
   };
 
   return (
-    <Box>
-      <Box sx={{ mb: 3 }}>
-        <Breadcrumbs sx={{ mb: 2 }}>
-          <Link
-            component="button"
-            variant="body1"
-            onClick={() => navigate('/')}
-            sx={{ textDecoration: 'none', color: 'text.primary', cursor: 'pointer' }}
-          >
-            <HomeIcon sx={{ mr: 0.5, verticalAlign: 'middle', fontSize: 20 }} />
-            Trang chủ
-          </Link>
-          <Link
-            component="button"
-            variant="body1"
-            onClick={() => navigate('/materials/purchase-requests')}
-            sx={{ textDecoration: 'none', color: 'text.primary', cursor: 'pointer' }}
-          >
-            Đề xuất mua hàng
-          </Link>
-          <Typography color="text.primary">
-            {isEditMode 
-              ? (purchaseRequest && (purchaseRequest.status === 'pending' || purchaseRequest.status === 'rejected') 
-                  ? 'Chỉnh sửa đề xuất mua hàng' 
-                  : 'Xem đề xuất mua hàng')
-              : 'Thêm đề xuất mua hàng'}
-          </Typography>
-        </Breadcrumbs>
+      <Box>
+        <Box sx={{ mb: 3 }}>
+          <Breadcrumb
+            items={[
+              { label: 'Trang chủ', path: '/' },
+              { label: 'Đề xuất mua hàng', path: '/materials/purchase-requests' },
+              {
+                label: isEditMode 
+                  ? (purchaseRequest && (purchaseRequest.status === 'pending' || purchaseRequest.status === 'rejected') 
+                      ? 'Chỉnh sửa đề xuất mua hàng' 
+                      : 'Xem đề xuất mua hàng')
+                  : 'Thêm đề xuất mua hàng'
+              },
+            ]}
+          />
         
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Typography variant="h5" sx={{ fontWeight: 600 }}>
@@ -425,16 +397,10 @@ export default function PurchaseRequestAddEdit() {
                           Trạng thái
                         </Typography>
                         <Chip
-                          label={getRequestStatusLabel(purchaseRequest.status)}
+                          label={getPurchaseRequestStatusLabel(purchaseRequest.status)}
                           size="small"
                           sx={(() => {
-                            const statusColors: Record<string, { bg: string; text: string }> = {
-                              pending: { bg: '#ed6c02', text: '#ffffff' }, // Orange
-                              approved: { bg: '#2e7d32', text: '#ffffff' }, // Green
-                              rejected: { bg: '#d32f2f', text: '#ffffff' }, // Red
-                              ordered: { bg: '#0288d1', text: '#ffffff' }, // Blue
-                            };
-                            const colors = statusColors[purchaseRequest.status] || { bg: '#757575', text: '#ffffff' };
+                            const colors = getPurchaseRequestStatusColor(purchaseRequest.status);
                             return {
                               bgcolor: colors.bg,
                               color: colors.text,

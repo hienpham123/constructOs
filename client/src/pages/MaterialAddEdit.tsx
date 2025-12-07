@@ -9,18 +9,16 @@ import {
   Grid,
   Paper,
   Typography,
-  Breadcrumbs,
-  Link,
   CircularProgress,
 } from '@mui/material';
 import { Button } from '../components/common';
+import Breadcrumb from '../components/common/Breadcrumb';
 import { Material } from '../types';
 import { useMaterialStore } from '../stores/materialStore';
 import { materialsAPI } from '../services/api';
 import { normalizeMaterial } from '../utils/normalize';
 import { formatCurrencyInput, parseCurrencyInput } from '../utils/currencyFormat';
 import { normalizeNumber } from '../utils/normalize';
-import HomeIcon from '@mui/icons-material/Home';
 import SaveIcon from '@mui/icons-material/Save';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 
@@ -162,28 +160,13 @@ export default function MaterialAddEdit() {
     <Box>
       {/* Header với breadcrumb và buttons */}
       <Box sx={{ mb: 3 }}>
-        <Breadcrumbs sx={{ mb: 2 }}>
-          <Link
-            component="button"
-            variant="body1"
-            onClick={() => navigate('/')}
-            sx={{ textDecoration: 'none', color: 'text.primary', cursor: 'pointer' }}
-          >
-            <HomeIcon sx={{ mr: 0.5, verticalAlign: 'middle', fontSize: 20 }} />
-            Trang chủ
-          </Link>
-          <Link
-            component="button"
-            variant="body1"
-            onClick={() => navigate('/materials/list')}
-            sx={{ textDecoration: 'none', color: 'text.primary', cursor: 'pointer' }}
-          >
-            Vật tư
-          </Link>
-          <Typography color="text.primary">
-            {isEditMode ? 'Chỉnh sửa vật tư' : 'Thêm vật tư mới'}
-          </Typography>
-        </Breadcrumbs>
+        <Breadcrumb
+          items={[
+            { label: 'Trang chủ', path: '/' },
+            { label: 'Vật tư', path: '/materials/list' },
+            { label: isEditMode ? 'Chỉnh sửa vật tư' : 'Thêm vật tư mới' },
+          ]}
+        />
         
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Typography variant="h5" sx={{ fontWeight: 600 }}>

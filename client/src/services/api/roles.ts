@@ -5,7 +5,6 @@ export interface RolePermission {
   view_contract: boolean;
   view_report: boolean;
   view_daily_report: boolean;
-  view_project_report: boolean;
 }
 
 export interface Role {

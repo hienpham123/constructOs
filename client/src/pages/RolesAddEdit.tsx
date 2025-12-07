@@ -9,16 +9,14 @@ import {
   Grid,
   Paper,
   Typography,
-  Breadcrumbs,
-  Link,
   CircularProgress,
   FormControlLabel,
   Checkbox,
 } from '@mui/material';
 import { Button } from '../components/common';
-import { rolesAPI, Role } from '../services/api';
+import Breadcrumb from '../components/common/Breadcrumb';
+import { rolesAPI } from '../services/api';
 import { showSuccess, showError } from '../utils/notifications';
-import HomeIcon from '@mui/icons-material/Home';
 import SaveIcon from '@mui/icons-material/Save';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
@@ -46,9 +44,27 @@ export default function RolesAddEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEditMode = Boolean(id);
-  const [roleData, setRoleData] = useState<Role | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<RoleFormData>({
+    resolver: zodResolver(roleSchema),
+    defaultValues: {
+      name: '',
+      description: '',
+      permissions: {
+        view_drawing: false,
+        view_contract: false,
+        view_report: false,
+        view_daily_report: false,
+      },
+    },
+  });
 
   useEffect(() => {
     const loadRole = async () => {
@@ -56,7 +72,6 @@ export default function RolesAddEdit() {
         setIsLoading(true);
         try {
           const data = await rolesAPI.getById(id);
-          setRoleData(data);
           // Set form values
           reset({
             name: data.name,
@@ -78,27 +93,7 @@ export default function RolesAddEdit() {
     };
 
     loadRole();
-  }, [isEditMode, id, navigate]);
-
-  const {
-    control,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<RoleFormData>({
-    resolver: zodResolver(roleSchema),
-    defaultValues: {
-      name: '',
-      description: '',
-      permissions: {
-        view_drawing: false,
-        view_contract: false,
-        view_report: false,
-        view_daily_report: false,
-        view_project_report: false,
-      },
-    },
-  });
+  }, [isEditMode, id, navigate, reset]);
 
   const onSubmit = async (data: RoleFormData) => {
     if (isSubmitting) return;
@@ -130,28 +125,13 @@ export default function RolesAddEdit() {
 
   return (
     <Box>
-      <Breadcrumbs sx={{ mb: 3 }}>
-        <Link
-          component="button"
-          variant="body2"
-          onClick={() => navigate('/')}
-          sx={{ display: 'flex', alignItems: 'center', gap: 0.5, textDecoration: 'none' }}
-        >
-          <HomeIcon fontSize="small" />
-          Trang chủ
-        </Link>
-        <Link
-          component="button"
-          variant="body2"
-          onClick={() => navigate('/roles')}
-          sx={{ textDecoration: 'none' }}
-        >
-          Vai trò
-        </Link>
-        <Typography variant="body2" color="text.primary">
-          {isEditMode ? 'Chỉnh sửa' : 'Thêm mới'}
-        </Typography>
-      </Breadcrumbs>
+      <Breadcrumb
+        items={[
+          { label: 'Trang chủ', path: '/' },
+          { label: 'Vai trò', path: '/roles' },
+          { label: isEditMode ? 'Chỉnh sửa' : 'Thêm mới' },
+        ]}
+      />
 
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography

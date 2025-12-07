@@ -8,12 +8,9 @@ import {
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
-import ImageIcon from '@mui/icons-material/Image';
 import InsertEmoticonIcon from '@mui/icons-material/InsertEmoticon';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
-import DescriptionIcon from '@mui/icons-material/Description';
-import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
-import TableChartIcon from '@mui/icons-material/TableChart';
+import { getFileIcon } from '../../utils/fileHelpers';
 
 interface MessageInputProps {
   groupName: string;
@@ -44,16 +41,6 @@ export default function MessageInput({
 }: MessageInputProps) {
   const [emojiPickerAnchor, setEmojiPickerAnchor] = useState<HTMLElement | null>(null);
 
-  const getFileIconForFile = (file: File) => {
-    if (file.type.startsWith('image/')) {
-      return <ImageIcon />;
-    } else if (file.type.includes('pdf')) {
-      return <PictureAsPdfIcon />;
-    } else if (file.type.includes('excel') || file.type.includes('spreadsheet')) {
-      return <TableChartIcon />;
-    }
-    return <DescriptionIcon />;
-  };
 
   return (
     <>
@@ -91,7 +78,7 @@ export default function MessageInput({
               },
             }}
           >
-            <ImageIcon fontSize="small" />
+            {getFileIcon('image/*')}
             <input
               ref={imageInputRef}
               type="file"
@@ -133,7 +120,7 @@ export default function MessageInput({
                   label={file.name}
                   onDelete={() => onRemoveFile(index)}
                   size="small"
-                  icon={getFileIconForFile(file)}
+                  icon={getFileIcon(file.type)}
                 />
               ))}
             </Box>

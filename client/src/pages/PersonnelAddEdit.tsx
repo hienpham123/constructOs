@@ -15,11 +15,10 @@ import {
   Autocomplete,
   Paper,
   Typography,
-  Breadcrumbs,
-  Link,
   CircularProgress,
 } from '@mui/material';
 import { Button } from '../components/common';
+import Breadcrumb from '../components/common/Breadcrumb';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -29,7 +28,6 @@ import { usePersonnelStore } from '../stores/personnelStore';
 import { useProjectStore } from '../stores/projectStore';
 import { personnelAPI, rolesAPI, Role } from '../services/api';
 import { normalizePersonnel } from '../utils/normalize';
-import HomeIcon from '@mui/icons-material/Home';
 import SaveIcon from '@mui/icons-material/Save';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 
@@ -199,28 +197,13 @@ export default function PersonnelAddEdit() {
       <Box>
         {/* Header với breadcrumb và buttons */}
         <Box sx={{ mb: 3 }}>
-          <Breadcrumbs sx={{ mb: 2 }}>
-            <Link
-              component="button"
-              variant="body1"
-              onClick={() => navigate('/')}
-              sx={{ textDecoration: 'none', color: 'text.primary', cursor: 'pointer' }}
-            >
-              <HomeIcon sx={{ mr: 0.5, verticalAlign: 'middle', fontSize: 20 }} />
-              Trang chủ
-            </Link>
-            <Link
-              component="button"
-              variant="body1"
-              onClick={() => navigate('/personnel')}
-              sx={{ textDecoration: 'none', color: 'text.primary', cursor: 'pointer' }}
-            >
-              Nhân sự
-            </Link>
-            <Typography color="text.primary">
-              {isEditMode ? 'Chỉnh sửa nhân sự' : 'Thêm nhân sự mới'}
-            </Typography>
-          </Breadcrumbs>
+          <Breadcrumb
+            items={[
+              { label: 'Trang chủ', path: '/' },
+              { label: 'Nhân sự', path: '/personnel' },
+              { label: isEditMode ? 'Chỉnh sửa nhân sự' : 'Thêm nhân sự mới' },
+            ]}
+          />
           
           <Box display="flex" justifyContent="space-between" alignItems="center">
             <Typography variant="h5" sx={{ fontWeight: 600 }}>

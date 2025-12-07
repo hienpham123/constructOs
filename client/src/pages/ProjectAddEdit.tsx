@@ -17,11 +17,10 @@ import {
   Checkbox,
   Paper,
   Typography,
-  Breadcrumbs,
-  Link,
   CircularProgress,
 } from '@mui/material';
 import { Button } from '../components/common';
+import Breadcrumb from '../components/common/Breadcrumb';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -33,7 +32,6 @@ import { projectsAPI } from '../services/api';
 import { normalizeProject } from '../utils/normalize';
 import { formatCurrencyInput, parseCurrencyInput } from '../utils/currencyFormat';
 import { normalizeNumber } from '../utils/normalize';
-import HomeIcon from '@mui/icons-material/Home';
 import SaveIcon from '@mui/icons-material/Save';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 
@@ -202,28 +200,13 @@ export default function ProjectAddEdit() {
       <Box>
         {/* Header với breadcrumb và buttons */}
         <Box sx={{ mb: 3 }}>
-          <Breadcrumbs sx={{ mb: 2 }}>
-            <Link
-              component="button"
-              variant="body1"
-              onClick={() => navigate('/')}
-              sx={{ textDecoration: 'none', color: 'text.primary', cursor: 'pointer' }}
-            >
-              <HomeIcon sx={{ mr: 0.5, verticalAlign: 'middle', fontSize: 20 }} />
-              Trang chủ
-            </Link>
-            <Link
-              component="button"
-              variant="body1"
-              onClick={() => navigate('/projects')}
-              sx={{ textDecoration: 'none', color: 'text.primary', cursor: 'pointer' }}
-            >
-              Dự án
-            </Link>
-            <Typography color="text.primary">
-              {isEditMode ? 'Chỉnh sửa dự án' : 'Thêm dự án mới'}
-            </Typography>
-          </Breadcrumbs>
+          <Breadcrumb
+            items={[
+              { label: 'Trang chủ', path: '/' },
+              { label: 'Dự án', path: '/projects' },
+              { label: isEditMode ? 'Chỉnh sửa dự án' : 'Thêm dự án mới' },
+            ]}
+          />
           
           <Box display="flex" justifyContent="space-between" alignItems="center">
             <Typography variant="h5" sx={{ fontWeight: 600 }}>

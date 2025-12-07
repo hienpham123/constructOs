@@ -1,11 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { Box, Typography, LinearProgress } from '@mui/material';
-import ImageIcon from '@mui/icons-material/Image';
-import DescriptionIcon from '@mui/icons-material/Description';
-import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
-import TableChartIcon from '@mui/icons-material/TableChart';
 import { useAuthStore } from '../stores/authStore';
+import { getFileIcon, isImageFile, formatFileSize } from '../utils/fileHelpers';
 import EditGroupDialog from '../components/groupChat/EditGroupDialog';
 import GroupChatHeader from '../components/groupChat/GroupChatHeader';
 import GroupMenuPopover from '../components/groupChat/GroupMenuPopover';
@@ -248,30 +245,6 @@ export default function GroupChatDetail() {
 
   const handleImageError = (attachmentId: string) => {
     setImageErrors((prev) => new Set(prev).add(attachmentId));
-  };
-
-  const getFileIcon = (fileType: string) => {
-    if (fileType.startsWith('image/')) {
-      return <ImageIcon />;
-    } else if (fileType.includes('pdf')) {
-      return <PictureAsPdfIcon />;
-    } else if (fileType.includes('excel') || fileType.includes('spreadsheet')) {
-      return <TableChartIcon />;
-    }
-    return <DescriptionIcon />;
-  };
-
-  const isImageFile = (fileType: string, filename: string): boolean => {
-    if (fileType.startsWith('image/')) return true;
-    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'];
-    const lowerFilename = filename.toLowerCase();
-    return imageExtensions.some((ext) => lowerFilename.endsWith(ext));
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
   if (isLoading) {
