@@ -1,6 +1,5 @@
 import { Box, Avatar, Typography, IconButton } from '@mui/material';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
-import VideocamIcon from '@mui/icons-material/Videocam';
 import SearchIcon from '@mui/icons-material/Search';
 import FolderIcon from '@mui/icons-material/Folder';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
@@ -59,9 +58,6 @@ export default function GroupChatHeader({ group, onMembersClick, onMenuClick, on
         sx={{ color: '#65676b' }}
       >
         <PersonAddIcon fontSize="small" />
-      </IconButton>
-      <IconButton size="small" sx={{ color: '#65676b' }}>
-        <VideocamIcon fontSize="small" />
       </IconButton>
       <IconButton size="small" onClick={onSearchClick} sx={{ color: '#65676b' }}>
         <SearchIcon fontSize="small" />
