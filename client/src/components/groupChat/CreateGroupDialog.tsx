@@ -10,15 +10,11 @@ import {
   Avatar,
   IconButton,
   Typography,
-  Chip,
-  Autocomplete,
-  LinearProgress,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import { groupChatsAPI } from '../../services/api/groupChats';
-import { usersAPI } from '../../services/api/users';
-import type { User } from '../../services/api/users';
+import PeoplePicker, { type PeoplePickerOption } from '../common/PeoplePicker';
 
 interface CreateGroupDialogProps {
   open: boolean;
@@ -33,25 +29,11 @@ export default function CreateGroupDialog({
 }: CreateGroupDialogProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [selectedMembers, setSelectedMembers] = useState<User[]>([]);
+  const [selectedMembers, setSelectedMembers] = useState<PeoplePickerOption[]>([]);
   const [avatar, setAvatar] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const loadUsers = async () => {
-    try {
-      setLoadingUsers(true);
-      const data = await usersAPI.getUsers();
-      setUsers(data);
-    } catch (error) {
-      console.error('Error loading users:', error);
-    } finally {
-      setLoadingUsers(false);
-    }
-  };
 
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -181,33 +163,13 @@ export default function CreateGroupDialog({
             <Typography variant="subtitle2" gutterBottom>
               Thêm thành viên
             </Typography>
-            {loadingUsers && <LinearProgress sx={{ mb: 1 }} />}
-            <Autocomplete
+            <PeoplePicker
+              label="Chọn thành viên"
+              placeholder="Chọn thành viên..."
               multiple
-              options={users}
-              getOptionLabel={(option) => option.name}
               value={selectedMembers}
-              onChange={(_, newValue) => {
-                setSelectedMembers(newValue);
-              }}
-              onOpen={loadUsers}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  placeholder="Chọn thành viên..."
-                  size="small"
-                />
-              )}
-              renderTags={(value, getTagProps) =>
-                value.map((option, index) => (
-                  <Chip
-                    {...getTagProps({ index })}
-                    key={option.id}
-                    label={option.name}
-                    size="small"
-                  />
-                ))
-              }
+              onChange={(value) => setSelectedMembers(value as PeoplePickerOption[])}
+              size="small"
             />
           </Box>
         </Box>

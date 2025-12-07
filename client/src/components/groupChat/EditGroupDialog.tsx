@@ -11,8 +11,6 @@ import {
   IconButton,
   Typography,
   Chip,
-  Autocomplete,
-  LinearProgress,
   List,
   ListItem,
   ListItemAvatar,
@@ -23,8 +21,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { groupChatsAPI, type GroupDetail, type GroupMember } from '../../services/api/groupChats';
-import { usersAPI, type User } from '../../services/api/users';
 import { useAuthStore } from '../../stores/authStore';
+import PeoplePicker, { type PeoplePickerOption } from '../common/PeoplePicker';
 
 interface EditGroupDialogProps {
   open: boolean;
@@ -44,8 +42,6 @@ export default function EditGroupDialog({
   const [description, setDescription] = useState('');
   const [avatar, setAvatar] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [availableUsers, setAvailableUsers] = useState<User[]>([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [members, setMembers] = useState<GroupMember[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -56,23 +52,8 @@ export default function EditGroupDialog({
       setDescription(group.description || '');
       setAvatarPreview(group.avatar || null);
       setMembers(group.members || []);
-      loadAvailableUsers();
     }
   }, [group, open]);
-
-  const loadAvailableUsers = async () => {
-    try {
-      setLoadingUsers(true);
-      const data = await usersAPI.getUsers();
-      // Filter out users already in group
-      const memberIds = members.map((m) => m.userId);
-      setAvailableUsers(data.filter((u) => !memberIds.includes(u.id)));
-    } catch (error) {
-      console.error('Error loading users:', error);
-    } finally {
-      setLoadingUsers(false);
-    }
-  };
 
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -86,12 +67,11 @@ export default function EditGroupDialog({
     }
   };
 
-  const handleAddMember = async (userId: string) => {
-    if (!group) return;
+  const handleAddMember = async (member: PeoplePickerOption | null) => {
+    if (!group || !member) return;
     try {
-      await groupChatsAPI.addMembers(group.id, [userId]);
+      await groupChatsAPI.addMembers(group.id, [member.id]);
       await loadGroup();
-      await loadAvailableUsers();
     } catch (error: any) {
       alert(error.response?.data?.error || 'Không thể thêm thành viên');
     }
@@ -105,7 +85,6 @@ export default function EditGroupDialog({
       if (member) {
         await groupChatsAPI.removeMember(group.id, member.userId);
         await loadGroup();
-        await loadAvailableUsers();
       }
     } catch (error: any) {
       alert(error.response?.data?.error || 'Không thể xóa thành viên');
@@ -121,6 +100,9 @@ export default function EditGroupDialog({
       console.error('Error loading group:', error);
     }
   };
+
+  // Get member IDs to exclude from picker
+  const excludeMemberIds = members.map((m) => m.userId);
 
   const handleSubmit = async () => {
     if (!name.trim() || !group) {
@@ -270,23 +252,16 @@ export default function EditGroupDialog({
                 <Typography variant="subtitle2" gutterBottom>
                   Thêm thành viên
                 </Typography>
-                {loadingUsers && <LinearProgress sx={{ mb: 1 }} />}
-                <Autocomplete
-                  options={availableUsers}
-                  getOptionLabel={(option) => option.name}
-                  onChange={(_, newValue) => {
-                    if (newValue) {
-                      handleAddMember(newValue.id);
-                    }
+                <PeoplePicker
+                  label="Chọn thành viên để thêm"
+                  placeholder="Chọn thành viên để thêm..."
+                  multiple={false}
+                  value={null}
+                  onChange={(value) => {
+                    handleAddMember(value as PeoplePickerOption | null);
                   }}
-                  onOpen={loadAvailableUsers}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      placeholder="Chọn thành viên để thêm..."
-                      size="small"
-                    />
-                  )}
+                  excludeIds={excludeMemberIds}
+                  size="small"
                 />
               </Box>
             )}

@@ -8,4 +8,6 @@ export { default as SearchInput } from './SearchInput';
 export type { SearchInputProps } from './SearchInput';
 export { default as SearchSortControls } from './SearchSortControls';
 export type { SortOption } from './SearchSortControls';
+export { default as PeoplePicker } from './PeoplePicker';
+export type { PeoplePickerOption, PeoplePickerProps } from './PeoplePicker';
 
