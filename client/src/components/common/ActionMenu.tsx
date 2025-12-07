@@ -2,23 +2,19 @@ import { useState, MouseEvent } from 'react';
 import { IconButton, Popover, MenuList, MenuItem, ListItemText, Tooltip } from '@mui/material';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 
-interface ActionMenuProps {
-  onView?: () => void;
-  onEdit?: () => void;
-  onDelete: () => void;
-  viewLabel?: string;
-  editLabel?: string;
-  deleteLabel?: string;
+export interface ActionItem {
+  key: string;
+  text: string;
+  onClick: () => void;
+  condition?: boolean | ((row?: any) => boolean);
+  color?: 'default' | 'success' | 'error' | 'warning' | 'info';
 }
 
-export default function ActionMenu({
-  onView,
-  onEdit,
-  onDelete,
-  viewLabel = 'Xem chi tiết',
-  editLabel = 'Chỉnh sửa',
-  deleteLabel = 'Xóa',
-}: ActionMenuProps) {
+interface ActionMenuProps {
+  actions: ActionItem[];
+}
+
+export default function ActionMenu({ actions }: ActionMenuProps) {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const open = Boolean(anchorEl);
 
@@ -31,24 +27,26 @@ export default function ActionMenu({
     setAnchorEl(null);
   };
 
-  const handleView = () => {
-    if (onView) {
-      onView();
-    }
+  const handleAction = (onClick: () => void) => {
+    onClick();
     handleClose();
   };
 
-  const handleEdit = () => {
-    if (onEdit) {
-      onEdit();
+  // Filter actions based on condition
+  const visibleActions = actions.filter(action => {
+    if (action.condition === undefined || action.condition === true) {
+      return true;
     }
-    handleClose();
-  };
+    if (typeof action.condition === 'function') {
+      return action.condition();
+    }
+    return action.condition !== false;
+  });
 
-  const handleDelete = () => {
-    onDelete();
-    handleClose();
-  };
+  // Don't render if no visible actions
+  if (visibleActions.length === 0) {
+    return null;
+  }
 
   return (
     <>
@@ -104,49 +102,30 @@ export default function ActionMenu({
             },
           }}
         >
-          {onView && (
-            <MenuItem 
-              onClick={handleView}
-              sx={{
-                '& .MuiListItemText-primary': {
-                  color: '#000000',
-                  fontSize: '14px',
-                },
-              }}
-            >
-              <ListItemText>{viewLabel}</ListItemText>
-            </MenuItem>
-          )}
-          {onEdit && (
-            <MenuItem 
-              onClick={handleEdit}
-              sx={{
-                '& .MuiListItemText-primary': {
-                  color: '#000000',
-                  fontSize: '14px',
-                },
-              }}
-            >
-              <ListItemText>{editLabel}</ListItemText>
-            </MenuItem>
-          )}
-          <MenuItem 
-            onClick={handleDelete}
-            sx={{
-              '& .MuiListItemText-primary': {
-                color: '#d32f2f',
-                fontSize: '14px',
-              },
-              '&:hover': {
-                bgcolor: '#ffebee',
-              },
-            }}
-          >
-            <ListItemText>{deleteLabel}</ListItemText>
-          </MenuItem>
+          {visibleActions.map((action) => {
+            const isError = action.color === 'error';
+            const isSuccess = action.color === 'success';
+            
+            return (
+              <MenuItem
+                key={action.key}
+                onClick={() => handleAction(action.onClick)}
+                sx={{
+                  '& .MuiListItemText-primary': {
+                    color: isError ? '#d32f2f' : isSuccess ? '#2e7d32' : '#000000',
+                    fontSize: '14px',
+                  },
+                  '&:hover': {
+                    bgcolor: isError ? '#ffebee' : isSuccess ? '#e8f5e9' : '#f5f5f5',
+                  },
+                }}
+              >
+                <ListItemText>{action.text}</ListItemText>
+              </MenuItem>
+            );
+          })}
         </MenuList>
       </Popover>
     </>
   );
 }
-

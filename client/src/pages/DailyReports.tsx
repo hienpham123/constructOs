@@ -9,8 +9,6 @@ import {
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import EditIcon from '@mui/icons-material/Edit';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -25,7 +23,6 @@ interface DailyReport {
   id?: string;
   user_id: string;
   user_name: string;
-  user_code?: string;
   has_report: boolean;
   report: {
     id: string;
@@ -197,45 +194,51 @@ export default function DailyReports() {
               },
             ]}
             data={tableData}
-            actions={{
-              onView: () => {}, // Use customActions instead
-              onEdit: () => {}, // Use customActions instead
-              onDelete: () => {}, // Required but not used (no delete action)
-              customActions: (row: any) => {
-                const actions: any[] = [];
-                const isCurrentUser = row.user_id === user?.id;
-                
-                // Show "Xem báo cáo" for all reports that exist
-                if (row.report) {
-                  const viewDate = dayjs(row.report_date).format('YYYY-MM-DD');
-                  actions.push({
-                    label: 'Xem báo cáo',
-                    icon: <VisibilityIcon />,
-                    onClick: () => navigate(`/daily-reports/view/${row.user_id}/${viewDate}`),
-                    color: 'info' as const,
-                  });
-                }
-                
-                // Only show "Chỉnh sửa" for current user's own reports and only for today's reports
-                if (isCurrentUser) {
-                  const reportDate = row.report_date ? dayjs(row.report_date) : selectedDate;
-                  const isToday = reportDate.isSame(dayjs(), 'day');
-                  
-                  // Only allow editing today's reports, not past dates
-                  if (isToday) {
-                    const editDate = reportDate.format('YYYY-MM-DD');
-                    actions.push({
-                      label: 'Chỉnh sửa',
-                      icon: <EditIcon />,
-                      onClick: () => navigate(`/daily-reports/edit/${row.user_id}/${editDate}`),
-                      color: 'primary' as const,
-                    });
-                  }
-                }
-                
-                // Return empty array if no actions (will show nothing)
-                return actions;
-              },
+            actions={(row: any) => {
+              const isCurrentUser = row.user_id === user?.id;
+              const reportDate = row.report_date ? dayjs(row.report_date) : selectedDate;
+              const isToday = reportDate.isSame(dayjs(), 'day');
+              const dateStr = reportDate.format('YYYY-MM-DD');
+              const hasReport = !!row.report;
+              
+              const actions = [];
+              
+              // If has report, show "Xem chi tiết"
+              if (hasReport) {
+                actions.push({
+                  key: 'view',
+                  text: 'Xem chi tiết',
+                  onClick: () => navigate(`/daily-reports/view/${row.user_id}/${dateStr}`),
+                  condition: true,
+                });
+              }
+              
+              // Show "Chỉnh sửa" for current user's own reports and only for today
+              if (hasReport && isCurrentUser && isToday) {
+                actions.push({
+                  key: 'edit',
+                  text: 'Chỉnh sửa',
+                  onClick: () => navigate(`/daily-reports/edit/${row.user_id}/${dateStr}`),
+                  condition: true,
+                });
+              }
+              
+              // If no report and is current user and is today, show "Tạo báo cáo"
+              if (!hasReport && isCurrentUser && isToday) {
+                actions.push({
+                  key: 'create',
+                  text: 'Tạo báo cáo',
+                  onClick: () => navigate(`/daily-reports/edit/${row.user_id}/${dateStr}`),
+                  condition: true,
+                });
+              }
+              
+              // If no actions, return undefined to hide action column
+              if (actions.length === 0) {
+                return undefined;
+              }
+              
+              return actions;
             }}
             emptyMessage="Không có dữ liệu. Vui lòng chọn ngày khác hoặc tạo báo cáo mới."
             minWidth={1200}

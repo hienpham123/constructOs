@@ -42,26 +42,6 @@ export const materialsAPI = {
   updatePurchaseRequest: (id: string, data: any) =>
     api.put(`/materials/purchase-requests/${id}`, data).then((res) => res.data),
   deletePurchaseRequest: (id: string) => api.delete(`/materials/purchase-requests/${id}`),
-  uploadTransactionFiles: (files: File[]) => {
-    const formData = new FormData();
-    files.forEach((file) => {
-      formData.append('files', file);
-    });
-    return api.post('/materials/transactions/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    }).then((res) => res.data);
-  },
-  deleteTransactionFile: (filename: string) => {
-    // Extract filename from URL if needed
-    let actualFilename = filename;
-    if (filename.includes('/')) {
-      const parts = filename.split('/');
-      actualFilename = parts[parts.length - 1];
-    }
-    return api.delete(`/materials/transactions/files/${actualFilename}`).then((res) => res.data);
-  },
   // Transaction Attachments (new API)
   getTransactionAttachments: (transactionId: string) => {
     return api.get('/transaction-attachments', {

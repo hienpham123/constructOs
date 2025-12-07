@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
-import ActionMenu from './ActionMenu';
+import ActionMenu, { ActionItem } from './ActionMenu';
 import ActionMenuWithCustomActions from './ActionMenuWithCustomActions';
 
 export interface Column<T = any> {
@@ -29,7 +29,7 @@ export interface Column<T = any> {
 export interface TableAction<T = any> {
   onView?: (row: T) => void;
   onEdit?: (row: T) => void;
-  onDelete: (row: T) => void;
+  onDelete?: (row: T) => void;
   customActions?: Array<{
     label: string;
     icon: ReactNode;
@@ -44,12 +44,14 @@ export interface TableAction<T = any> {
   viewLabel?: string;
   editLabel?: string;
   deleteLabel?: string;
+  // New format: array of actions with conditions
+  actions?: ActionItem[] | ((row: T) => ActionItem[]);
 }
 
 export interface DataTableProps<T = any> {
   columns: Column<T>[];
   data: T[];
-  actions?: TableAction<T> | ((row: T) => TableAction<T>);
+  actions?: TableAction<T> | ((row: T) => TableAction<T> | undefined) | ActionItem[] | ((row: T) => ActionItem[] | undefined);
   pagination?: {
     count: number;
     page: number;
@@ -213,8 +215,54 @@ export default function DataTable<T = any>({
                 {actions && (
                   <TableCell>
                     {(() => {
-                      // Get actions for this row (can be a function or object)
-                      const rowActions = typeof actions === 'function' ? actions(row) : actions;
+                      // Check if actions is the new format (array of ActionItem)
+                      if (Array.isArray(actions)) {
+                        const rowActions = actions.filter(action => {
+                          if (typeof action.condition === 'function') {
+                            return action.condition(row);
+                          }
+                          return action.condition !== false;
+                        });
+                        if (rowActions.length === 0) return null;
+                        return <ActionMenu actions={rowActions} />;
+                      }
+                      
+                      // Check if actions is a function that returns array
+                      const actionsResult = typeof actions === 'function' ? actions(row) : actions;
+                      
+                      if (Array.isArray(actionsResult)) {
+                        const rowActions = actionsResult.filter(action => {
+                          if (typeof action.condition === 'function') {
+                            return action.condition(row);
+                          }
+                          return action.condition !== false;
+                        });
+                        if (rowActions.length === 0) return null;
+                        return <ActionMenu actions={rowActions} />;
+                      }
+                      
+                      // Old format: TableAction object
+                      const rowActions = actionsResult as TableAction<T>;
+                      
+                      // If rowActions is undefined, don't show action menu
+                      if (!rowActions) {
+                        return null;
+                      }
+                      
+                      // Check if using new actions format in TableAction
+                      if (rowActions.actions) {
+                        const actionItems = typeof rowActions.actions === 'function' 
+                          ? rowActions.actions(row) 
+                          : rowActions.actions;
+                        const filteredActions = (actionItems as ActionItem[]).filter(action => {
+                          if (typeof action.condition === 'function') {
+                            return action.condition(row);
+                          }
+                          return action.condition !== false;
+                        });
+                        if (filteredActions.length === 0) return null;
+                        return <ActionMenu actions={filteredActions} />;
+                      }
                       
                       const customActions = typeof rowActions.customActions === 'function'
                         ? rowActions.customActions(row)
@@ -231,7 +279,7 @@ export default function DataTable<T = any>({
                               }))}
                               onView={rowActions.onView ? () => rowActions.onView!(row) : undefined}
                               onEdit={rowActions.onEdit ? () => rowActions.onEdit!(row) : undefined}
-                              onDelete={rowActions.onDelete ? () => rowActions.onDelete(row) : undefined}
+                              onDelete={rowActions.onDelete ? () => rowActions.onDelete!(row) : undefined}
                               viewLabel={rowActions.viewLabel}
                               editLabel={rowActions.editLabel}
                               deleteLabel={rowActions.deleteLabel}
@@ -240,32 +288,68 @@ export default function DataTable<T = any>({
                         }
                         // If customActions is empty but we have standard actions, show them
                         if (rowActions.onView || rowActions.onEdit || rowActions.onDelete) {
-                          return (
-                            <ActionMenu
-                              onView={rowActions.onView ? () => rowActions.onView!(row) : undefined}
-                              onEdit={rowActions.onEdit ? () => rowActions.onEdit!(row) : undefined}
-                              onDelete={rowActions.onDelete ? () => rowActions.onDelete(row) : undefined}
-                              viewLabel={rowActions.viewLabel}
-                              editLabel={rowActions.editLabel}
-                              deleteLabel={rowActions.deleteLabel}
-                            />
-                          );
+                          // Convert to new format
+                          const actionItems: ActionItem[] = [];
+                          if (rowActions.onView) {
+                            actionItems.push({
+                              key: 'view',
+                              text: rowActions.viewLabel || 'Xem chi tiết',
+                              onClick: () => rowActions.onView!(row),
+                              condition: true,
+                            });
+                          }
+                          if (rowActions.onEdit) {
+                            actionItems.push({
+                              key: 'edit',
+                              text: rowActions.editLabel || 'Chỉnh sửa',
+                              onClick: () => rowActions.onEdit!(row),
+                              condition: true,
+                            });
+                          }
+                          if (rowActions.onDelete) {
+                            actionItems.push({
+                              key: 'delete',
+                              text: rowActions.deleteLabel || 'Xóa',
+                              onClick: () => rowActions.onDelete!(row),
+                              condition: true,
+                              color: 'error',
+                            });
+                          }
+                          return <ActionMenu actions={actionItems} />;
                         }
                         // If customActions is empty and no standard actions, don't show menu
                         return null;
                       }
                       
                       // Fallback to default ActionMenu if no customActions
-                      return (
-                        <ActionMenu
-                          onView={rowActions.onView ? () => rowActions.onView!(row) : undefined}
-                          onEdit={rowActions.onEdit ? () => rowActions.onEdit!(row) : undefined}
-                          onDelete={rowActions.onDelete ? () => rowActions.onDelete(row) : undefined}
-                          viewLabel={rowActions.viewLabel}
-                          editLabel={rowActions.editLabel}
-                          deleteLabel={rowActions.deleteLabel}
-                        />
-                      );
+                      const actionItems: ActionItem[] = [];
+                      if (rowActions.onView) {
+                        actionItems.push({
+                          key: 'view',
+                          text: rowActions.viewLabel || 'Xem chi tiết',
+                          onClick: () => rowActions.onView!(row),
+                          condition: true,
+                        });
+                      }
+                      if (rowActions.onEdit) {
+                        actionItems.push({
+                          key: 'edit',
+                          text: rowActions.editLabel || 'Chỉnh sửa',
+                          onClick: () => rowActions.onEdit!(row),
+                          condition: true,
+                        });
+                      }
+                      if (rowActions.onDelete) {
+                        actionItems.push({
+                          key: 'delete',
+                          text: rowActions.deleteLabel || 'Xóa',
+                          onClick: () => rowActions.onDelete!(row),
+                          condition: true,
+                          color: 'error',
+                        });
+                      }
+                      if (actionItems.length === 0) return null;
+                      return <ActionMenu actions={actionItems} />;
                     })()}
                   </TableCell>
                 )}
