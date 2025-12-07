@@ -10,13 +10,17 @@ CREATE TABLE daily_reports (
     report_date DATE NOT NULL COMMENT 'Ngày báo cáo',
     content TEXT NOT NULL COMMENT 'Nội dung báo cáo',
     suggestion TEXT COMMENT 'Đề xuất',
+    time_slot VARCHAR(100) NULL COMMENT 'Khung giờ',
+    location VARCHAR(255) NULL COMMENT 'Vị trí',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE KEY unique_daily_report (user_id, report_date),
     INDEX idx_user_id (user_id),
     INDEX idx_report_date (report_date),
-    INDEX idx_created_at (created_at)
+    INDEX idx_created_at (created_at),
+    INDEX idx_time_slot (time_slot),
+    INDEX idx_location (location)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================

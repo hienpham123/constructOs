@@ -28,6 +28,8 @@ interface DailyReport {
     id: string;
     content: string;
     suggestion?: string;
+    time_slot?: string;
+    location?: string;
     report_date: string;
     created_at: string;
     updated_at: string;
@@ -74,6 +76,8 @@ export default function DailyReports() {
     user_name: report.user_name,
     content: report.report?.content || '-',
     suggestion: report.report?.suggestion || '-',
+    time_slot: report.report?.time_slot || '-',
+    location: report.report?.location || '-',
     has_report: report.has_report,
     created_at: report.report?.created_at || null,
     report_date: report.report?.report_date || selectedDate.format('YYYY-MM-DD'),
@@ -192,6 +196,40 @@ export default function DailyReports() {
                   </Typography>
                 ),
               },
+              {
+                label: 'Khung giờ',
+                field: 'time_slot',
+                minWidth: 150,
+                render: (value: string) => (
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {value}
+                  </Typography>
+                ),
+              },
+              {
+                label: 'Vị trí',
+                field: 'location',
+                minWidth: 200,
+                render: (value: string) => (
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {value}
+                  </Typography>
+                ),
+              },
             ]}
             data={tableData}
             actions={(row: any) => {
@@ -241,7 +279,7 @@ export default function DailyReports() {
               return actions;
             }}
             emptyMessage="Không có dữ liệu. Vui lòng chọn ngày khác hoặc tạo báo cáo mới."
-            minWidth={1200}
+            minWidth={1500}
           />
         )}
       </Box>

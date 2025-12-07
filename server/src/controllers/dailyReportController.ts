@@ -16,7 +16,7 @@ export const getDailyReports = async (req: AuthRequest, res: Response) => {
     
     // Build search and sort clauses
     const queryParams: any[] = [];
-    const searchFields = ['u.name', 'u.code', 'dr.content', 'dr.suggestion'];
+    const searchFields = ['u.name', 'u.code', 'dr.content', 'dr.suggestion', 'dr.time_slot', 'dr.location'];
     let searchClause = buildSearchClause(
       search as string,
       searchFields,
@@ -50,7 +50,9 @@ export const getDailyReports = async (req: AuthRequest, res: Response) => {
       .replace(/\bu\.name\b/g, 'u.name')
       .replace(/\bu\.code\b/g, 'u.code')
       .replace(/\bdr\.content\b/g, 'dr.content')
-      .replace(/\bdr\.suggestion\b/g, 'dr.suggestion');
+      .replace(/\bdr\.suggestion\b/g, 'dr.suggestion')
+      .replace(/\bdr\.time_slot\b/g, 'dr.time_slot')
+      .replace(/\bdr\.location\b/g, 'dr.location');
     
     const countQuery = `SELECT COUNT(*) as total 
       FROM daily_reports dr
@@ -63,6 +65,7 @@ export const getDailyReports = async (req: AuthRequest, res: Response) => {
     const reports = await query<any[]>(
       `SELECT 
         dr.id, dr.user_id, dr.report_date, dr.content, dr.suggestion,
+        dr.time_slot, dr.location,
         dr.created_at, dr.updated_at,
         u.name as user_name, u.code as user_code
       FROM daily_reports dr
@@ -86,6 +89,8 @@ export const getDailyReports = async (req: AuthRequest, res: Response) => {
           id: report.id,
           content: report.content,
           suggestion: report.suggestion,
+          time_slot: report.time_slot,
+          location: report.location,
           report_date: report.report_date,
           created_at: report.created_at,
           updated_at: report.updated_at,
@@ -151,7 +156,7 @@ export const getDailyReportByUserAndDate = async (req: AuthRequest, res: Respons
 export const createOrUpdateDailyReport = async (req: AuthRequest, res: Response) => {
   try {
     const { userId, date } = req.params;
-    const { content, suggestion } = req.body;
+    const { content, suggestion, time_slot, location } = req.body;
     const currentUserId = req.userId;
     
     // Only allow users to create/update their own reports
@@ -192,9 +197,9 @@ export const createOrUpdateDailyReport = async (req: AuthRequest, res: Response)
       const id = existing[0].id;
       await query(
         `UPDATE daily_reports SET
-          content = ?, suggestion = ?, updated_at = ?
+          content = ?, suggestion = ?, time_slot = ?, location = ?, updated_at = ?
         WHERE id = ?`,
-        [content, normalizeString(suggestion), createdAt, id]
+        [content, normalizeString(suggestion), normalizeString(time_slot), normalizeString(location), createdAt, id]
       );
       
       const updated = await query<any[]>(
@@ -213,9 +218,9 @@ export const createOrUpdateDailyReport = async (req: AuthRequest, res: Response)
       const id = uuidv4();
       await query(
         `INSERT INTO daily_reports (
-          id, user_id, report_date, content, suggestion, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [id, userId, reportDate, content, normalizeString(suggestion), createdAt, createdAt]
+          id, user_id, report_date, content, suggestion, time_slot, location, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [id, userId, reportDate, content, normalizeString(suggestion), normalizeString(time_slot), normalizeString(location), createdAt, createdAt]
       );
       
       const newReport = await query<any[]>(

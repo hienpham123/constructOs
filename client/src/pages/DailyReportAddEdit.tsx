@@ -28,6 +28,8 @@ import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 const dailyReportSchema = z.object({
   content: z.string().min(1, 'Nội dung báo cáo là bắt buộc'),
   suggestion: z.string().optional(),
+  time_slot: z.string().optional(),
+  location: z.string().optional(),
   reportDate: z.any(),
 });
 
@@ -53,6 +55,8 @@ export default function DailyReportAddEdit() {
     defaultValues: {
       content: '',
       suggestion: '',
+      time_slot: '',
+      location: '',
       reportDate: date ? dayjs(date).isValid() ? dayjs(date) : dayjs() : dayjs(),
     },
   });
@@ -88,6 +92,8 @@ export default function DailyReportAddEdit() {
       reset({
         content: report.content || '',
         suggestion: report.suggestion || '',
+        time_slot: report.time_slot || '',
+        location: report.location || '',
         reportDate: dayjs(report.report_date),
       });
     } catch (error: any) {
@@ -99,6 +105,8 @@ export default function DailyReportAddEdit() {
         reset({
           content: '',
           suggestion: '',
+          time_slot: '',
+          location: '',
           reportDate: dayjs(reportDate),
         });
       } else {
@@ -129,6 +137,8 @@ export default function DailyReportAddEdit() {
       await dailyReportsAPI.createOrUpdateReport(user.id, reportDate, {
         content: data.content.trim(),
         suggestion: data.suggestion?.trim() || undefined,
+        time_slot: data.time_slot?.trim() || undefined,
+        location: data.location?.trim() || undefined,
       });
       showSuccess('Lưu báo cáo thành công');
       navigate('/daily-reports');
@@ -294,6 +304,40 @@ export default function DailyReportAddEdit() {
                     disabled={isViewMode}
                     error={!!errors.suggestion}
                     helperText={errors.suggestion?.message}
+                  />
+                )}
+              />
+
+              <Controller
+                name="time_slot"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Khung giờ"
+                    placeholder="Ví dụ: 08:00-12:00, 13:00-17:00"
+                    fullWidth
+                    variant="outlined"
+                    disabled={isViewMode}
+                    error={!!errors.time_slot}
+                    helperText={errors.time_slot?.message}
+                  />
+                )}
+              />
+
+              <Controller
+                name="location"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Vị trí"
+                    placeholder="Ví dụ: Công trường A, Văn phòng"
+                    fullWidth
+                    variant="outlined"
+                    disabled={isViewMode}
+                    error={!!errors.location}
+                    helperText={errors.location?.message}
                   />
                 )}
               />

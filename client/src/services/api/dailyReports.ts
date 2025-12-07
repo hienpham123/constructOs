@@ -24,7 +24,7 @@ export const dailyReportsAPI = {
   getReportByUserAndDate: (userId: string, date: string) =>
     api.get(`/daily-reports/${userId}/${date}`).then((res) => res.data),
   
-  createOrUpdateReport: (userId: string, date: string, data: { content: string; suggestion?: string; status?: string }) =>
+  createOrUpdateReport: (userId: string, date: string, data: { content: string; suggestion?: string; time_slot?: string; location?: string; status?: string }) =>
     api.post(`/daily-reports/${userId}/${date}`, data).then((res) => res.data),
   
   deleteReport: (id: string) =>
