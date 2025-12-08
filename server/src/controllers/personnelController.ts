@@ -5,6 +5,46 @@ import { normalizeString, normalizeProject, toMySQLDateTime, toMySQLDate, buildS
 import bcrypt from 'bcryptjs';
 import type { Personnel } from '../types/index.js';
 
+// Helper function to generate unique personnel code
+async function generateUniquePersonnelCode(name?: string): Promise<string> {
+  // Generate code prefix from name (first 3 letters) or use default
+  const prefix = name 
+    ? name.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '').padEnd(3, 'X')
+    : 'NS';
+  
+  // Generate random suffix: 6 digits + random 2 chars
+  const randomSuffix = Math.floor(100000 + Math.random() * 900000); // 6 digits
+  const randomChars = Math.random().toString(36).substring(2, 4).toUpperCase(); // 2 random chars
+  
+  let attempt = 0;
+  let code: string;
+  
+  do {
+    code = `${prefix}-${randomSuffix}${attempt > 0 ? attempt : ''}${randomChars}`;
+    const existingCode = await query<any[]>(
+      'SELECT id FROM users WHERE code = ?',
+      [code]
+    );
+    if (existingCode.length === 0) break;
+    attempt++;
+    // If still exists after 10 attempts, add timestamp
+    if (attempt >= 10) {
+      const timestamp = Date.now().toString().slice(-6);
+      code = `${prefix}-${timestamp}${randomChars}`;
+      const finalCheck = await query<any[]>(
+        'SELECT id FROM users WHERE code = ?',
+        [code]
+      );
+      if (finalCheck.length === 0) break;
+      // Last resort: use UUID first 8 chars
+      code = `${prefix}-${uuidv4().substring(0, 8).toUpperCase()}`;
+      break;
+    }
+  } while (attempt < 20);
+  
+  return code;
+}
+
 export const getPersonnel = async (req: Request, res: Response) => {
   try {
     const { pageSize, pageIndex, search, sortBy, sortOrder } = req.query;
@@ -172,22 +212,8 @@ export const createPersonnel = async (req: Request, res: Response) => {
       }
     }
     
-    // Auto-generate code if not provided
-    let code = personnelData.code;
-    if (!code) {
-      // Generate code from name and timestamp, ensure uniqueness
-      const namePrefix = personnelData.name ? personnelData.name.substring(0, 3).toUpperCase().replace(/\s/g, '') : 'NS';
-      let attempt = 0;
-      do {
-        code = `${namePrefix}-${Date.now().toString().slice(-6)}${attempt > 0 ? `-${attempt}` : ''}`;
-        const existingCode = await query<any[]>(
-          'SELECT id FROM users WHERE code = ?',
-          [code]
-        );
-        if (existingCode.length === 0) break;
-        attempt++;
-      } while (attempt < 10);
-    }
+    // Auto-generate code - always generate random code (frontend no longer sends code)
+    const code = await generateUniquePersonnelCode(personnelData.name);
     
     // Use defaults for status and hire_date if not provided
     const status = personnelData.status || 'active';
@@ -287,25 +313,11 @@ export const updatePersonnel = async (req: Request, res: Response) => {
       }
     }
     
-    // Handle code update - check for uniqueness if code is being changed
-    let code = existing[0].code; // Default to existing code
-    if (personnelData.code !== undefined && personnelData.code !== null && personnelData.code !== '') {
-      const newCode = personnelData.code.trim();
-      // Only check uniqueness if code is different from current code
-      if (newCode !== existing[0].code) {
-        // Check if new code already exists for another user
-        const codeCheck = await query<any[]>(
-          'SELECT id FROM users WHERE code = ? AND id != ?',
-          [newCode, id]
-        );
-        if (codeCheck.length > 0) {
-          return res.status(400).json({ 
-            error: 'Mã nhân sự đã tồn tại',
-            message: `Code "${newCode}" is already used by another user` 
-          });
-        }
-        code = newCode;
-      }
+    // Handle code - keep existing code (frontend no longer sends code)
+    // If somehow code is missing, generate a new one
+    let code = existing[0].code;
+    if (!code || code.trim() === '') {
+      code = await generateUniquePersonnelCode(personnelData.name || existing[0].name);
     }
     
     // Handle email update - check for uniqueness if email is being changed
