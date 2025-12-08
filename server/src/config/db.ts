@@ -2,12 +2,49 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Auto-detect database type based on port
-const dbPort = parseInt(process.env.DB_PORT || '5432');
-const useMySQL = dbPort === 3306;
+// Determine database type based on environment
+// Priority: DB_TYPE env var > port detection > NODE_ENV > default
+function getDatabaseType(): 'mysql' | 'postgres' {
+  // 1. Check DB_TYPE env variable first (explicit override)
+  if (process.env.DB_TYPE) {
+    if (process.env.DB_TYPE.toLowerCase() === 'mysql') {
+      return 'mysql';
+    }
+    if (process.env.DB_TYPE.toLowerCase() === 'postgres' || process.env.DB_TYPE.toLowerCase() === 'postgresql') {
+      return 'postgres';
+    }
+  }
+  
+  // 2. Check port (3306 = MySQL, 5432 = PostgreSQL)
+  const dbPort = parseInt(process.env.DB_PORT || '5432');
+  if (dbPort === 3306) {
+    return 'mysql';
+  }
+  if (dbPort === 5432) {
+    return 'postgres';
+  }
+  
+  // 3. Check NODE_ENV and host
+  const nodeEnv = process.env.NODE_ENV || 'development';
+  const dbHost = process.env.DB_HOST || '';
+  
+  // Production: use MySQL
+  if (nodeEnv === 'production') {
+    return 'mysql';
+  }
+  
+  // Development/Staging: check if Supabase (PostgreSQL) or local (MySQL)
+  if (dbHost.includes('supabase') || dbHost.includes('render') || dbHost.includes('railway')) {
+    return 'postgres';
+  }
+  
+  // Default: MySQL for local development
+  return 'mysql';
+}
 
-// Re-export the appropriate database module based on port
-// This is a runtime decision, so we need to use dynamic imports
+const dbType = getDatabaseType();
+
+// Re-export the appropriate database module based on environment
 let dbModule: {
   pool: any;
   query: <T = any>(sql: string, params?: any[]) => Promise<T>;
@@ -15,13 +52,13 @@ let dbModule: {
   default: any;
 };
 
-if (useMySQL) {
-  // Use MySQL for local development (port 3306)
-  console.log('📦 Using MySQL database (port 3306)');
+if (dbType === 'mysql') {
+  console.log('📦 Using MySQL database');
+  console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
   dbModule = require('./db.mysql.js') as typeof dbModule;
 } else {
-  // Use PostgreSQL for production/Supabase (port 5432 or other)
   console.log('📦 Using PostgreSQL database');
+  console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
   dbModule = require('./db.postgres.js') as typeof dbModule;
 }
 
