@@ -28,6 +28,7 @@ export default function DirectChatDetail() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const isLoadingMoreRef = useRef(false);
+  const loadingStartTimeRef = useRef<number | null>(null);
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState('');
@@ -52,6 +53,7 @@ export default function DirectChatDetail() {
     setSelectedFiles([]);
     setHasMoreMessages(true);
     setIsLoading(true);
+    loadingStartTimeRef.current = null; // Reset loading start time
     setEditingMessageId(null);
     setEditingContent('');
 
@@ -113,44 +115,7 @@ export default function DirectChatDetail() {
     }
   }, [editingMessageId]);
 
-  // Handle message received from socket
-  const handleMessageReceived = useCallback((data: { conversationId: string; message: DirectMessage; senderId?: string }) => {
-    const currentConvId = conversationId || conversation?.id;
-    if (data.conversationId === currentConvId) {
-      // ALWAYS skip if this is our own message (already in state from handleSubmit)
-      // Check by comparing senderId with current user
-      const isOwnMessage = data.message.senderId === user?.id || data.senderId === user?.id;
-      
-      // If it's our own message, completely ignore it - don't process at all
-      if (isOwnMessage) {
-        return; // Early return - don't add duplicate
-      }
-      
-      // Safety check: don't add duplicate messages (in case message ID matches)
-      setMessages((prev) => {
-        const messageExists = prev.some((m) => m.id === data.message.id);
-        if (messageExists) {
-          return prev; // Don't add duplicate
-        }
-        return [...prev, data.message];
-      });
-      
-      // Auto-scroll for messages from others (not when submitting)
-      if (!isSubmittingRef.current) {
-        requestAnimationFrame(() => {
-          scrollToBottom(true);
-        });
-      }
-    }
-  }, [conversationId, conversation, user?.id]);
-
-  // Setup socket connection
-  useDirectMessageSocket({
-    conversationId: conversationId || conversation?.id || null,
-    onMessageReceived: handleMessageReceived,
-  });
-
-  const scrollToBottom = (instant = false) => {
+  const scrollToBottom = useCallback((instant = false) => {
     if (lastMessageRef.current) {
       lastMessageRef.current.scrollIntoView({
         behavior: instant ? 'auto' : 'smooth',
@@ -171,7 +136,71 @@ export default function DirectChatDetail() {
         });
       }
     }
-  };
+  }, []);
+
+  // Batch socket message updates
+  const messageBatchRef = useRef<DirectMessage[]>([]);
+  const batchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Handle message received from socket
+  const handleMessageReceived = useCallback((data: { conversationId: string; message: DirectMessage; senderId?: string }) => {
+    const currentConvId = conversationId || conversation?.id;
+    if (data.conversationId === currentConvId) {
+      // ALWAYS skip if this is our own message (already in state from handleSubmit)
+      // Check by comparing senderId with current user
+      const isOwnMessage = data.message.senderId === user?.id || data.senderId === user?.id;
+      
+      // If it's our own message, completely ignore it - don't process at all
+      if (isOwnMessage) {
+        return; // Early return - don't add duplicate
+      }
+      
+      // Add to batch
+      messageBatchRef.current.push(data.message);
+      
+      // Clear existing timeout
+      if (batchTimeoutRef.current) {
+        clearTimeout(batchTimeoutRef.current);
+      }
+      
+      // Batch updates to reduce re-renders (wait 50ms to collect multiple messages)
+      batchTimeoutRef.current = setTimeout(() => {
+        if (messageBatchRef.current.length > 0) {
+          setMessages((prev) => {
+            const existingIds = new Set(prev.map(m => m.id));
+            const newMessages = messageBatchRef.current.filter(m => !existingIds.has(m.id));
+            
+            if (newMessages.length === 0) {
+              return prev;
+            }
+            
+            // Sort by createdAt to maintain order
+            const combined = [...prev, ...newMessages].sort((a, b) => 
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            );
+            
+            return combined;
+          });
+          
+          // Auto-scroll for messages from others (not when submitting)
+          if (!isSubmittingRef.current) {
+            requestAnimationFrame(() => {
+              scrollToBottom(true);
+            });
+          }
+          
+          messageBatchRef.current = [];
+        }
+        batchTimeoutRef.current = null;
+      }, 50);
+    }
+  }, [conversationId, conversation, user?.id, scrollToBottom]);
+
+  // Setup socket connection
+  useDirectMessageSocket({
+    conversationId: conversationId || conversation?.id || null,
+    onMessageReceived: handleMessageReceived,
+  });
 
   const loadConversation = async (showLoading = false) => {
     if (!conversationId) {
@@ -232,6 +261,9 @@ export default function DirectChatDetail() {
       setIsLoading(false);
       return;
     }
+    setIsLoading(true);
+    loadingStartTimeRef.current = Date.now();
+    const minLoadingTime = 300; // Minimum time to ensure scroll completes (ms)
     const currentConvId = conversationId; // Capture current conversationId
     try {
       const data = await directMessagesAPI.getMessages(currentConvId, 50, 0);
@@ -239,13 +271,61 @@ export default function DirectChatDetail() {
       if (conversationId === currentConvId) {
         setMessages(data);
         setHasMoreMessages(data.length === 50);
-        setIsLoading(false);
+        
+        // Calculate elapsed time and ensure minimum display time
+        const elapsedTime = Date.now() - (loadingStartTimeRef.current || Date.now());
+        const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+        
+        // Scroll to bottom first while spinner is still visible
+        // Messages are rendered invisibly to calculate scrollHeight
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const messagesContainer = document.querySelector('[data-messages-container]') as HTMLElement;
+            if (messagesContainer) {
+              // Scroll to bottom immediately while spinner is still showing
+              // This happens before messages are visible
+              messagesContainer.scrollTop = messagesContainer.scrollHeight;
+              
+              // Wait a bit to ensure scroll has completed
+              setTimeout(() => {
+                // Verify scroll position is at bottom
+                const isAtBottom = Math.abs(
+                  messagesContainer.scrollHeight - messagesContainer.clientHeight - messagesContainer.scrollTop
+                ) < 10;
+                
+                // If not at bottom, try scrolling again
+                if (!isAtBottom) {
+                  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }
+                
+                // Wait for remaining time to ensure scroll is complete
+                // Then hide loading and show messages (scroll is already at bottom)
+                setTimeout(() => {
+                  setIsLoading(false);
+                  loadingStartTimeRef.current = null;
+                }, remainingTime);
+              }, 100); // Small delay to ensure scroll completes
+            } else {
+              // Fallback if container not found
+              setTimeout(() => {
+                setIsLoading(false);
+                loadingStartTimeRef.current = null;
+              }, remainingTime);
+            }
+          });
+        });
       }
     } catch (error: any) {
       console.error('Error loading messages:', error);
       if (conversationId === currentConvId) {
         setMessages([]);
-        setIsLoading(false);
+        // On error, still ensure minimum display time
+        const elapsedTime = Date.now() - (loadingStartTimeRef.current || Date.now());
+        const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+        setTimeout(() => {
+          setIsLoading(false);
+          loadingStartTimeRef.current = null;
+        }, remainingTime);
       }
     }
   };
@@ -468,22 +548,8 @@ export default function DirectChatDetail() {
     }
   };
 
-  if (isLoading && !conversation) {
-    return <LinearProgress />;
-  }
-
-  if (!conversation && !userId) {
-    return (
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-        <Typography>Không tìm thấy cuộc trò chuyện</Typography>
-      </Box>
-    );
-  }
-
-  // If we have userId but no conversation yet, show loading or empty state
-  if (userId && !conversation) {
-    return <LinearProgress />;
-  }
+  // Don't early return on loading - keep layout stable to prevent header/footer flashing
+  // Loading skeleton will be handled inside DirectMessageList component
 
   return (
     <Box 
@@ -497,7 +563,11 @@ export default function DirectChatDetail() {
         overflow: 'hidden',
       }}
     >
-      <DirectChatHeader
+      {isLoading && !conversation ? (
+        <LinearProgress />
+      ) : conversation || userId ? (
+        <>
+          <DirectChatHeader
         conversation={conversation}
         onDeleteConversation={() => setDeleteConversationOpen(true)}
       />
@@ -523,6 +593,7 @@ export default function DirectChatDetail() {
           messageRefs={messageRefs}
           hasMoreMessages={hasMoreMessages}
           isLoadingMore={isLoadingMore}
+          isLoading={isLoading}
           onLoadMore={loadMoreMessages}
           isLoadingMoreRef={isLoadingMoreRef}
           isSubmittingRef={isSubmittingRef}
@@ -591,6 +662,12 @@ export default function DirectChatDetail() {
         cancelButtonText="Hủy"
         confirmButtonColor="error"
       />
+        </>
+      ) : !userId ? (
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+          <Typography>Không tìm thấy cuộc trò chuyện</Typography>
+        </Box>
+      ) : null}
     </Box>
   );
 }

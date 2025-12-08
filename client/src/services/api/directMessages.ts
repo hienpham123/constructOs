@@ -17,6 +17,8 @@ export interface DirectConversation {
     createdAt: string;
   } | null;
   unreadCount: number;
+  pinned?: boolean;
+  pinnedAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -139,6 +141,12 @@ export const directMessagesAPI = {
   // Delete conversation
   deleteConversation: async (conversationId: string): Promise<void> => {
     await api.delete(`/direct-messages/conversations/${conversationId}`);
+  },
+
+  // Toggle pin conversation
+  togglePinConversation: async (conversationId: string): Promise<{ pinned: boolean }> => {
+    const response = await api.post(`/direct-messages/conversations/${conversationId}/pin`);
+    return response.data;
   },
 };
 

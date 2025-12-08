@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { Box, Typography, LinearProgress } from '@mui/material';
 import { useAuthStore } from '../stores/authStore';
@@ -32,6 +32,7 @@ export default function GroupChatDetail() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const isLoadingMoreRef = useRef(false);
+  const loadingStartTimeRef = useRef<number | null>(null);
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState('');
@@ -60,6 +61,7 @@ export default function GroupChatDetail() {
       setMessages([]);
       setHasMoreMessages(true);
       setIsLoading(true);
+      loadingStartTimeRef.current = null; // Reset loading start time
       loadGroup(true); // Show loading for initial load
       loadMessages();
       connectSocket();
@@ -180,6 +182,10 @@ export default function GroupChatDetail() {
       // Could show a notification to user here
     });
 
+    // Batch socket message updates to improve performance with multiple users
+    let messageBatch: GroupMessage[] = [];
+    let batchTimeout: NodeJS.Timeout | null = null;
+    
     socket.on('message-received', (data: { groupId: string; message: GroupMessage; senderId?: string }) => {
       if (data.groupId === id) {
         // ALWAYS skip if this is our own message (already in state from handleSubmit)
@@ -190,28 +196,51 @@ export default function GroupChatDetail() {
           return; // Don't process own messages from socket
         }
         
-        // Safety check: don't add duplicate messages
-        setMessages((prev) => {
-          const messageExists = prev.some((m) => m.id === data.message.id);
-          if (messageExists) {
-            return prev; // Don't add duplicate
-          }
-          return [...prev, data.message];
-        });
+        // Add to batch
+        messageBatch.push(data.message);
         
-        // Auto-scroll for messages from others (not when submitting)
-        if (!isSubmittingRef.current) {
-          requestAnimationFrame(() => {
-            scrollToBottom(true);
-          });
+        // Clear existing timeout
+        if (batchTimeout) {
+          clearTimeout(batchTimeout);
         }
+        
+        // Batch updates to reduce re-renders (wait 50ms to collect multiple messages)
+        batchTimeout = setTimeout(() => {
+          if (messageBatch.length > 0) {
+            setMessages((prev) => {
+              const existingIds = new Set(prev.map(m => m.id));
+              const newMessages = messageBatch.filter(m => !existingIds.has(m.id));
+              
+              if (newMessages.length === 0) {
+                return prev;
+              }
+              
+              // Sort by createdAt to maintain order
+              const combined = [...prev, ...newMessages].sort((a, b) => 
+                new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+              );
+              
+              return combined;
+            });
+            
+            // Auto-scroll for messages from others (not when submitting)
+            if (!isSubmittingRef.current) {
+              requestAnimationFrame(() => {
+                scrollToBottom(true);
+              });
+            }
+            
+            messageBatch = [];
+          }
+          batchTimeout = null;
+        }, 50);
       }
     });
 
     socketRef.current = socket;
   };
 
-  const scrollToBottom = (instant = false) => {
+  const scrollToBottom = useCallback((instant = false) => {
     const messagesContainer = document.querySelector('[data-messages-container]') as HTMLElement;
     if (messagesContainer) {
       // Always use instant scroll for better control
@@ -227,7 +256,7 @@ export default function GroupChatDetail() {
         inline: 'nearest',
       });
     }
-  };
+  }, []);
 
   const loadGroup = async (showLoading = false) => {
     if (!id) {
@@ -256,15 +285,67 @@ export default function GroupChatDetail() {
 
   const loadMessages = async () => {
     if (!id) return;
+    setIsLoading(true);
+    loadingStartTimeRef.current = Date.now();
+    const minLoadingTime = 300; // Minimum time to ensure scroll completes (ms)
+    
     try {
       const data = await groupChatsAPI.getMessages(id, 50, 0);
       setMessages(data);
       // Check if there are more messages (if we got 50, there might be more)
       setHasMoreMessages(data.length === 50);
-      // Don't scroll here - let MessageList handle initial scroll
-      // This prevents conflicts and ensures messages are fully rendered before scrolling
+      
+      // Calculate elapsed time and ensure minimum display time
+      const elapsedTime = Date.now() - (loadingStartTimeRef.current || Date.now());
+      const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+      
+      // Scroll to bottom first while spinner is still visible
+      // Messages are rendered invisibly to calculate scrollHeight
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const messagesContainer = document.querySelector('[data-messages-container]') as HTMLElement;
+          if (messagesContainer) {
+            // Scroll to bottom immediately while spinner is still showing
+            // This happens before messages are visible
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            // Wait a bit to ensure scroll has completed
+            setTimeout(() => {
+              // Verify scroll position is at bottom
+              const isAtBottom = Math.abs(
+                messagesContainer.scrollHeight - messagesContainer.clientHeight - messagesContainer.scrollTop
+              ) < 10;
+              
+              // If not at bottom, try scrolling again
+              if (!isAtBottom) {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+              }
+              
+              // Wait for remaining time to ensure scroll is complete
+              // Then hide loading and show messages (scroll is already at bottom)
+              setTimeout(() => {
+                setIsLoading(false);
+                loadingStartTimeRef.current = null;
+              }, remainingTime);
+            }, 100); // Small delay to ensure scroll completes
+          } else {
+            // Fallback if container not found
+            setTimeout(() => {
+              setIsLoading(false);
+              loadingStartTimeRef.current = null;
+            }, remainingTime);
+          }
+        });
+      });
     } catch (error: any) {
       console.error('Error loading messages:', error);
+      // On error, still ensure minimum display time
+      const elapsedTime = Date.now() - (loadingStartTimeRef.current || Date.now());
+      const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+      setTimeout(() => {
+        setIsLoading(false);
+        loadingStartTimeRef.current = null;
+      }, remainingTime);
     }
   };
 
@@ -321,17 +402,17 @@ export default function GroupChatDetail() {
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     setSelectedFiles((prev) => [...prev, ...files]);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  };
+  }, []);
 
-  const removeFile = (index: number) => {
+  const removeFile = useCallback((index: number) => {
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
-  };
+  }, []);
 
 
   const handleSubmit = async () => {
@@ -402,10 +483,10 @@ export default function GroupChatDetail() {
     }
   };
 
-  const handleDeleteClick = (messageId: string) => {
+  const handleDeleteClick = useCallback((messageId: string) => {
     setMessageToDelete(messageId);
     setDeleteConfirmOpen(true);
-  };
+  }, []);
 
   const handleDeleteConfirm = async () => {
     if (!messageToDelete) return;
@@ -421,14 +502,17 @@ export default function GroupChatDetail() {
     }
   };
 
-  const handleEditClick = (messageId: string) => {
-    const message = messages.find((m) => m.id === messageId);
-    if (message) {
-      setEditingMessageId(messageId);
-      setEditingContent(message.content);
-    }
+  const handleEditClick = useCallback((messageId: string) => {
+    setMessages((prev) => {
+      const message = prev.find((m) => m.id === messageId);
+      if (message) {
+        setEditingMessageId(messageId);
+        setEditingContent(message.content);
+      }
+      return prev;
+    });
     setAnchorEl(null);
-  };
+  }, []);
 
   const handleEditCancel = () => {
     setEditingMessageId(null);
@@ -452,19 +536,27 @@ export default function GroupChatDetail() {
     }
   };
 
-  const handleMenuClick = (event: React.MouseEvent<HTMLElement>, messageId: string) => {
+  const handleMenuClick = useCallback((event: React.MouseEvent<HTMLElement>, messageId: string) => {
     setAnchorEl(event.currentTarget);
     setHoveredMessageId(messageId);
-  };
+  }, []);
 
-  const handleMenuClose = () => {
+  const handleMenuClose = useCallback(() => {
     setAnchorEl(null);
     setHoveredMessageId(null);
-  };
+  }, []);
 
-  const handleImageError = (attachmentId: string) => {
+  const handleImageError = useCallback((attachmentId: string) => {
     setImageErrors((prev) => new Set(prev).add(attachmentId));
-  };
+  }, []);
+
+  const handleMessageHover = useCallback((messageId: string) => {
+    setHoveredMessageId(messageId);
+  }, []);
+
+  const handleMessageLeave = useCallback(() => {
+    setHoveredMessageId(null);
+  }, []);
 
   const handleSearchMessageClick = async (message: GroupMessage) => {
     // Close search panel
@@ -515,21 +607,16 @@ export default function GroupChatDetail() {
     }, 100);
   };
 
-  if (isLoading) {
-    return <LinearProgress />;
-  }
-
-  if (!group) {
-    return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
-        <Typography>Không tìm thấy nhóm</Typography>
-      </Box>
-    );
-  }
+  // Don't early return on loading - keep layout stable to prevent header/footer flashing
+  // Loading skeleton will be handled inside MessageList component
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, bgcolor: '#f0f2f5', overflow: 'hidden' }}>
-      <GroupChatHeader
+      {!group && isLoading ? (
+        <LinearProgress />
+      ) : group ? (
+        <>
+          <GroupChatHeader
         group={group}
         onMembersClick={() => setMembersDialogOpen(true)}
         onMenuClick={(e) => setGroupMenuAnchor(e.currentTarget)}
@@ -575,11 +662,12 @@ export default function GroupChatDetail() {
             messageRefs={messageRefs}
             hasMoreMessages={hasMoreMessages}
             isLoadingMore={isLoadingMore}
+            isLoading={isLoading}
             onLoadMore={loadMoreMessages}
             isLoadingMoreRef={isLoadingMoreRef}
             isSubmittingRef={isSubmittingRef}
-            onMessageHover={setHoveredMessageId}
-            onMessageLeave={() => setHoveredMessageId(null)}
+            onMessageHover={handleMessageHover}
+            onMessageLeave={handleMessageLeave}
             onMenuClick={handleMenuClick}
             onMenuClose={handleMenuClose}
             onEditClick={handleEditClick}
@@ -669,6 +757,12 @@ export default function GroupChatDetail() {
           }
         }}
       />
+        </>
+      ) : (
+        <Box sx={{ p: 3, textAlign: 'center' }}>
+          <Typography>Không tìm thấy nhóm</Typography>
+        </Box>
+      )}
     </Box>
   );
 }

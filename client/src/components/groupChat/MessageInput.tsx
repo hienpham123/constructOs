@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useRef, memo } from 'react';
 import {
   Box,
   IconButton,
@@ -24,7 +24,7 @@ interface MessageInputProps {
   onSubmit: () => void;
 }
 
-export default function MessageInput({
+function MessageInput({
   groupName,
   content,
   selectedFiles,
@@ -37,6 +37,42 @@ export default function MessageInput({
   onSubmit,
 }: MessageInputProps) {
   const [emojiPickerAnchor, setEmojiPickerAnchor] = useState<HTMLElement | null>(null);
+  
+  // Optimized content change handler - no debounce to maintain immediate feedback
+  const handleContentChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    onContentChange(e.target.value);
+  }, [onContentChange]);
+  
+  const handleEmojiClick = useCallback((emojiData: EmojiClickData) => {
+    const newContent = content + emojiData.emoji;
+    onContentChange(newContent);
+    setEmojiPickerAnchor(null);
+  }, [content, onContentChange]);
+  
+  const handleEmojiPickerOpen = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    setEmojiPickerAnchor(e.currentTarget);
+  }, []);
+  
+  const handleEmojiPickerClose = useCallback(() => {
+    setEmojiPickerAnchor(null);
+  }, []);
+  
+  const handleSubmit = useCallback(() => {
+    if (content || selectedFiles.length > 0) {
+      onSubmit();
+    }
+  }, [content, selectedFiles.length, onSubmit]);
+  
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  }, [handleSubmit]);
+  
+  const handleFileRemove = useCallback((index: number) => {
+    onRemoveFile(index);
+  }, [onRemoveFile]);
 
 
   return (
@@ -55,7 +91,7 @@ export default function MessageInput({
         >
           <IconButton
             size="small"
-            onClick={(e) => setEmojiPickerAnchor(e.currentTarget)}
+            onClick={handleEmojiPickerOpen}
             sx={{
               color: '#1877f2',
               '&:hover': {
@@ -113,9 +149,9 @@ export default function MessageInput({
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
               {selectedFiles.map((file, index) => (
                 <Chip
-                  key={index}
+                  key={`${file.name}-${index}`}
                   label={file.name}
-                  onDelete={() => onRemoveFile(index)}
+                  onDelete={() => handleFileRemove(index)}
                   size="small"
                   icon={getFileIcon(file.type)}
                 />
@@ -137,18 +173,8 @@ export default function MessageInput({
             maxRows={4}
             placeholder={`Nhập @, tin nhắn tới ${groupName}`}
             value={content || ''}
-            onChange={(e) => {
-              const newValue = e.target.value;
-              onContentChange(newValue);
-            }}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                if (content || selectedFiles.length > 0) {
-                  onSubmit();
-                }
-              }
-            }}
+            onChange={handleContentChange}
+            onKeyPress={handleKeyPress}
             onClick={(e) => {
               e.stopPropagation();
             }}
@@ -200,7 +226,7 @@ export default function MessageInput({
             }}
           />
           <IconButton
-            onClick={onSubmit}
+            onClick={handleSubmit}
             disabled={!content && selectedFiles.length === 0}
             sx={{
               color: '#1877f2',
@@ -225,7 +251,7 @@ export default function MessageInput({
       <Popover
         open={Boolean(emojiPickerAnchor)}
         anchorEl={emojiPickerAnchor}
-        onClose={() => setEmojiPickerAnchor(null)}
+        onClose={handleEmojiPickerClose}
         anchorOrigin={{
           vertical: 'top',
           horizontal: 'left',
@@ -237,10 +263,7 @@ export default function MessageInput({
       >
         <Box sx={{ mt: -1 }}>
           <EmojiPicker
-            onEmojiClick={(emojiData: EmojiClickData) => {
-              onContentChange(content + emojiData.emoji);
-              setEmojiPickerAnchor(null);
-            }}
+            onEmojiClick={handleEmojiClick}
             width={350}
             height={400}
             previewConfig={{ showPreview: false }}
@@ -250,4 +273,6 @@ export default function MessageInput({
     </>
   );
 }
+
+export default memo(MessageInput);
 

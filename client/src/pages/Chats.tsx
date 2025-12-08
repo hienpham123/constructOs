@@ -1,21 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
-import { Box, LinearProgress, useMediaQuery, useTheme, Tabs, Tab } from '@mui/material';
+import { Box, LinearProgress, useMediaQuery, useTheme } from '@mui/material';
 import { groupChatsAPI, type GroupChat } from '../services/api/groupChats';
 import { directMessagesAPI, type DirectConversation } from '../services/api/directMessages';
 import CreateGroupDialog from '../components/groupChat/CreateGroupDialog';
 import SelectUserDialog from '../components/directMessage/SelectUserDialog';
 import GroupChatDetail from './GroupChatDetail';
 import DirectChatDetail from './DirectChatDetail';
-import GroupListSidebar from '../components/groupChat/GroupListSidebar';
-import DirectMessageListSidebar from '../components/directMessage/DirectMessageListSidebar';
+import UnifiedChatListSidebar from '../components/common/UnifiedChatListSidebar';
 import GroupListMainContent from '../components/groupChat/GroupListMainContent';
 import { useGroupChatSocket } from '../hooks/useGroupChatSocket';
 import { useDirectMessageSocket } from '../hooks/useDirectMessageSocket';
 import { useAuthStore } from '../stores/authStore';
 import type { User } from '../services/api/users';
-
-type ChatType = 'groups' | 'direct';
 
 export default function Chats() {
   const navigate = useNavigate();
@@ -25,21 +22,13 @@ export default function Chats() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user } = useAuthStore();
   
-  // Determine current chat type from URL
-  const currentChatType: ChatType = conversationId || userId ? 'direct' : (chatId ? 'groups' : 'groups');
-  const [activeTab, setActiveTab] = useState<ChatType>(currentChatType);
-  
-  // Groups state
+  // Unified state - no more tabs
   const [groups, setGroups] = useState<GroupChat[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(true);
-  const [groupsSearchTerm, setGroupsSearchTerm] = useState('');
-  const [groupsActiveTab, setGroupsActiveTab] = useState<'priority' | 'other'>('priority');
-  const [createGroupDialogOpen, setCreateGroupDialogOpen] = useState(false);
-  
-  // Direct messages state
   const [conversations, setConversations] = useState<DirectConversation[]>([]);
   const [conversationsLoading, setConversationsLoading] = useState(true);
-  const [directSearchTerm, setDirectSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [createGroupDialogOpen, setCreateGroupDialogOpen] = useState(false);
   const [selectUserDialogOpen, setSelectUserDialogOpen] = useState(false);
 
   // Load groups
@@ -99,7 +88,7 @@ export default function Chats() {
   // Handle direct message received from socket
   const handleDirectMessageReceived = useCallback((data: { conversationId: string; message: any }) => {
     // Get current conversation ID from params
-    const currentConvId = conversationId && activeTab === 'direct' ? conversationId : undefined;
+    const currentConvId = conversationId || userId ? conversationId : undefined;
     
     // Check if this is our own message
     const isOwnMessage = data.message.senderId === user?.id;
@@ -137,14 +126,14 @@ export default function Chats() {
       
       return updated;
     });
-  }, [conversationId, activeTab, loadConversations, user?.id]);
+  }, [conversationId, userId, loadConversations, user?.id]);
 
   // Handle conversation updated from socket
   const handleConversationUpdated = useCallback((data?: { conversationId?: string; forReceiverOnly?: boolean }) => {
     // If this is marked as "forReceiverOnly" and we're viewing this conversation,
     // it means we're the sender - skip reload since we already have the message
     if (data?.forReceiverOnly) {
-      const currentConvId = conversationId && activeTab === 'direct' ? conversationId : undefined;
+      const currentConvId = conversationId || userId ? conversationId : undefined;
       if (data.conversationId === currentConvId) {
         // We're viewing this conversation, so we're the sender - skip reload
         return;
@@ -152,7 +141,7 @@ export default function Chats() {
     }
     // Otherwise, reload conversation list (for receiver or other cases)
     loadConversations();
-  }, [loadConversations, conversationId, activeTab]);
+  }, [loadConversations, conversationId, userId]);
 
   // Setup socket connection for groups
   useGroupChatSocket({
@@ -171,11 +160,7 @@ export default function Chats() {
     loadConversations();
   }, [loadGroups, loadConversations]);
 
-  // Update active tab when URL changes
-  useEffect(() => {
-    const newTab: ChatType = conversationId || userId ? 'direct' : (chatId ? 'groups' : 'groups');
-    setActiveTab(newTab);
-  }, [conversationId, chatId, userId]);
+  // No need for active tab anymore - we show everything in one list
 
   // Reload when coming back
   useEffect(() => {
@@ -187,12 +172,10 @@ export default function Chats() {
 
   const handleGroupClick = useCallback((groupId: string) => {
     navigate(`/chats/groups/${groupId}`);
-    setActiveTab('groups');
   }, [navigate]);
 
   const handleConversationClick = useCallback((conversationId: string) => {
     navigate(`/chats/direct/${conversationId}`);
-    setActiveTab('direct');
   }, [navigate]);
 
   const handleUpdateGroup = useCallback((groupId: string, updates: Partial<GroupChat>) => {
@@ -221,35 +204,25 @@ export default function Chats() {
         navigate(`/chats/direct/${existing.id}`);
       } else {
         // Create by getting conversation (will create on first message)
-        // For now, navigate to a URL that will create conversation when first message is sent
-        // We'll need to modify the backend or handle it in DirectChatDetail
-        navigate(`/chats/direct/new/${user.id}`);
+      // For now, navigate to a URL that will create conversation when first message is sent
+      // We'll need to modify the backend or handle it in DirectChatDetail
+      navigate(`/chats/direct/new/${user.id}`);
       }
-      setActiveTab('direct');
     } catch (error) {
       console.error('Error starting conversation:', error);
     }
   }, [navigate]);
 
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: ChatType) => {
-    setActiveTab(newValue);
-    if (newValue === 'groups') {
-      navigate('/chats');
-    } else {
-      navigate('/chats');
-    }
-  };
-
-  const selectedGroupId = chatId && activeTab === 'groups' ? chatId : undefined;
-  const selectedConversationId = conversationId && activeTab === 'direct' ? conversationId : undefined;
-  const selectedUserId = userId && activeTab === 'direct' ? userId : undefined;
+  const selectedGroupId = chatId ? chatId : undefined;
+  const selectedConversationId = conversationId ? conversationId : undefined;
+  const selectedUserId = userId ? userId : undefined;
 
   // On mobile, show sidebar only when no chat is selected
   const showSidebar = !isMobile || (!selectedGroupId && !selectedConversationId && !selectedUserId);
   const showDetail = selectedGroupId || selectedConversationId || selectedUserId;
   const showMainContent = !selectedGroupId && !selectedConversationId && !selectedUserId;
 
-  const loading = (activeTab === 'groups' && groupsLoading) || (activeTab === 'direct' && conversationsLoading);
+  const loading = groupsLoading || conversationsLoading;
 
   if (loading) {
     return <LinearProgress />;
@@ -266,55 +239,21 @@ export default function Chats() {
             flexDirection: 'column',
           }}
         >
-          {/* Tabs */}
-          <Box sx={{ borderBottom: '1px solid #e4e6eb', bgcolor: 'white' }}>
-            <Tabs
-              value={activeTab}
-              onChange={handleTabChange}
-              sx={{
-                '& .MuiTab-root': {
-                  textTransform: 'none',
-                  fontWeight: 500,
-                  minHeight: 48,
-                },
-                '& .Mui-selected': {
-                  color: '#1877f2',
-                },
-              }}
-            >
-              <Tab label="Nhóm" value="groups" />
-              <Tab label="Trò chuyện" value="direct" />
-            </Tabs>
-          </Box>
-
-          {/* Sidebar content based on active tab */}
-          {activeTab === 'groups' ? (
-            <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-              <GroupListSidebar
-                groups={groups}
-                searchTerm={groupsSearchTerm}
-                activeTab={groupsActiveTab}
-                selectedGroupId={selectedGroupId}
-                onCreateGroup={() => setCreateGroupDialogOpen(true)}
-                onSearchChange={setGroupsSearchTerm}
-                onTabChange={setGroupsActiveTab}
-                onGroupClick={handleGroupClick}
-                onUpdateGroup={handleUpdateGroup}
-              />
-            </Box>
-          ) : (
-            <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-              <DirectMessageListSidebar
-                conversations={conversations}
-                searchTerm={directSearchTerm}
-                selectedConversationId={selectedConversationId}
-                onStartChat={() => setSelectUserDialogOpen(true)}
-                onSearchChange={setDirectSearchTerm}
-                onConversationClick={handleConversationClick}
-                onUpdateConversation={handleUpdateConversation}
-              />
-            </Box>
-          )}
+          {/* Unified chat list sidebar */}
+          <UnifiedChatListSidebar
+            groups={groups}
+            conversations={conversations}
+            searchTerm={searchTerm}
+            selectedGroupId={selectedGroupId}
+            selectedConversationId={selectedConversationId}
+            onCreateGroup={() => setCreateGroupDialogOpen(true)}
+            onStartChat={() => setSelectUserDialogOpen(true)}
+            onSearchChange={setSearchTerm}
+            onGroupClick={handleGroupClick}
+            onConversationClick={handleConversationClick}
+            onUpdateGroup={handleUpdateGroup}
+            onUpdateConversation={handleUpdateConversation}
+          />
         </Box>
       )}
 

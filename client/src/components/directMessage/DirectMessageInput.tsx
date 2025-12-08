@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import {
   Box,
   IconButton,
@@ -25,7 +25,7 @@ interface DirectMessageInputProps {
   onFocusInput?: () => void;
 }
 
-export default function DirectMessageInput({
+function DirectMessageInput({
   otherUserName,
   content,
   selectedFiles,
@@ -41,6 +41,34 @@ export default function DirectMessageInput({
   const [emojiPickerAnchor, setEmojiPickerAnchor] = useState<HTMLElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const inputWrapperRef = useRef<HTMLDivElement | null>(null);
+  
+  // Optimized content change handler
+  const handleContentChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    onContentChange(e.target.value);
+  }, [onContentChange]);
+  
+  const handleSubmit = useCallback(() => {
+    if (content || selectedFiles.length > 0) {
+      onSubmit();
+    }
+  }, [content, selectedFiles.length, onSubmit]);
+  
+  const handleFileRemove = useCallback((index: number) => {
+    onRemoveFile(index);
+  }, [onRemoveFile]);
+  
+  const handleEmojiClick = useCallback((emojiData: EmojiClickData) => {
+    onContentChange(content + emojiData.emoji);
+    setEmojiPickerAnchor(null);
+  }, [content, onContentChange]);
+  
+  const handleEmojiPickerOpen = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    setEmojiPickerAnchor(e.currentTarget);
+  }, []);
+  
+  const handleEmojiPickerClose = useCallback(() => {
+    setEmojiPickerAnchor(null);
+  }, []);
   
   // Expose focus function to parent via ref callback
   const focusInput = useCallback(() => {
@@ -88,6 +116,15 @@ export default function DirectMessageInput({
     }
   }, [textInputRef]);
   
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+      // Focus input after submitting
+      setTimeout(() => focusInput(), 100);
+    }
+  }, [handleSubmit, focusInput]);
+  
   // Focus input when content is cleared (after sending message)
   useEffect(() => {
     // If content was cleared (went from non-empty to empty), focus input
@@ -120,7 +157,7 @@ export default function DirectMessageInput({
         >
           <IconButton
             size="small"
-            onClick={(e) => setEmojiPickerAnchor(e.currentTarget)}
+            onClick={handleEmojiPickerOpen}
             sx={{
               color: '#1877f2',
               '&:hover': {
@@ -178,9 +215,9 @@ export default function DirectMessageInput({
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
               {selectedFiles.map((file, index) => (
                 <Chip
-                  key={index}
+                  key={`${file.name}-${index}`}
                   label={file.name}
-                  onDelete={() => onRemoveFile(index)}
+                  onDelete={() => handleFileRemove(index)}
                   size="small"
                   icon={getFileIcon(file.type)}
                 />
@@ -218,20 +255,8 @@ export default function DirectMessageInput({
             maxRows={4}
             placeholder={`Nhập tin nhắn tới ${otherUserName}`}
             value={content || ''}
-            onChange={(e) => {
-              const newValue = e.target.value;
-              onContentChange(newValue);
-            }}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                if (content || selectedFiles.length > 0) {
-                  onSubmit();
-                  // Focus input after submitting
-                  setTimeout(() => focusInput(), 100);
-                }
-              }
-            }}
+            onChange={handleContentChange}
+            onKeyPress={handleKeyPress}
             onClick={(e) => {
               e.stopPropagation();
             }}
@@ -284,7 +309,7 @@ export default function DirectMessageInput({
           />
           <IconButton
             onClick={() => {
-              onSubmit();
+              handleSubmit();
               // Focus input after submitting
               setTimeout(() => focusInput(), 100);
             }}
@@ -312,7 +337,7 @@ export default function DirectMessageInput({
       <Popover
         open={Boolean(emojiPickerAnchor)}
         anchorEl={emojiPickerAnchor}
-        onClose={() => setEmojiPickerAnchor(null)}
+        onClose={handleEmojiPickerClose}
         anchorOrigin={{
           vertical: 'top',
           horizontal: 'left',
@@ -324,10 +349,7 @@ export default function DirectMessageInput({
       >
         <Box sx={{ mt: -1 }}>
           <EmojiPicker
-            onEmojiClick={(emojiData: EmojiClickData) => {
-              onContentChange(content + emojiData.emoji);
-              setEmojiPickerAnchor(null);
-            }}
+            onEmojiClick={handleEmojiClick}
             width={350}
             height={400}
             previewConfig={{ showPreview: false }}
@@ -337,4 +359,6 @@ export default function DirectMessageInput({
     </>
   );
 }
+
+export default memo(DirectMessageInput);
 

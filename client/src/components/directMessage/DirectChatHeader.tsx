@@ -1,7 +1,7 @@
 import { Box, Typography, Avatar, IconButton, Popover, MenuList, MenuItem } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEllipsisV, faTrash } from '@fortawesome/free-solid-svg-icons';
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { type DirectConversationDetail } from '../../services/api/directMessages';
 
 interface DirectChatHeaderProps {
@@ -9,7 +9,7 @@ interface DirectChatHeaderProps {
   onDeleteConversation: () => void;
 }
 
-export default function DirectChatHeader({ conversation, onDeleteConversation }: DirectChatHeaderProps) {
+function DirectChatHeader({ conversation, onDeleteConversation }: DirectChatHeaderProps) {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -146,3 +146,4 @@ export default function DirectChatHeader({ conversation, onDeleteConversation }:
   );
 }
 
+export default memo(DirectChatHeader);

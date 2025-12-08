@@ -2,6 +2,7 @@ import { Box, Avatar, Typography, IconButton, useMediaQuery, useTheme } from '@m
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUserPlus, faSearch, faFolder, faEllipsisV, faArrowLeft, faUser } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
+import { memo } from 'react';
 import type { GroupDetail } from '../../services/api/groupChats';
 
 interface GroupChatHeaderProps {
@@ -12,7 +13,7 @@ interface GroupChatHeaderProps {
   onFilesClick: () => void;
 }
 
-export default function GroupChatHeader({ group, onMembersClick, onMenuClick, onSearchClick, onFilesClick }: GroupChatHeaderProps) {
+function GroupChatHeader({ group, onMembersClick, onMenuClick, onSearchClick, onFilesClick }: GroupChatHeaderProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
@@ -112,3 +113,4 @@ export default function GroupChatHeader({ group, onMembersClick, onMenuClick, on
   );
 }
 
+export default memo(GroupChatHeader);
