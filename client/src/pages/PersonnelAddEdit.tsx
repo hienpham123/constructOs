@@ -6,7 +6,6 @@ import { z } from 'zod';
 import dayjs from '../config/dayjs';
 import {
   Box,
-  TextField,
   Grid,
   MenuItem,
   FormControl,
@@ -17,9 +16,8 @@ import {
   Typography,
   CircularProgress,
 } from '@mui/material';
-import { Button } from '../components/common';
+import { Button, Input, DatePicker } from '../components/common';
 import Breadcrumb from '../components/common/Breadcrumb';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import 'dayjs/locale/vi';
@@ -28,8 +26,8 @@ import { usePersonnelStore } from '../stores/personnelStore';
 import { useProjectStore } from '../stores/projectStore';
 import { personnelAPI, rolesAPI, Role } from '../services/api';
 import { normalizePersonnel } from '../utils/normalize';
-import SaveIcon from '@mui/icons-material/Save';
-import ExitToAppIcon from '@mui/icons-material/ExitToApp';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSave, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 
 const personnelSchema = z.object({
   name: z.string().min(1, 'Họ và tên là bắt buộc'),
@@ -229,7 +227,7 @@ export default function PersonnelAddEdit() {
               <Button
                 variant="contained"
                 color="primary"
-                startIcon={<SaveIcon />}
+                startIcon={<FontAwesomeIcon icon={faSave} />}
                 onClick={handleSubmit(onSubmit)}
                 disabled={isSubmitting}
                 sx={{
@@ -240,7 +238,7 @@ export default function PersonnelAddEdit() {
               </Button>
               <Button
                 variant="outlined"
-                startIcon={<ExitToAppIcon />}
+                startIcon={<FontAwesomeIcon icon={faSignOutAlt} />}
                 onClick={handleExit}
                 sx={{
                   width: { xs: '100%', sm: 'auto' },
@@ -261,7 +259,7 @@ export default function PersonnelAddEdit() {
                   name="name"
                   control={control}
                   render={({ field }) => (
-                    <TextField
+                    <Input
                       {...field}
                       fullWidth
                       label="Họ và tên *"
@@ -276,7 +274,7 @@ export default function PersonnelAddEdit() {
                   name="phone"
                   control={control}
                   render={({ field }) => (
-                    <TextField
+                    <Input
                       {...field}
                       fullWidth
                       label="Số điện thoại *"
@@ -291,7 +289,7 @@ export default function PersonnelAddEdit() {
                   name="email"
                   control={control}
                   render={({ field }) => (
-                    <TextField
+                    <Input
                       {...field}
                       fullWidth
                       label="Email"
@@ -361,7 +359,7 @@ export default function PersonnelAddEdit() {
                       value={projects.find((p) => p.id === field.value) || null}
                       onChange={(_, newValue) => field.onChange(newValue?.id || '')}
                       renderInput={(params) => (
-                        <TextField
+                        <Input
                           {...params}
                           label="Dự án"
                           placeholder="Tìm kiếm dự án..."

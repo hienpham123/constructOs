@@ -6,8 +6,8 @@ import {
   Chip,
   LinearProgress,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPlus, faFileDownload } from '@fortawesome/free-solid-svg-icons';
 import { useProjectStore } from '../stores/projectStore';
 import DeleteConfirmDialog from '../components/DeleteConfirmDialog';
 import { DataTable, Button, SearchInput } from '../components/common';
@@ -29,11 +29,47 @@ export default function Projects() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const searchInputRef = useRef<SearchInputRef>(null);
   const prevIsLoadingRef = useRef(isLoading);
+  const prevSearchRef = useRef(search);
+  const prevPageRef = useRef(page);
+  const [showSkeleton, setShowSkeleton] = useState(false);
+  const [isSearchChanging, setIsSearchChanging] = useState(false);
+  const [isPageChanging, setIsPageChanging] = useState(false);
 
   useEffect(() => {
     fetchProjects(rowsPerPage, page, search.trim() || undefined, sortBy, sortOrder);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, sortBy, sortOrder, rowsPerPage, page]);
+
+  // Track when search or page changes
+  useEffect(() => {
+    if (prevSearchRef.current !== search) {
+      setIsSearchChanging(true);
+      prevSearchRef.current = search;
+    }
+  }, [search]);
+
+  useEffect(() => {
+    if (prevPageRef.current !== page) {
+      setIsPageChanging(true);
+      prevPageRef.current = page;
+    }
+  }, [page]);
+
+  // Determine when to show skeleton
+  useEffect(() => {
+    const isInitialLoad = projects.length === 0 && isLoading;
+    
+    // Show skeleton for initial load, search change, or page change
+    // Don't show for sort only
+    if (isLoading) {
+      setShowSkeleton(isInitialLoad || isSearchChanging || isPageChanging);
+    } else {
+      // Reset flags when loading completes
+      setIsSearchChanging(false);
+      setIsPageChanging(false);
+      setShowSkeleton(false);
+    }
+  }, [isLoading, projects.length, isSearchChanging, isPageChanging]);
 
   // Focus search input after data is loaded
   useEffect(() => {
@@ -176,7 +212,7 @@ export default function Projects() {
   }
 
   return (
-    <Box>
+    <Box sx={{ width: '100%', maxWidth: '100%', overflowX: 'hidden' }}>
       <Box 
         display="flex" 
         justifyContent="space-between" 
@@ -200,7 +236,7 @@ export default function Projects() {
           <Button
             variant="contained"
             color="success"
-            startIcon={<FileDownloadIcon />}
+            startIcon={<FontAwesomeIcon icon={faFileDownload} />}
             onClick={handleExport}
             disabled={isExporting}
             sx={{
@@ -215,7 +251,7 @@ export default function Projects() {
           <Button
             variant="contained"
             color="primary"
-            startIcon={<AddIcon />}
+            startIcon={<FontAwesomeIcon icon={faPlus} />}
             onClick={handleAdd}
             sx={{ px: 2 }}
           >
@@ -272,11 +308,11 @@ export default function Projects() {
                     variant="determinate"
                     value={value}
                     sx={{
-                      height: 8,
-                      borderRadius: 0,
+                      height: 16,
+                      borderRadius: '8px',
                       backgroundColor: 'rgba(0, 0, 0, 0.08)',
                       '& .MuiLinearProgress-bar': {
-                        borderRadius: 0,
+                        borderRadius: '8px',
                       },
                     }}
                   />
@@ -306,31 +342,13 @@ export default function Projects() {
             minWidth: 120,
             sortable: true,
             render: (value) => {
-              const statusColors: Record<string, { bg: string; text: string }> = {
-                quoting: { bg: '#9e9e9e', text: '#ffffff' }, // Gray
-                contract_signed_in_progress: { bg: '#1976d2', text: '#ffffff' }, // Blue
-                in_progress: { bg: '#1976d2', text: '#ffffff' }, // Blue
-                completed: { bg: '#2e7d32', text: '#ffffff' }, // Green
-                on_hold: { bg: '#ed6c02', text: '#ffffff' }, // Orange
-                design_consulting: { bg: '#0288d1', text: '#ffffff' }, // Light Blue
-                design_appraisal: { bg: '#0288d1', text: '#ffffff' }, // Light Blue
-                preparing_acceptance: { bg: '#1976d2', text: '#ffffff' }, // Blue
-                failed: { bg: '#d32f2f', text: '#ffffff' }, // Red
-              };
-              const colors = statusColors[value] || { bg: '#757575', text: '#ffffff' };
-              
               return (
                 <Chip
                   label={getStatusLabel(value)}
+                  color={getStatusColor(value) as any}
                   size="small"
                   sx={{
-                    bgcolor: colors.bg,
-                    color: colors.text,
-                    fontWeight: 500,
-                    fontSize: '0.8125rem',
-                    height: '28px',
                     '& .MuiChip-label': {
-                      color: colors.text,
                       padding: '0 12px',
                     },
                   }}
@@ -358,7 +376,7 @@ export default function Projects() {
         onSort={handleSort}
         sortField={sortBy ? getReverseFieldMap('project')[sortBy] || sortBy : undefined}
         sortOrder={sortOrder}
-        loading={isLoading}
+        loading={showSkeleton}
         loadingRows={rowsPerPage}
       />
 

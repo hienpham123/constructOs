@@ -1,6 +1,7 @@
 import { useState, MouseEvent } from 'react';
 import { IconButton, Popover, MenuList, MenuItem, ListItemText, Tooltip } from '@mui/material';
-import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEllipsisH } from '@fortawesome/free-solid-svg-icons';
 
 export interface ActionItem {
   key: string;
@@ -61,7 +62,7 @@ export default function ActionMenu({ actions }: ActionMenuProps) {
             },
           }}
         >
-          <MoreHorizIcon fontSize="small" />
+          <FontAwesomeIcon icon={faEllipsisH} style={{ fontSize: '16px' }} />
         </IconButton>
       </Tooltip>
       <Popover

@@ -7,9 +7,9 @@ import {
   LinearProgress,
   Tooltip,
 } from '@mui/material';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCheckCircle, faCircle } from '@fortawesome/free-solid-svg-icons';
+import { DatePicker } from '../components/common';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import 'dayjs/locale/vi';
@@ -87,29 +87,46 @@ export default function DailyReports() {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="vi">
-      <Box>
+      <Box sx={{ width: '100%', maxWidth: '100%', overflowX: 'hidden' }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h4" component="h1" fontWeight="bold">
             Báo cáo ngày
           </Typography>
         </Box>
 
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-            <Typography variant="body1" sx={{ minWidth: 100 }}>
+        <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3, overflow: 'hidden' }}>
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: { xs: 'column', sm: 'row' },
+            gap: { xs: 1.5, sm: 2 }, 
+            alignItems: { xs: 'stretch', sm: 'center' },
+            width: '100%',
+            maxWidth: '100%',
+          }}>
+            <Typography 
+              variant="body1" 
+              sx={{ 
+                minWidth: { xs: 'auto', sm: 100 },
+                width: { xs: '100%', sm: 'auto' },
+              }}
+            >
               Lọc theo ngày:
             </Typography>
-            <DatePicker
-              label="Chọn ngày"
-              value={selectedDate}
-              onChange={handleDateChange}
-              slotProps={{
-                textField: {
-                  variant: 'outlined',
-                  size: 'small',
-                },
-              }}
-            />
+            <Box sx={{ flex: { xs: 'none', sm: 1 }, minWidth: 0, maxWidth: { xs: '100%', sm: 300 } }}>
+              <DatePicker
+                label="Chọn ngày"
+                value={selectedDate}
+                onChange={handleDateChange}
+                slotProps={{
+                  textField: {
+                    variant: 'outlined',
+                    size: 'small',
+                    fullWidth: true,
+                  },
+                }}
+                sx={{ width: '100%', maxWidth: '100%' }}
+              />
+            </Box>
           </Box>
         </Paper>
 
@@ -137,11 +154,11 @@ export default function DailyReports() {
                 render: (value: boolean) => (
                   value ? (
                     <Tooltip title="Đã báo cáo">
-                      <CheckCircleIcon color="success" />
+                      <FontAwesomeIcon icon={faCheckCircle} style={{ color: '#93BE52', fontSize: '20px' }} />
                     </Tooltip>
                   ) : (
                     <Tooltip title="Chưa báo cáo">
-                      <RadioButtonUncheckedIcon color="disabled" />
+                      <FontAwesomeIcon icon={faCircle} style={{ color: '#d0d0d0', fontSize: '20px' }} />
                     </Tooltip>
                   )
                 ),

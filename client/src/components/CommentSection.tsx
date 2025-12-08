@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Box, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from '@mui/material';
+import { Box, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
+import { Button } from './common';
 import { useAuthStore } from '../stores/authStore';
 import type { ProjectComment } from '../types';
 import { projectsAPI } from '../services/api';

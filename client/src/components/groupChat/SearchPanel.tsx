@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
-  TextField,
   IconButton,
   InputAdornment,
   Paper,
@@ -10,9 +9,9 @@ import {
   useTheme,
   Backdrop,
 } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import SearchIcon from '@mui/icons-material/Search';
-import ClearIcon from '@mui/icons-material/Clear';
+import { Input } from '../common';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTimes, faSearch } from '@fortawesome/free-solid-svg-icons';
 import SearchFilters from './SearchFilters';
 import SearchResults from './SearchResults';
 import SearchResultsSkeleton from './SearchResultsSkeleton';
@@ -135,13 +134,13 @@ export default function SearchPanel({ groupId, members, onClose, onMessageClick 
           Tìm kiếm trong trò chuyện
         </Typography>
         <IconButton size="small" onClick={onClose} sx={{ color: '#65676b' }}>
-          <CloseIcon fontSize="small" />
+          <FontAwesomeIcon icon={faTimes} style={{ fontSize: '16px' }} />
         </IconButton>
       </Box>
 
       {/* Search Bar */}
       <Box sx={{ p: 2, borderBottom: '1px solid #e4e6eb' }}>
-        <TextField
+          <Input
           fullWidth
           size="small"
           placeholder="Tìm kiếm..."
@@ -150,13 +149,13 @@ export default function SearchPanel({ groupId, members, onClose, onMessageClick 
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon fontSize="small" sx={{ color: '#65676b' }} />
+                <FontAwesomeIcon icon={faSearch} style={{ fontSize: '16px', color: '#65676b' }} />
               </InputAdornment>
             ),
             endAdornment: searchQuery && (
               <InputAdornment position="end">
                 <IconButton size="small" onClick={handleClear} sx={{ color: '#65676b' }}>
-                  <ClearIcon fontSize="small" />
+                  <FontAwesomeIcon icon={faTimes} style={{ fontSize: '16px' }} />
                 </IconButton>
               </InputAdornment>
             ),

@@ -1,5 +1,6 @@
 import { Breadcrumbs, Link, Typography } from '@mui/material';
-import HomeIcon from '@mui/icons-material/Home';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faHome } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 
 interface BreadcrumbItem {
@@ -53,7 +54,7 @@ export default function Breadcrumb({ items }: BreadcrumbProps) {
               gap: 0.5,
             }}
           >
-            {isFirst && <HomeIcon sx={{ fontSize: 20 }} />}
+            {isFirst && <FontAwesomeIcon icon={faHome} style={{ fontSize: 20 }} />}
             {item.label}
           </Link>
         );

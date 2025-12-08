@@ -5,13 +5,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   Box,
-  TextField,
   Grid,
   Paper,
   Typography,
   CircularProgress,
 } from '@mui/material';
-import { Button } from '../components/common';
+import { Button, Input } from '../components/common';
 import Breadcrumb from '../components/common/Breadcrumb';
 import { Material } from '../types';
 import { useMaterialStore } from '../stores/materialStore';
@@ -19,8 +18,8 @@ import { materialsAPI } from '../services/api';
 import { normalizeMaterial } from '../utils/normalize';
 import { formatCurrencyInput, parseCurrencyInput } from '../utils/currencyFormat';
 import { normalizeNumber } from '../utils/normalize';
-import SaveIcon from '@mui/icons-material/Save';
-import ExitToAppIcon from '@mui/icons-material/ExitToApp';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSave, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 
 const materialSchema = z.object({
   name: z.string().min(1, 'Tên vật tư là bắt buộc'),
@@ -192,7 +191,7 @@ export default function MaterialAddEdit() {
             <Button
               variant="contained"
               color="primary"
-              startIcon={<SaveIcon />}
+              startIcon={<FontAwesomeIcon icon={faSave} />}
               onClick={handleSubmit(onSubmit)}
               disabled={isSubmitting}
               sx={{
@@ -203,7 +202,7 @@ export default function MaterialAddEdit() {
             </Button>
             <Button
               variant="outlined"
-              startIcon={<ExitToAppIcon />}
+              startIcon={<FontAwesomeIcon icon={faSignOutAlt} />}
               onClick={handleExit}
               sx={{
                 width: { xs: '100%', sm: 'auto' },
@@ -224,7 +223,7 @@ export default function MaterialAddEdit() {
                 name="name"
                 control={control}
                 render={({ field }) => (
-                  <TextField
+                  <Input
                     {...field}
                     fullWidth
                     label="Tên vật tư *"
@@ -239,7 +238,7 @@ export default function MaterialAddEdit() {
                 name="type"
                 control={control}
                 render={({ field }) => (
-                  <TextField
+                  <Input
                     {...field}
                     fullWidth
                     label="Chủng loại *"
@@ -254,7 +253,7 @@ export default function MaterialAddEdit() {
                 name="unit"
                 control={control}
                 render={({ field }) => (
-                  <TextField
+                  <Input
                     {...field}
                     fullWidth
                     label="Đơn vị *"
@@ -269,7 +268,7 @@ export default function MaterialAddEdit() {
                 name="currentStock"
                 control={control}
                 render={({ field }) => (
-                  <TextField
+                  <Input
                     fullWidth
                     label="Tồn kho *"
                     error={!!errors.currentStock}
@@ -292,7 +291,7 @@ export default function MaterialAddEdit() {
                 name="importPrice"
                 control={control}
                 render={({ field }) => (
-                  <TextField
+                  <Input
                     fullWidth
                     label="Đơn giá nhập (VND) *"
                     error={!!errors.importPrice}
@@ -316,7 +315,7 @@ export default function MaterialAddEdit() {
                 name="supplier"
                 control={control}
                 render={({ field }) => (
-                  <TextField
+                  <Input
                     {...field}
                     fullWidth
                     label="Nhà cung cấp"

@@ -6,7 +6,8 @@ import {
   Chip,
   LinearProgress,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPlus } from '@fortawesome/free-solid-svg-icons';
 import { Button, DataTable, SearchInput } from '../components/common';
 import type { SearchInputRef } from '../components/common/SearchInput';
 import { rolesAPI, Role } from '../services/api';
@@ -94,7 +95,7 @@ export default function Roles() {
   }
 
   return (
-    <Box>
+    <Box sx={{ width: '100%', maxWidth: '100%', overflowX: 'hidden' }}>
       <Box 
         display="flex" 
         justifyContent="space-between" 
@@ -118,7 +119,7 @@ export default function Roles() {
           <Button
             variant="contained"
             color="primary"
-            startIcon={<AddIcon />}
+            startIcon={<FontAwesomeIcon icon={faPlus} />}
             onClick={() => navigate('/roles/add')}
             sx={{ px: 2 }}
           >

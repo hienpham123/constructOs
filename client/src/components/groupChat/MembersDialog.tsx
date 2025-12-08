@@ -9,14 +9,15 @@ import {
   ListItemAvatar,
   ListItemText as MuiListItemText,
   Avatar,
-  Chip,
   Box,
   Typography,
   useMediaQuery,
   useTheme,
   IconButton,
+  Divider,
 } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import type { GroupDetail } from '../../services/api/groupChats';
 
 interface MembersDialogProps {
@@ -60,42 +61,100 @@ export default function MembersDialog({ open, onClose, group }: MembersDialogPro
           onClick={onClose}
           sx={{ color: '#65676b' }}
         >
-          <CloseIcon fontSize="small" />
+          <FontAwesomeIcon icon={faTimes} style={{ fontSize: '16px' }} />
         </IconButton>
       </DialogTitle>
-      <DialogContent sx={{ p: 0 }}>
+      <DialogContent sx={{ p: 0, maxHeight: '60vh', overflowY: 'auto' }}>
         <List sx={{ py: 0 }}>
-          {group?.members.map((member) => (
-            <ListItem key={member.id} sx={{ px: 2, py: 1.5 }}>
-              <ListItemAvatar>
-                <Avatar src={member.avatar || undefined} sx={{ bgcolor: '#5C9CE6' }}>
-                  {member.name[0]?.toUpperCase() || 'U'}
-                </Avatar>
-              </ListItemAvatar>
-              <MuiListItemText
-                primary={member.name}
-                secondary={
-                  <Box>
-                    <Typography variant="caption" display="block">
-                      {member.email}
+          {group?.members.map((member, index) => (
+            <Box key={member.id}>
+              <ListItem 
+                sx={{ 
+                  px: 2, 
+                  py: 1.5,
+                  '&:hover': {
+                    bgcolor: '#f0f2f5',
+                  },
+                }}
+              >
+                <ListItemAvatar sx={{ minWidth: 48 }}>
+                  <Avatar 
+                    src={member.avatar || undefined} 
+                    sx={{ 
+                      width: 40,
+                      height: 40,
+                      bgcolor: '#1877f2',
+                      fontSize: '0.875rem',
+                    }}
+                  >
+                    {member.name[0]?.toUpperCase() || 'U'}
+                  </Avatar>
+                </ListItemAvatar>
+                <MuiListItemText
+                  primary={
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 500,
+                        fontSize: '0.9375rem',
+                        color: '#050505',
+                        mb: 0.25,
+                      }}
+                    >
+                      {member.name}
                     </Typography>
-                    <Chip
-                      label={member.role === 'owner' ? 'Chủ nhóm' : member.role === 'admin' ? 'Quản trị' : 'Thành viên'}
-                      size="small"
-                      sx={{ mt: 0.5, height: 20, fontSize: '0.7rem' }}
-                    />
-                  </Box>
-                }
-              />
-            </ListItem>
+                  }
+                  secondary={
+                    <Box>
+                      <Typography 
+                        variant="caption" 
+                        sx={{
+                          display: 'block',
+                          color: '#65676b',
+                          fontSize: '0.8125rem',
+                          mb: 0.5,
+                        }}
+                      >
+                        {member.email}
+                      </Typography>
+                      <Box
+                        component="span"
+                        sx={{
+                          display: 'inline-block',
+                          px: 1.5,
+                          py: 0.25,
+                          borderRadius: '4px',
+                          bgcolor: '#e4e6eb',
+                          fontSize: '0.75rem',
+                          fontWeight: 500,
+                          color: '#65676b',
+                        }}
+                      >
+                        {member.role === 'owner' ? 'Chủ nhóm' : member.role === 'admin' ? 'Quản trị' : 'Thành viên'}
+                      </Box>
+                    </Box>
+                  }
+                />
+              </ListItem>
+              {index < (group?.members.length || 0) - 1 && <Divider sx={{ mx: 2 }} />}
+            </Box>
           ))}
         </List>
       </DialogContent>
-      {!isMobile && (
-        <DialogActions sx={{ px: 2, pb: 2 }}>
-          <Button onClick={onClose}>Đóng</Button>
-        </DialogActions>
-      )}
+      <DialogActions sx={{ px: 2, py: 1.5, borderTop: '1px solid #e4e6eb' }}>
+        <Button 
+          onClick={onClose}
+          variant="contained"
+          color="primary"
+          sx={{
+            textTransform: 'none',
+            fontWeight: 600,
+            px: 3,
+          }}
+        >
+          Đóng
+        </Button>
+      </DialogActions>
     </Dialog>
   );
 }

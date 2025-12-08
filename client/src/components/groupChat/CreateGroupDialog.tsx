@@ -4,8 +4,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
-  TextField,
   Box,
   Avatar,
   IconButton,
@@ -13,8 +11,9 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
+import { Button, Input } from '../common';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTimes, faCamera } from '@fortawesome/free-solid-svg-icons';
 import { groupChatsAPI } from '../../services/api/groupChats';
 import PeoplePicker, { type PeoplePickerOption } from '../common/PeoplePicker';
 
@@ -103,7 +102,7 @@ export default function CreateGroupDialog({
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="h6">Tạo nhóm chat mới</Typography>
         <IconButton onClick={handleClose} size="small">
-          <CloseIcon />
+          <FontAwesomeIcon icon={faTimes} />
         </IconButton>
       </DialogTitle>
       <DialogContent>
@@ -131,7 +130,7 @@ export default function CreateGroupDialog({
                 size="small"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <PhotoCameraIcon fontSize="small" />
+                <FontAwesomeIcon icon={faCamera} style={{ fontSize: '16px' }} />
               </IconButton>
               <input
                 ref={fileInputRef}
@@ -144,7 +143,7 @@ export default function CreateGroupDialog({
           </Box>
 
           {/* Name */}
-          <TextField
+            <Input
             label="Tên nhóm *"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -153,7 +152,7 @@ export default function CreateGroupDialog({
           />
 
           {/* Description */}
-          <TextField
+            <Input
             label="Mô tả"
             value={description}
             onChange={(e) => setDescription(e.target.value)}

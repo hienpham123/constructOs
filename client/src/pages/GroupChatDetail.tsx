@@ -60,7 +60,7 @@ export default function GroupChatDetail() {
       setMessages([]);
       setHasMoreMessages(true);
       setIsLoading(true);
-      loadGroup();
+      loadGroup(true); // Show loading for initial load
       loadMessages();
       connectSocket();
     }
@@ -72,19 +72,34 @@ export default function GroupChatDetail() {
     };
   }, [id]);
 
+  // Track previous message length to detect new messages
+  const prevMessageLengthRef = useRef(0);
+  
   useEffect(() => {
-    // Only auto-scroll if not currently submitting a message and not loading more messages
-    // Skip if messages array is empty (initial load will be handled by MessageList)
-    // Skip initial load - MessageList handles it
-    if (!isSubmittingRef.current && !isLoadingMoreRef.current && !isLoading && messages.length > 0) {
-      // Only scroll for new messages (not initial load)
-      // This is for when new messages arrive via socket
+    // Skip all auto-scroll when submitting or loading more
+    if (isSubmittingRef.current || isLoadingMoreRef.current || isLoading) {
+      prevMessageLengthRef.current = messages.length;
+      return;
+    }
+    
+    // Only auto-scroll if message count increased (new message received via socket)
+    const messageCountIncreased = messages.length > prevMessageLengthRef.current;
+    
+    if (messageCountIncreased && messages.length > 0) {
+      // Only scroll for socket messages (new messages from others)
+      // User's own messages are handled in handleSubmit
       const timer = setTimeout(() => {
-        scrollToBottom();
-      }, 50);
+        // Double check before scrolling
+        if (!isSubmittingRef.current && !isLoadingMoreRef.current) {
+          scrollToBottom(true);
+        }
+      }, 100);
+      prevMessageLengthRef.current = messages.length;
       return () => clearTimeout(timer);
     }
-  }, [messages, isLoading]);
+    
+    prevMessageLengthRef.current = messages.length;
+  }, [messages.length, isLoading]);
 
   useEffect(() => {
     // Scroll to editing message when editingMessageId changes
@@ -119,12 +134,30 @@ export default function GroupChatDetail() {
       socket.emit('join-group', id);
     });
 
-    socket.on('message-received', (data: { groupId: string; message: GroupMessage }) => {
+    socket.on('message-received', (data: { groupId: string; message: GroupMessage; senderId?: string }) => {
       if (data.groupId === id) {
-        const shouldAutoScroll = !isSubmittingRef.current;
-        setMessages((prev) => [...prev, data.message]);
-        if (shouldAutoScroll) {
-          setTimeout(() => scrollToBottom(), 100);
+        // ALWAYS skip if this is our own message (already in state from handleSubmit)
+        const isOwnMessage = data.message.userId === user?.id || data.senderId === user?.id;
+        
+        // If it's our own message, completely ignore it - it's already in state
+        if (isOwnMessage) {
+          return; // Don't process own messages from socket
+        }
+        
+        // Safety check: don't add duplicate messages
+        setMessages((prev) => {
+          const messageExists = prev.some((m) => m.id === data.message.id);
+          if (messageExists) {
+            return prev; // Don't add duplicate
+          }
+          return [...prev, data.message];
+        });
+        
+        // Auto-scroll for messages from others (not when submitting)
+        if (!isSubmittingRef.current) {
+          requestAnimationFrame(() => {
+            scrollToBottom(true);
+          });
         }
       }
     });
@@ -133,50 +166,45 @@ export default function GroupChatDetail() {
   };
 
   const scrollToBottom = (instant = false) => {
-    // Try multiple methods to ensure scroll works
-    // First try the last message ref
+    const messagesContainer = document.querySelector('[data-messages-container]') as HTMLElement;
+    if (messagesContainer) {
+      // Always use instant scroll for better control
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      return;
+    }
+    
+    // Fallback to lastMessageRef if container not found
     if (lastMessageRef.current) {
       lastMessageRef.current.scrollIntoView({
         behavior: instant ? 'auto' : 'smooth',
         block: 'end',
         inline: 'nearest',
       });
-      return;
-    }
-    
-    // Fallback: scroll the messages container directly
-    const messagesContainer = document.querySelector('[data-messages-container]') as HTMLElement;
-    if (messagesContainer) {
-      if (instant) {
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-      } else {
-        messagesContainer.scrollTo({
-          top: messagesContainer.scrollHeight,
-          behavior: 'smooth',
-        });
-      }
     }
   };
 
-  const loadGroup = async (preserveScroll = false) => {
-    if (!id) return;
+  const loadGroup = async (showLoading = false) => {
+    if (!id) {
+      if (showLoading) setIsLoading(false);
+      return;
+    }
+    const currentGroupId = id; // Capture current group ID
+    if (showLoading) setIsLoading(true);
     try {
-      const messagesContainer = document.querySelector('[data-messages-container]') as HTMLElement;
-      const scrollTop = messagesContainer?.scrollTop || 0;
-
-      setIsLoading(true);
-      const data = await groupChatsAPI.getGroupById(id);
-      setGroup(data);
-
-      if (preserveScroll && messagesContainer) {
-        setTimeout(() => {
-          messagesContainer.scrollTop = scrollTop;
-        }, 0);
+      const data = await groupChatsAPI.getGroupById(currentGroupId);
+      // Only update if we're still on the same group
+      if (id === currentGroupId) {
+        setGroup(data);
       }
     } catch (error: any) {
       console.error('Error loading group:', error);
+      if (id === currentGroupId) {
+        setGroup(null);
+      }
     } finally {
-      setIsLoading(false);
+      if (showLoading && id === currentGroupId) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -278,33 +306,48 @@ export default function GroupChatDetail() {
         selectedFiles.length > 0 ? selectedFiles : undefined
       );
 
-      setMessages((prev) => [...prev, newMessage]);
+      // Clear input first (before adding message to avoid flicker)
       setContent('');
       setSelectedFiles([]);
 
+      // Get container reference before state update
+      const messagesContainer = document.querySelector('[data-messages-container]') as HTMLElement;
+
+      // Add message to state
+      setMessages((prev) => [...prev, newMessage]);
+      
+      // Scroll immediately after state update - use flushSync approach
+      // React batches updates, so we need to wait for the next frame
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (messagesContainer) {
+            // Scroll instantly to bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+          } else {
+            scrollToBottom(true);
+          }
+          
+          // Focus input immediately after scroll
+          const textarea = textInputRef.current?.querySelector('textarea') as HTMLTextAreaElement;
+          if (textarea) {
+            textarea.focus();
+          } else if (textInputRef.current) {
+            textInputRef.current.focus();
+          }
+        });
+      });
+      
+      // Emit socket event (backend will broadcast to other members, not to sender)
       if (socketRef.current) {
         socketRef.current.emit('new-message', {
           groupId: id,
           message: newMessage,
         });
       }
-
+      
+      // Reset submitting flag - DON'T reload anything
       setTimeout(() => {
-        if (lastMessageRef.current) {
-          lastMessageRef.current.scrollIntoView({
-            behavior: 'smooth',
-            block: 'end',
-            inline: 'nearest',
-          });
-        } else {
-          scrollToBottom(false);
-        }
-        if (textInputRef.current) {
-          textInputRef.current.focus();
-        }
-        setTimeout(() => {
-          isSubmittingRef.current = false;
-        }, 300);
+        isSubmittingRef.current = false;
       }, 100);
     } catch (error: any) {
       console.error('Error sending message:', error);
@@ -488,6 +531,7 @@ export default function GroupChatDetail() {
             isLoadingMore={isLoadingMore}
             onLoadMore={loadMoreMessages}
             isLoadingMoreRef={isLoadingMoreRef}
+            isSubmittingRef={isSubmittingRef}
             onMessageHover={setHoveredMessageId}
             onMessageLeave={() => setHoveredMessageId(null)}
             onMenuClick={handleMenuClick}

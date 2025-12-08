@@ -17,6 +17,7 @@ interface MessageListProps {
   isLoadingMore?: boolean;
   onLoadMore?: () => void;
   isLoadingMoreRef?: React.MutableRefObject<boolean>;
+  isSubmittingRef?: React.MutableRefObject<boolean>;
   onMessageHover: (messageId: string) => void;
   onMessageLeave: () => void;
   onMenuClick: (event: React.MouseEvent<HTMLElement>, messageId: string) => void;
@@ -43,6 +44,7 @@ export default function MessageList({
   isLoadingMore = false,
   onLoadMore,
   isLoadingMoreRef,
+  isSubmittingRef,
   onMessageHover,
   onMessageLeave,
   onMenuClick,
@@ -74,8 +76,12 @@ export default function MessageList({
 
   // Set scroll position to bottom when messages are first loaded
   useEffect(() => {
-    // Don't auto-scroll if loading more messages
-    if (isLoadingMoreRef?.current) {
+    // Don't auto-scroll if loading more messages or submitting a message
+    if (isLoadingMoreRef?.current || isSubmittingRef?.current) {
+      // Still update the ref to track message count
+      if (messages.length > 0) {
+        previousMessagesLengthRef.current = messages.length;
+      }
       return;
     }
     
@@ -85,7 +91,7 @@ export default function MessageList({
     if (isInitialLoad && containerRef.current && isInitialLoadRef.current && !hasScrolledToBottomRef.current) {
       // Wait for DOM to fully render messages
       const timer = setTimeout(() => {
-        if (containerRef.current) {
+        if (containerRef.current && !isSubmittingRef?.current && !isLoadingMoreRef?.current) {
           containerRef.current.scrollTop = containerRef.current.scrollHeight;
           hasScrolledToBottomRef.current = true;
           isInitialLoadRef.current = false;
@@ -96,7 +102,7 @@ export default function MessageList({
     } else if (messages.length > 0) {
       previousMessagesLengthRef.current = messages.length;
     }
-  }, [messages.length, isLoadingMoreRef]); // Only when message count changes (initial load)
+  }, [messages.length, isLoadingMoreRef, isSubmittingRef]);
 
   // Auto-load more messages when scrolling to top
   const lastScrollTopRef = useRef(0);

@@ -5,10 +5,13 @@ import {
   Chip,
   LinearProgress,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
-import CheckIcon from '@mui/icons-material/Check';
-import CloseIcon from '@mui/icons-material/Close';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faPlus,
+  faFileDownload,
+  faCheck,
+  faTimes,
+} from '@fortawesome/free-solid-svg-icons';
 import { useMaterialStore } from '../stores/materialStore';
 import { useProjectStore } from '../stores/projectStore';
 import DeleteConfirmDialog from '../components/DeleteConfirmDialog';
@@ -74,6 +77,23 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
   const transactionSearchInputRef = useRef<SearchInputRef>(null);
   const purchaseRequestSearchInputRef = useRef<SearchInputRef>(null);
   const prevIsLoadingRef = useRef(isLoading);
+  
+  // Refs for tracking changes
+  const prevSearchRef = useRef(search);
+  const prevTransactionSearchRef = useRef(transactionSearch);
+  const prevPurchaseRequestSearchRef = useRef(purchaseRequestSearch);
+  const prevPageRef = useRef(page);
+  
+  // Skeleton states for each tab
+  const [showSkeleton, setShowSkeleton] = useState(false);
+  const [showTransactionSkeleton, setShowTransactionSkeleton] = useState(false);
+  const [showPurchaseRequestSkeleton, setShowPurchaseRequestSkeleton] = useState(false);
+  
+  // Flags for tracking changes
+  const [isSearchChanging, setIsSearchChanging] = useState(false);
+  const [isTransactionSearchChanging, setIsTransactionSearchChanging] = useState(false);
+  const [isPurchaseRequestSearchChanging, setIsPurchaseRequestSearchChanging] = useState(false);
+  const [isPageChanging, setIsPageChanging] = useState(false);
 
   useEffect(() => {
     fetchProjects();
@@ -101,6 +121,77 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [purchaseRequestSearch, purchaseRequestSortBy, purchaseRequestSortOrder, rowsPerPage, page, tab]);
 
+  // Track when search or page changes
+  useEffect(() => {
+    if (prevSearchRef.current !== search) {
+      setIsSearchChanging(true);
+      prevSearchRef.current = search;
+    }
+  }, [search]);
+
+  useEffect(() => {
+    if (prevTransactionSearchRef.current !== transactionSearch) {
+      setIsTransactionSearchChanging(true);
+      prevTransactionSearchRef.current = transactionSearch;
+    }
+  }, [transactionSearch]);
+
+  useEffect(() => {
+    if (prevPurchaseRequestSearchRef.current !== purchaseRequestSearch) {
+      setIsPurchaseRequestSearchChanging(true);
+      prevPurchaseRequestSearchRef.current = purchaseRequestSearch;
+    }
+  }, [purchaseRequestSearch]);
+
+  useEffect(() => {
+    if (prevPageRef.current !== page) {
+      setIsPageChanging(true);
+      prevPageRef.current = page;
+    }
+  }, [page]);
+
+  // Determine when to show skeleton for materials list
+  useEffect(() => {
+    if (tab === 'list') {
+      const isInitialLoad = materials.length === 0 && isLoading;
+      if (isLoading) {
+        setShowSkeleton(isInitialLoad || isSearchChanging || isPageChanging);
+      } else {
+        setIsSearchChanging(false);
+        setIsPageChanging(false);
+        setShowSkeleton(false);
+      }
+    }
+  }, [isLoading, materials.length, isSearchChanging, isPageChanging, tab]);
+
+  // Determine when to show skeleton for transactions
+  useEffect(() => {
+    if (tab === 'transactions') {
+      const isInitialLoad = transactions.length === 0 && isLoading;
+      if (isLoading) {
+        setShowTransactionSkeleton(isInitialLoad || isTransactionSearchChanging || isPageChanging);
+      } else {
+        setIsTransactionSearchChanging(false);
+        setIsPageChanging(false);
+        setShowTransactionSkeleton(false);
+      }
+    }
+  }, [isLoading, transactions.length, isTransactionSearchChanging, isPageChanging, tab]);
+
+  // Determine when to show skeleton for purchase requests
+  useEffect(() => {
+    if (tab === 'purchase-requests') {
+      const isInitialLoad = purchaseRequests.length === 0 && isLoading;
+      if (isLoading) {
+        setShowPurchaseRequestSkeleton(isInitialLoad || isPurchaseRequestSearchChanging || isPageChanging);
+      } else {
+        setIsPurchaseRequestSearchChanging(false);
+        setIsPageChanging(false);
+        setShowPurchaseRequestSkeleton(false);
+      }
+    }
+  }, [isLoading, purchaseRequests.length, isPurchaseRequestSearchChanging, isPageChanging, tab]);
+
   // Focus search input after data is loaded
   useEffect(() => {
     if (prevIsLoadingRef.current && !isLoading) {
@@ -118,6 +209,12 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
   }, [isLoading, search, transactionSearch, purchaseRequestSearch, tab]);
 
   useEffect(() => {
+    // Reset flags when tab changes
+    setIsSearchChanging(false);
+    setIsTransactionSearchChanging(false);
+    setIsPurchaseRequestSearchChanging(false);
+    setIsPageChanging(false);
+    
     // Initial fetch when tab changes
     if (tab === 'list') {
       fetchMaterials(rowsPerPage, page, search.trim() || undefined, sortBy, sortOrder);
@@ -228,6 +325,21 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
     }
   };
 
+  const getRequestStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'warning';
+      case 'approved':
+        return 'success';
+      case 'rejected':
+        return 'error';
+      case 'ordered':
+        return 'primary';
+      default:
+        return 'default';
+    }
+  };
+
 
   // Only show full page loading if no data exists yet
   const hasData = tab === 'list' ? materials.length > 0 : 
@@ -272,7 +384,7 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
   };
 
   return (
-    <Box>
+    <Box sx={{ width: '100%', maxWidth: '100%', overflowX: 'hidden' }}>
       <Box 
         display="flex" 
         justifyContent="space-between" 
@@ -298,7 +410,7 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
               <Button 
                 variant="contained"
                 color="success"
-                startIcon={<FileDownloadIcon />} 
+                startIcon={<FontAwesomeIcon icon={faFileDownload} />} 
                 onClick={handleExportMaterials}
                 disabled={isExporting}
                 sx={{
@@ -310,7 +422,7 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
               >
                 {isExporting ? 'Đang xuất...' : 'Xuất Excel'}
               </Button>
-              <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => navigate('/materials/add')} sx={{ px: 2 }}>
+              <Button variant="contained" color="primary" startIcon={<FontAwesomeIcon icon={faPlus} />} onClick={() => navigate('/materials/add')} sx={{ px: 2 }}>
                 Thêm vật tư
               </Button>
             </Box>
@@ -328,7 +440,7 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
               />
             </Box>
             <Box sx={{ order: { xs: 2, md: 0 } }}>
-              <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => navigate('/materials/transactions/add')} sx={{ px: 2 }}>
+              <Button variant="contained" color="primary" startIcon={<FontAwesomeIcon icon={faPlus} />} onClick={() => navigate('/materials/transactions/add')} sx={{ px: 2 }}>
                 Thêm giao dịch
               </Button>
             </Box>
@@ -346,7 +458,7 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
               />
             </Box>
             <Box sx={{ order: { xs: 2, md: 0 } }}>
-              <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => navigate('/materials/purchase-requests/add')} sx={{ px: 2 }}>
+              <Button variant="contained" color="primary" startIcon={<FontAwesomeIcon icon={faPlus} />} onClick={() => navigate('/materials/purchase-requests/add')} sx={{ px: 2 }}>
                 Thêm đề xuất mua hàng
               </Button>
             </Box>
@@ -427,7 +539,7 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
           onSort={handleSort}
           sortField={sortBy ? getReverseFieldMap('material')[sortBy] || sortBy : undefined}
           sortOrder={sortOrder}
-          loading={isLoading}
+          loading={showSkeleton}
           loadingRows={rowsPerPage}
         />
         </>
@@ -521,7 +633,7 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
           onSort={handleTransactionSort}
           sortField={transactionSortBy ? getReverseFieldMap('transaction')[transactionSortBy] || transactionSortBy : undefined}
           sortOrder={transactionSortOrder}
-          loading={isLoading}
+          loading={showTransactionSkeleton}
           loadingRows={rowsPerPage}
         />
         </>
@@ -576,25 +688,11 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
                 minWidth: 120,
                 sortable: true,
                 render: (value) => {
-                  const statusColors: Record<string, { bg: string; text: string }> = {
-                    pending: { bg: '#ed6c02', text: '#ffffff' }, // Orange
-                    approved: { bg: '#2e7d32', text: '#ffffff' }, // Green
-                    rejected: { bg: '#d32f2f', text: '#ffffff' }, // Red
-                    ordered: { bg: '#0288d1', text: '#ffffff' }, // Blue
-                  };
-                  const colors = statusColors[value] || { bg: '#757575', text: '#ffffff' };
-                  
                   return (
                     <Chip
                       label={getRequestStatusLabel(value)}
+                      color={getRequestStatusColor(value) as any}
                       size="small"
-                      sx={{
-                        bgcolor: colors.bg,
-                        color: colors.text,
-                        '& .MuiChip-label': {
-                          color: colors.text,
-                        },
-                      }}
                     />
                   );
                 },
@@ -620,7 +718,7 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
                   actions.push(
                     {
                       label: 'Duyệt',
-                      icon: <CheckIcon fontSize="small" />,
+                      icon: <FontAwesomeIcon icon={faCheck} style={{ fontSize: '14px' }} />,
                       onClick: () => {
                         setApproveRejectRequest(request);
                         setApproveRejectAction('approve');
@@ -630,7 +728,7 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
                     },
                     {
                       label: 'Từ chối',
-                      icon: <CloseIcon fontSize="small" />,
+                      icon: <FontAwesomeIcon icon={faTimes} style={{ fontSize: '14px' }} />,
                       onClick: () => {
                         setApproveRejectRequest(request);
                         setApproveRejectAction('reject');
@@ -656,7 +754,7 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
             onSort={handlePurchaseRequestSort}
             sortField={purchaseRequestSortBy ? getReverseFieldMap('purchaseRequest')[purchaseRequestSortBy] || purchaseRequestSortBy : undefined}
             sortOrder={purchaseRequestSortOrder}
-            loading={isLoading}
+            loading={showPurchaseRequestSkeleton}
             loadingRows={rowsPerPage}
           />
         </>

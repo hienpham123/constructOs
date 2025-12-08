@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
-import { TextField, Box } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
+import { Box } from '@mui/material';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSearch } from '@fortawesome/free-solid-svg-icons';
+import { Input } from './Input';
 
 export interface SearchInputProps {
   value: string;
@@ -59,7 +61,7 @@ const SearchInput = forwardRef<SearchInputRef, SearchInputProps>(({
         maxWidth: maxWidth || { xs: '100%', sm: 280 },
       }}
     >
-      <TextField
+      <Input
         inputRef={inputRef}
         fullWidth
         placeholder={placeholder}
@@ -67,7 +69,7 @@ const SearchInput = forwardRef<SearchInputRef, SearchInputProps>(({
         onChange={handleChange}
         size="small"
         InputProps={{
-          startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+          startAdornment: <FontAwesomeIcon icon={faSearch} style={{ marginRight: 8, color: 'inherit' }} />,
         }}
         sx={{
           '& .MuiOutlinedInput-root': {

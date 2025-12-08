@@ -12,10 +12,17 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import LogoutIcon from '@mui/icons-material/Logout';
-import NotificationsIcon from '@mui/icons-material/Notifications';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faBars,
+  faUserCircle,
+  faSignOutAlt,
+  faBell,
+  faCog,
+  faEnvelope,
+  faLock,
+  faChevronDown,
+} from '@fortawesome/free-solid-svg-icons';
 import { useAuthStore } from '../../stores/authStore';
 import Sidebar from './Sidebar';
 
@@ -62,10 +69,13 @@ export default function Layout() {
     }
   }, [user?.avatar]);
 
-  // Auto-collapse sidebar when entering group chat
+  // Auto-collapse sidebar when entering group chat or chats
   useEffect(() => {
-    if (location.pathname.startsWith('/group-chats')) {
+    if (location.pathname.startsWith('/group-chats') || location.pathname.startsWith('/chats')) {
       setCollapsed(true);
+    } else {
+      // Restore sidebar when leaving chat pages
+      setCollapsed(false);
     }
   }, [location.pathname]);
 
@@ -98,10 +108,12 @@ export default function Layout() {
 
   const sidebarWidth = collapsed && !isMobile ? collapsedWidth : drawerWidth;
   const isGroupChat = location.pathname.startsWith('/group-chats');
+  const isChat = location.pathname.startsWith('/chats');
+  const hideHeader = isGroupChat || isChat;
 
   return (
-    <Box sx={{ display: 'flex' }}>
-      {!isGroupChat && (
+    <Box sx={{ display: 'flex', overflowX: 'hidden', width: '100%', maxWidth: '100vw' }}>
+      {!hideHeader && (
         <AppBar
           position="fixed"
           sx={{
@@ -111,10 +123,10 @@ export default function Layout() {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.enteringScreen,
             }),
-            backgroundColor: '#fee2e2',
+            backgroundColor: '#ffffff',
             color: 'text.primary',
-            boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.1), 0px 1px 2px rgba(0, 0, 0, 0.06)',
-            borderBottom: '1px solid #fecaca',
+            boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.08)',
+            borderBottom: '1px solid #e0e0e0',
           }}
         >
         <Toolbar>
@@ -125,30 +137,50 @@ export default function Layout() {
             onClick={handleDrawerToggle}
             sx={{ mr: 2, display: { sm: 'none' } }}
           >
-            <MenuIcon />
+            <FontAwesomeIcon icon={faBars} style={{ fontSize: '20px' }} />
+          </IconButton>
+          <IconButton
+            color="inherit"
+            aria-label="toggle sidebar"
+            edge="start"
+            onClick={() => setCollapsed(!collapsed)}
+            sx={{ 
+              mr: 2, 
+              display: { xs: 'none', sm: 'flex' },
+              color: 'text.secondary',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+              },
+            }}
+          >
+            <FontAwesomeIcon icon={faBars} style={{ fontSize: '18px' }} />
           </IconButton>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, fontWeight: 600, color: 'text.primary', display: { xs: 'none', md: 'block' } }}>
             {getPageTitle()}
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <IconButton
               size="small"
               sx={{
                 color: 'text.secondary',
+                position: 'relative',
                 '&:hover': {
                   backgroundColor: 'rgba(0, 0, 0, 0.04)',
                 },
               }}
             >
-              <NotificationsIcon />
+              <FontAwesomeIcon icon={faBell} />
             </IconButton>
-            <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' }, fontWeight: 500 }}>
-              {user?.name}
-            </Typography>
-            <IconButton
+            <Box
               onClick={handleMenuOpen}
-              size="small"
               sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                cursor: 'pointer',
+                px: 1,
+                py: 0.5,
+                borderRadius: '4px',
                 '&:hover': {
                   backgroundColor: 'rgba(0, 0, 0, 0.04)',
                 },
@@ -158,16 +190,33 @@ export default function Layout() {
                 sx={{
                   width: 36,
                   height: 36,
-                  bgcolor: 'primary.main',
-                  border: '2px solid',
-                  borderColor: 'primary.light',
+                  bgcolor: '#e0e0e0',
+                  border: '1px solid #d0d0d0',
                 }}
                 src={getAvatarUrl()}
                 key={`avatar-${avatarKey}-${user?.avatar || ''}`}
               >
                 {user?.name?.charAt(0).toUpperCase() || 'U'}
               </Avatar>
-            </IconButton>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  display: { xs: 'none', sm: 'block' }, 
+                  fontWeight: 500,
+                  color: 'text.primary',
+                }}
+              >
+                {user?.name || 'User'}
+              </Typography>
+              <FontAwesomeIcon 
+                icon={faChevronDown}
+                style={{ 
+                  fontSize: 18, 
+                  color: 'inherit',
+                  display: window.innerWidth >= 600 ? 'block' : 'none',
+                }} 
+              />
+            </Box>
           </Box>
           <Menu
             anchorEl={anchorEl}
@@ -181,14 +230,55 @@ export default function Layout() {
               vertical: 'top',
               horizontal: 'right',
             }}
+            PaperProps={{
+              sx: {
+                mt: 1,
+                minWidth: 200,
+                boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.15)',
+                border: '1px solid #e0e0e0',
+                borderRadius: '4px',
+                '& .MuiMenuItem-root': {
+                  px: 2,
+                  py: 1.25,
+                  fontSize: '0.875rem',
+                  '&:hover': {
+                    backgroundColor: '#f5f5f5',
+                  },
+                  '& .MuiSvgIcon-root': {
+                    fontSize: 18,
+                    color: '#666666',
+                    mr: 1.5,
+                  },
+                },
+              },
+            }}
           >
-            <MenuItem onClick={() => { navigate('/profile'); handleMenuClose(); }}>
-              <AccountCircleIcon sx={{ mr: 1 }} />
-              Hồ sơ
+            <MenuItem onClick={() => { handleMenuClose(); }}>
+              <FontAwesomeIcon icon={faCog} style={{ fontSize: 18, marginRight: 12, color: '#666666' }} />
+              Settings
             </MenuItem>
-            <MenuItem onClick={handleLogout}>
-              <LogoutIcon sx={{ mr: 1 }} />
-              Đăng xuất
+            <MenuItem onClick={() => { navigate('/profile'); handleMenuClose(); }}>
+              <FontAwesomeIcon icon={faUserCircle} style={{ fontSize: 18, marginRight: 12, color: '#666666' }} />
+              Profile
+            </MenuItem>
+            <MenuItem onClick={() => { handleMenuClose(); }}>
+              <FontAwesomeIcon icon={faEnvelope} style={{ fontSize: 18, marginRight: 12, color: '#666666' }} />
+              My Messages
+            </MenuItem>
+            <MenuItem onClick={() => { handleMenuClose(); }}>
+              <FontAwesomeIcon icon={faLock} style={{ fontSize: 18, marginRight: 12, color: '#666666' }} />
+              Lock Screen
+            </MenuItem>
+            <MenuItem 
+              onClick={handleLogout}
+              sx={{
+                '&:hover': {
+                  backgroundColor: '#fee',
+                },
+              }}
+            >
+              <FontAwesomeIcon icon={faSignOutAlt} style={{ fontSize: 18, marginRight: 12, color: '#d32f2f' }} />
+              Logout
             </MenuItem>
           </Menu>
         </Toolbar>
@@ -208,15 +298,17 @@ export default function Layout() {
         component="main"
         sx={{
           flexGrow: 1,
-          p: isGroupChat ? 0 : 3,
+          p: hideHeader ? 0 : 3,
           width: { sm: `calc(100% - ${sidebarWidth}px)` },
-          mt: isGroupChat ? 0 : 8,
+          maxWidth: { sm: `calc(100vw - ${sidebarWidth}px)` },
+          mt: hideHeader ? 0 : 8,
+          overflowX: 'hidden',
           transition: theme.transitions.create(['width', 'margin'], {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.enteringScreen,
           }),
-          backgroundColor: isGroupChat ? 'transparent' : '#f5f7fa',
-          minHeight: isGroupChat ? '100vh' : 'calc(100vh - 64px)',
+          backgroundColor: hideHeader ? 'transparent' : '#f8f9fa',
+          minHeight: hideHeader ? '100vh' : 'calc(100vh - 64px)',
         }}
       >
         <Outlet />

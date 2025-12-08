@@ -1,4 +1,5 @@
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { Button } from '../common';
 
 interface DeleteGroupDialogProps {
   open: boolean;

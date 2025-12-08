@@ -1,6 +1,7 @@
-import { Box, Typography, Button } from '@mui/material';
-import GroupIcon from '@mui/icons-material/Group';
-import AddIcon from '@mui/icons-material/Add';
+import { Box, Typography } from '@mui/material';
+import { Button } from '../common';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faUsers, faPlus } from '@fortawesome/free-solid-svg-icons';
 
 interface GroupListEmptyProps {
   searchTerm: string;
@@ -20,7 +21,7 @@ export default function GroupListEmpty({ searchTerm, onCreateGroup }: GroupListE
         textAlign: 'center',
       }}
     >
-      <GroupIcon sx={{ fontSize: 64, color: '#ccc', mb: 2 }} />
+      <FontAwesomeIcon icon={faUsers} style={{ fontSize: 64, color: '#ccc', marginBottom: 16 }} />
       <Typography variant="body2" color="text.secondary" gutterBottom>
         {searchTerm ? 'Không tìm thấy nhóm nào' : 'Chưa có nhóm chat nào'}
       </Typography>
@@ -28,7 +29,7 @@ export default function GroupListEmpty({ searchTerm, onCreateGroup }: GroupListE
         <Button
           variant="outlined"
           size="small"
-          startIcon={<AddIcon />}
+          startIcon={<FontAwesomeIcon icon={faPlus} />}
           onClick={onCreateGroup}
           sx={{ mt: 2, textTransform: 'none' }}
         >

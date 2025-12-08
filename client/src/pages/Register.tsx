@@ -4,7 +4,6 @@ import {
   Container,
   Box,
   Paper,
-  TextField,
   Typography,
   Alert,
   MenuItem,
@@ -12,9 +11,9 @@ import {
   InputAdornment,
   IconButton,
 } from '@mui/material';
-import { Button } from '../components/common';
-import Visibility from '@mui/icons-material/Visibility';
-import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import { Button, Input } from '../components/common';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { useAuthStore } from '../stores/authStore';
 import logoImage from '../images/logo.svg';
 
@@ -158,7 +157,7 @@ export default function Register() {
               )}
               <Grid container spacing={2}>
                 <Grid item xs={12}>
-                  <TextField
+                  <Input
                     required
                     fullWidth
                     id="name"
@@ -176,7 +175,7 @@ export default function Register() {
                   />
                 </Grid>
                 <Grid item xs={12}>
-                  <TextField
+                  <Input
                     required
                     fullWidth
                     id="email"
@@ -194,7 +193,7 @@ export default function Register() {
                   />
                 </Grid>
                 <Grid item xs={12}>
-                  <TextField
+                  <Input
                     fullWidth
                     id="phone"
                     label="Số điện thoại"
@@ -210,7 +209,7 @@ export default function Register() {
                   />
                 </Grid>
                 <Grid item xs={12}>
-                  <TextField
+                  <Input
                     required
                     fullWidth
                     id="role"
@@ -232,10 +231,10 @@ export default function Register() {
                     <MenuItem value="accountant">Kế toán</MenuItem>
                     <MenuItem value="project_manager">Quản lý dự án</MenuItem>
                     <MenuItem value="admin">Quản trị viên</MenuItem>
-                  </TextField>
+                  </Input>
                 </Grid>
                 <Grid item xs={12}>
-                  <TextField
+                  <Input
                     required
                     fullWidth
                     name="password"
@@ -259,7 +258,7 @@ export default function Register() {
                             onClick={() => setShowPassword(!showPassword)}
                             edge="end"
                           >
-                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                            {showPassword ? <FontAwesomeIcon icon={faEyeSlash} /> : <FontAwesomeIcon icon={faEye} />}
                           </IconButton>
                         </InputAdornment>
                       ),
@@ -267,7 +266,7 @@ export default function Register() {
                   />
                 </Grid>
                 <Grid item xs={12}>
-                  <TextField
+                  <Input
                     required
                     fullWidth
                     name="confirmPassword"
@@ -289,7 +288,7 @@ export default function Register() {
                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                             edge="end"
                           >
-                            {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                            {showConfirmPassword ? <FontAwesomeIcon icon={faEyeSlash} /> : <FontAwesomeIcon icon={faEye} />}
                           </IconButton>
                         </InputAdornment>
                       ),

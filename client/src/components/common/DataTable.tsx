@@ -12,8 +12,8 @@ import {
   Box,
   Skeleton,
 } from '@mui/material';
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
-import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faArrowUp, faArrowDown } from '@fortawesome/free-solid-svg-icons';
 import ActionMenu, { ActionItem } from './ActionMenu';
 import ActionMenuWithCustomActions from './ActionMenuWithCustomActions';
 
@@ -109,54 +109,64 @@ export default function DataTable<T = any>({
     const field = column.field as string;
     if (sortField === field) {
       return sortOrder === 'asc' ? (
-        <ArrowUpwardIcon sx={{ fontSize: 16, ml: 0.5, color: 'primary.main' }} />
+        <FontAwesomeIcon icon={faArrowUp} style={{ fontSize: 12, marginLeft: 4, color: '#4680ff' }} />
       ) : (
-        <ArrowDownwardIcon sx={{ fontSize: 16, ml: 0.5, color: 'primary.main' }} />
+        <FontAwesomeIcon icon={faArrowDown} style={{ fontSize: 12, marginLeft: 4, color: '#4680ff' }} />
       );
     }
     return null;
   };
   return (
-    <TableContainer
-      component={Paper}
-      sx={{
-        boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.1), 0px 1px 2px rgba(0, 0, 0, 0.06)',
-        overflowX: 'auto',
-        overflowY: 'hidden',
-        borderRadius: 0,
-        border: '1px solid #e5e7eb',
-        width: '100%',
-        '&::-webkit-scrollbar': {
-          height: '8px',
-        },
-        '&::-webkit-scrollbar-track': {
-          backgroundColor: '#f1f1f1',
-        },
-        '&::-webkit-scrollbar-thumb': {
-          backgroundColor: '#888',
+    <Box sx={{ 
+      width: '100%', 
+      maxWidth: '100%', 
+      overflow: 'hidden',
+      position: 'relative',
+      '& *': {
+        maxWidth: '100%',
+      },
+    }}>
+      <TableContainer
+        component={Paper}
+        sx={{
+          boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08), 0px 1px 2px rgba(0, 0, 0, 0.04)',
+          overflowX: 'auto',
+          overflowY: 'hidden',
           borderRadius: '4px',
-          '&:hover': {
-            backgroundColor: '#555',
+          border: '1px solid #d0d0d0',
+          width: '100%',
+          maxWidth: '100%',
+          backgroundColor: '#ffffff',
+          position: 'relative',
+          '&::-webkit-scrollbar': {
+            height: '8px',
           },
-        },
-      }}
-    >
+          '&::-webkit-scrollbar-track': {
+            backgroundColor: '#f5f5f5',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: '#bdbdbd',
+            borderRadius: '4px',
+            '&:hover': {
+              backgroundColor: '#9e9e9e',
+            },
+          },
+        }}
+      >
       <MuiTable sx={{ minWidth, borderCollapse: 'separate', borderSpacing: 0 }}>
         <TableHead>
           <TableRow
             sx={{
-              backgroundColor: '#f9fafb',
+              backgroundColor: '#f5f5f5',
               '& .MuiTableCell-head': {
                 fontWeight: 600,
-                fontSize: '0.8125rem',
-                color: '#374151',
-                borderBottom: '1px solid #e5e7eb',
-                borderRight: '1px solid #e5e7eb',
-                py: 1.5,
+                fontSize: '0.875rem',
+                color: '#333333',
+                borderBottom: '1px solid #e0e0e0',
+                borderRight: 'none',
+                py: 1.25,
+                px: 2,
                 whiteSpace: 'nowrap',
-                '&:last-child': {
-                  borderRight: 'none',
-                },
               },
             }}
           >
@@ -227,23 +237,24 @@ export default function DataTable<T = any>({
             </TableRow>
           ) : (
             data.map((row, rowIndex) => {
-              const isLastRow = rowIndex === data.length - 1;
+              const isEven = rowIndex % 2 === 0;
               return (
                 <TableRow
                   key={getRowId(row)}
                   hover
                   sx={{
+                    backgroundColor: isEven ? '#ffffff' : '#f8f9fa',
                     '&:hover': {
-                      backgroundColor: '#f9fafb',
+                      backgroundColor: '#e8f4f8',
                     },
                     '& .MuiTableCell-body': {
-                      borderBottom: isLastRow ? '1px solid #e5e7eb !important' : '1px solid #e5e7eb',
-                      borderRight: '1px solid #e5e7eb',
-                      py: 1.5,
+                      borderBottom: '1px solid #e0e0e0',
+                      borderRight: 'none',
+                      py: 1.25,
+                      px: 2,
                       whiteSpace: 'nowrap',
-                      '&:last-child': {
-                        borderRight: 'none',
-                      },
+                      fontSize: '0.875rem',
+                      color: '#333333',
                     },
                   }}
                 >
@@ -414,6 +425,7 @@ export default function DataTable<T = any>({
         />
       )}
     </TableContainer>
+    </Box>
   );
 }
 

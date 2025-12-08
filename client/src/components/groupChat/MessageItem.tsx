@@ -1,6 +1,6 @@
 import { Box, Avatar, Typography, Paper, IconButton, Popover, MenuList, MenuItem, ListItemText, Link } from '@mui/material';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import DownloadIcon from '@mui/icons-material/Download';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEllipsisV, faDownload } from '@fortawesome/free-solid-svg-icons';
 import type { GroupMessage } from '../../services/api/groupChats';
 
 interface MessageItemProps {
@@ -134,7 +134,7 @@ export default function MessageItem({
                   },
                 }}
               >
-                <MoreVertIcon fontSize="small" />
+                <FontAwesomeIcon icon={faEllipsisV} style={{ fontSize: '16px' }} />
               </IconButton>
             )}
             <Paper
@@ -228,7 +228,7 @@ export default function MessageItem({
                               rel="noopener noreferrer"
                               sx={{ color: isOwn ? '#ffffff' : '#0084ff' }}
                             >
-                              <DownloadIcon fontSize="small" />
+                              <FontAwesomeIcon icon={faDownload} style={{ fontSize: '16px' }} />
                             </Link>
                           </>
                         )}

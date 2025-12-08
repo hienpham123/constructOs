@@ -5,7 +5,8 @@ import {
   Typography,
   LinearProgress,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPlus } from '@fortawesome/free-solid-svg-icons';
 import { usePersonnelStore } from '../stores/personnelStore';
 import DeleteConfirmDialog from '../components/DeleteConfirmDialog';
 import { DataTable, Button, SearchInput } from '../components/common';
@@ -26,11 +27,47 @@ export default function Personnel() {
   const [roles, setRoles] = useState<Role[]>([]);
   
   const searchInputRef = useRef<SearchInputRef>(null);
+  const prevSearchRef = useRef(search);
+  const prevPageRef = useRef(page);
+  const [showSkeleton, setShowSkeleton] = useState(false);
+  const [isSearchChanging, setIsSearchChanging] = useState(false);
+  const [isPageChanging, setIsPageChanging] = useState(false);
 
   useEffect(() => {
     fetchPersonnel(rowsPerPage, page, search.trim() || undefined, sortBy, sortOrder);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, sortBy, sortOrder, rowsPerPage, page]);
+
+  // Track when search or page changes
+  useEffect(() => {
+    if (prevSearchRef.current !== search) {
+      setIsSearchChanging(true);
+      prevSearchRef.current = search;
+    }
+  }, [search]);
+
+  useEffect(() => {
+    if (prevPageRef.current !== page) {
+      setIsPageChanging(true);
+      prevPageRef.current = page;
+    }
+  }, [page]);
+
+  // Determine when to show skeleton
+  useEffect(() => {
+    const isInitialLoad = personnel.length === 0 && isLoading;
+    
+    // Show skeleton for initial load, search change, or page change
+    // Don't show for sort only
+    if (isLoading) {
+      setShowSkeleton(isInitialLoad || isSearchChanging || isPageChanging);
+    } else {
+      // Reset flags when loading completes
+      setIsSearchChanging(false);
+      setIsPageChanging(false);
+      setShowSkeleton(false);
+    }
+  }, [isLoading, personnel.length, isSearchChanging, isPageChanging]);
 
   const handleSort = (field: string, order: 'asc' | 'desc') => {
     const backendField = mapSortField(field, 'personnel');
@@ -78,7 +115,7 @@ export default function Personnel() {
   }
 
   return (
-    <Box>
+    <Box sx={{ width: '100%', maxWidth: '100%', overflowX: 'hidden' }}>
       <Box 
         display="flex" 
         justifyContent="space-between" 
@@ -102,7 +139,7 @@ export default function Personnel() {
           <Button
             variant="contained"
             color="primary"
-            startIcon={<AddIcon />}
+            startIcon={<FontAwesomeIcon icon={faPlus} />}
             onClick={() => navigate('/personnel/add')}
             sx={{
               px: 2,
@@ -178,7 +215,7 @@ export default function Personnel() {
         onSort={handleSort}
         sortField={sortBy ? getReverseFieldMap('personnel')[sortBy] || sortBy : undefined}
         sortOrder={sortOrder}
-        loading={isLoading}
+        loading={showSkeleton}
         loadingRows={rowsPerPage}
       />
 

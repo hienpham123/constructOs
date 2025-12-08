@@ -8,6 +8,7 @@ interface SocketUser {
   userId: string;
   socketId: string;
   groups: Set<string>; // Group IDs user is in
+  conversations: Set<string>; // Conversation IDs user is in
 }
 
 const connectedUsers = new Map<string, SocketUser>();
@@ -47,6 +48,7 @@ export function initializeSocket(server: HTTPServer) {
         userId,
         socketId: socket.id,
         groups: new Set(),
+        conversations: new Set(),
       });
     } else {
       const user = connectedUsers.get(userId)!;
@@ -180,13 +182,15 @@ export function initializeSocket(server: HTTPServer) {
         if (members.length > 0) {
           const room = `group-${groupId}`;
           
-          // Broadcast to all members except sender
+          // Broadcast to all members EXCEPT sender (using socket.to())
+          // Sender already has the message in their UI
           socket.to(room).emit('message-received', {
             groupId,
             message,
+            senderId: userId, // Include senderId so frontend can filter if needed
           });
 
-          // Update unread count for other members
+          // Update unread count for other members only
           const allMembers = await query<any[]>(
             'SELECT user_id FROM group_members WHERE group_id = ? AND user_id != ?',
             [groupId, userId]
@@ -207,6 +211,139 @@ export function initializeSocket(server: HTTPServer) {
       }
     });
 
+    // ========== Direct Messages Socket Handlers ==========
+
+    // Join a conversation
+    socket.on('join-conversation', async (conversationId: string) => {
+      try {
+        // Verify user is part of conversation
+        const conversations = await query<any[]>(
+          'SELECT * FROM conversations WHERE id = ? AND (user1_id = ? OR user2_id = ?)',
+          [conversationId, userId, userId]
+        );
+
+        if (conversations.length > 0) {
+          const room = `conversation-${conversationId}`;
+          socket.join(room);
+          
+          const user = connectedUsers.get(userId);
+          if (user) {
+            user.conversations.add(conversationId);
+          }
+
+          console.log(`User ${userId} joined conversation ${conversationId}`);
+        }
+      } catch (error) {
+        console.error('Error joining conversation:', error);
+      }
+    });
+
+    // Leave a conversation
+    socket.on('leave-conversation', (conversationId: string) => {
+      const room = `conversation-${conversationId}`;
+      socket.leave(room);
+      
+      const user = connectedUsers.get(userId);
+      if (user) {
+        user.conversations.delete(conversationId);
+      }
+
+      console.log(`User ${userId} left conversation ${conversationId}`);
+    });
+
+    // Handle new direct message (broadcast to receiver)
+    socket.on('new-direct-message', async (data: { conversationId: string; receiverId: string; message: any }) => {
+      try {
+        const { conversationId, receiverId, message } = data;
+        
+        // Verify user is sender
+        const conversations = await query<any[]>(
+          'SELECT * FROM conversations WHERE id = ? AND (user1_id = ? OR user2_id = ?)',
+          [conversationId, userId, userId]
+        );
+
+        if (conversations.length > 0) {
+          const room = `conversation-${conversationId}`;
+          
+          // Broadcast to conversation room (including receiver if they're in the room)
+          socket.to(room).emit('direct-message-received', {
+            conversationId,
+            message,
+          });
+
+          // Also send to receiver's socket directly if they're connected
+          const receiverUser = connectedUsers.get(receiverId);
+          if (receiverUser) {
+            // Notify receiver about new message
+            io.to(receiverUser.socketId).emit('direct-message-received', {
+              conversationId,
+              message,
+            });
+          }
+
+          // Update conversation list for receiver
+          if (receiverUser) {
+            io.to(receiverUser.socketId).emit('conversation-updated', {
+              conversationId,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error broadcasting direct message:', error);
+      }
+    });
+
+    // Typing indicator for direct messages
+    socket.on('typing-start-direct', async (conversationId: string) => {
+      try {
+        const conversations = await query<any[]>(
+          'SELECT * FROM conversations WHERE id = ? AND (user1_id = ? OR user2_id = ?)',
+          [conversationId, userId, userId]
+        );
+
+        if (conversations.length > 0) {
+          const room = `conversation-${conversationId}`;
+          
+          // Get user info
+          const users = await query<any[]>(
+            'SELECT id, name, avatar FROM users WHERE id = ?',
+            [userId]
+          );
+
+          if (users.length > 0) {
+            socket.to(room).emit('user-typing-direct', {
+              conversationId,
+              userId,
+              userName: users[0].name,
+              isTyping: true,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error handling typing start (direct):', error);
+      }
+    });
+
+    socket.on('typing-stop-direct', async (conversationId: string) => {
+      try {
+        const conversations = await query<any[]>(
+          'SELECT * FROM conversations WHERE id = ? AND (user1_id = ? OR user2_id = ?)',
+          [conversationId, userId, userId]
+        );
+
+        if (conversations.length > 0) {
+          const room = `conversation-${conversationId}`;
+          socket.to(room).emit('user-typing-direct', {
+            conversationId,
+            userId,
+            isTyping: false,
+          });
+        }
+      } catch (error) {
+        console.error('Error handling typing stop (direct):', error);
+      }
+    });
+
     // Handle disconnect
     socket.on('disconnect', () => {
       console.log(`User disconnected: ${userId} (socket: ${socket.id})`);
@@ -223,8 +360,12 @@ export function initializeSocket(server: HTTPServer) {
   return io;
 }
 
-export function getIO() {
+export function getIO(): SocketIOServer | undefined {
   // This will be set after initialization
   return (global as any).io;
+}
+
+export function getConnectedUsers(): Map<string, SocketUser> {
+  return connectedUsers;
 }
 

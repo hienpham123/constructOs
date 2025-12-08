@@ -4,15 +4,14 @@ import {
   Container,
   Box,
   Paper,
-  TextField,
   Typography,
   Alert,
   InputAdornment,
   IconButton,
 } from '@mui/material';
-import { Button } from '../components/common';
-import Visibility from '@mui/icons-material/Visibility';
-import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import { Button, Input } from '../components/common';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { authAPI } from '../services/api';
 import logoImage from '../images/logo.svg';
 
@@ -271,7 +270,7 @@ export default function ResetPassword() {
                   Đặt lại mật khẩu thành công! Đang chuyển đến trang đăng nhập...
                 </Alert>
               )}
-              <TextField
+              <Input
                 margin="normal"
                 required
                 fullWidth
@@ -300,13 +299,13 @@ export default function ResetPassword() {
                         edge="end"
                         disabled={success}
                       >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                        {showPassword ? <FontAwesomeIcon icon={faEyeSlash} /> : <FontAwesomeIcon icon={faEye} />}
                       </IconButton>
                     </InputAdornment>
                   ),
                 }}
               />
-              <TextField
+              <Input
                 margin="normal"
                 required
                 fullWidth

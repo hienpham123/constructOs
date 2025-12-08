@@ -1056,6 +1056,11 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       updatedAt: created[0].updated_at,
     };
 
+    // Emit socket event for real-time update (broadcast to other members, not sender)
+    // Socket handler in socket.ts will handle the actual broadcast
+    // We just need to trigger the socket handler
+    // The socket handler already uses socket.to() to exclude sender
+    
     res.status(201).json(message);
   } catch (error: any) {
     console.error('Error sending message:', error);

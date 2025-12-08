@@ -1,5 +1,7 @@
-import { TextField, Select, MenuItem, FormControl, InputLabel, Box, SelectChangeEvent } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
+import { Select, MenuItem, FormControl, InputLabel, Box, SelectChangeEvent } from '@mui/material';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSearch } from '@fortawesome/free-solid-svg-icons';
+import { Input } from './Input';
 
 export interface SortOption {
   value: string;
@@ -36,13 +38,13 @@ export default function SearchSortControls({
         flexWrap: { xs: 'wrap', sm: 'nowrap' },
       }}
     >
-      <TextField
+      <Input
         fullWidth
         placeholder={searchPlaceholder}
         value={search}
         onChange={(e) => onSearchChange(e.target.value)}
         InputProps={{
-          startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+          startAdornment: <FontAwesomeIcon icon={faSearch} style={{ marginRight: 8, color: 'inherit' }} />,
         }}
         sx={{
           maxWidth: { xs: '100%', sm: 400 },

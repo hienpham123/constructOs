@@ -1,5 +1,6 @@
 import { Box, Typography, ListItem, ListItemButton, ListItemAvatar, ListItemText, Avatar, Badge } from '@mui/material';
-import PushPinIcon from '@mui/icons-material/PushPin';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faThumbtack } from '@fortawesome/free-solid-svg-icons';
 import { type GroupChat } from '../../services/api/groupChats';
 import { formatZaloTime } from '../../utils/dateFormat';
 import { useAuthStore } from '../../stores/authStore';
@@ -69,8 +70,9 @@ export default function GroupListItem({ group, isSelected, onClick }: GroupListI
           primary={
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
               {group.pinned && (
-                <PushPinIcon
-                  sx={{
+                <FontAwesomeIcon
+                  icon={faThumbtack}
+                  style={{
                     fontSize: 14,
                     color: '#e91e63',
                   }}

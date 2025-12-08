@@ -5,7 +5,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   Box,
-  TextField,
   Grid,
   Paper,
   Typography,
@@ -13,12 +12,12 @@ import {
   FormControlLabel,
   Checkbox,
 } from '@mui/material';
-import { Button } from '../components/common';
+import { Button, Input } from '../components/common';
 import Breadcrumb from '../components/common/Breadcrumb';
 import { rolesAPI } from '../services/api';
 import { showSuccess, showError } from '../utils/notifications';
-import SaveIcon from '@mui/icons-material/Save';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSave, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 
 const PERMISSION_LABELS: Record<string, string> = {
   view_drawing: 'Xem hồ sơ bản vẽ',
@@ -166,7 +165,7 @@ export default function RolesAddEdit() {
         >
           <Button
             variant="outlined"
-            startIcon={<ArrowBackIcon />}
+            startIcon={<FontAwesomeIcon icon={faArrowLeft} />}
             onClick={() => navigate('/roles')}
             sx={{ 
               minHeight: '36px',
@@ -179,7 +178,7 @@ export default function RolesAddEdit() {
             type="submit"
             variant="contained"
             color="primary"
-            startIcon={<SaveIcon />}
+            startIcon={<FontAwesomeIcon icon={faSave} />}
             disabled={isSubmitting}
             onClick={handleSubmit(onSubmit)}
             sx={{ 
@@ -200,7 +199,7 @@ export default function RolesAddEdit() {
                 name="name"
                 control={control}
                 render={({ field }) => (
-                  <TextField
+                  <Input
                     {...field}
                     fullWidth
                     label="Tên vai trò"
@@ -217,7 +216,7 @@ export default function RolesAddEdit() {
                 name="description"
                 control={control}
                 render={({ field }) => (
-                  <TextField
+                  <Input
                     {...field}
                     fullWidth
                     label="Mô tả"

@@ -1,5 +1,7 @@
-import { Box, TextField, InputAdornment } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
+import { Box, InputAdornment } from '@mui/material';
+import { Input } from '../common';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSearch } from '@fortawesome/free-solid-svg-icons';
 
 interface GroupListSearchProps {
   searchTerm: string;
@@ -9,7 +11,7 @@ interface GroupListSearchProps {
 export default function GroupListSearch({ searchTerm, onSearchChange }: GroupListSearchProps) {
   return (
     <Box sx={{ p: 1.5, borderBottom: '1px solid #e4e6eb' }}>
-      <TextField
+      <Input
         fullWidth
         size="small"
         placeholder="Nhập tên nhóm để tìm kiếm"
@@ -18,7 +20,7 @@ export default function GroupListSearch({ searchTerm, onSearchChange }: GroupLis
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
-              <SearchIcon sx={{ fontSize: 18, color: '#8a8d91' }} />
+              <FontAwesomeIcon icon={faSearch} style={{ fontSize: 18, color: '#8a8d91' }} />
             </InputAdornment>
           ),
         }}

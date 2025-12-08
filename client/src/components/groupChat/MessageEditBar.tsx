@@ -1,7 +1,8 @@
 import { useRef, useEffect } from 'react';
-import { Box, TextField, IconButton, Typography } from '@mui/material';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import CloseIcon from '@mui/icons-material/Close';
+import { Box, IconButton, Typography } from '@mui/material';
+import { Input } from '../common';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCheckCircle, faTimes } from '@fortawesome/free-solid-svg-icons';
 
 interface MessageEditBarProps {
   editingContent: string;
@@ -78,7 +79,7 @@ export default function MessageEditBar({
             },
           }}
         >
-          <CloseIcon fontSize="small" />
+          <FontAwesomeIcon icon={faTimes} style={{ fontSize: '16px' }} />
         </IconButton>
       </Box>
       {/* Edit Input */}
@@ -91,7 +92,7 @@ export default function MessageEditBar({
           alignItems: 'flex-end',
         }}
       >
-        <TextField
+        <Input
           fullWidth
           multiline
           maxRows={4}
@@ -140,7 +141,7 @@ export default function MessageEditBar({
             },
           }}
         >
-          <CheckCircleIcon />
+          <FontAwesomeIcon icon={faCheckCircle} />
         </IconButton>
       </Box>
     </Box>

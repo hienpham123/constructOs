@@ -1,6 +1,6 @@
 import { Box, Typography, Paper, Avatar, IconButton, Link, Popover, MenuList, MenuItem, ListItemText } from '@mui/material';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import DownloadIcon from '@mui/icons-material/Download';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEllipsisV, faDownload } from '@fortawesome/free-solid-svg-icons';
 import { formatDateTime } from '../../utils/dateFormat';
 import { getFileIcon, isImageFile, formatFileSize } from '../../utils/fileHelpers';
 
@@ -106,7 +106,7 @@ export default function CommentItem({
                 },
               }}
             >
-              <MoreVertIcon fontSize="small" />
+              <FontAwesomeIcon icon={faEllipsisV} style={{ fontSize: '16px' }} />
             </IconButton>
           )}
           <Paper
@@ -202,7 +202,7 @@ export default function CommentItem({
                             rel="noopener noreferrer"
                             sx={{ color: isOwn ? '#ffffff' : '#0084ff' }}
                           >
-                            <DownloadIcon fontSize="small" />
+                            <FontAwesomeIcon icon={faDownload} style={{ fontSize: '16px' }} />
                           </Link>
                         </>
                       )}

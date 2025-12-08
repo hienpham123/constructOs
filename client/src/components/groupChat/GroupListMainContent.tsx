@@ -1,5 +1,6 @@
 import { Box, Typography } from '@mui/material';
-import GroupIcon from '@mui/icons-material/Group';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faUsers } from '@fortawesome/free-solid-svg-icons';
 
 export default function GroupListMainContent() {
   return (
@@ -13,7 +14,7 @@ export default function GroupListMainContent() {
       }}
     >
       <Box sx={{ textAlign: 'center' }}>
-        <GroupIcon sx={{ fontSize: 96, color: '#ccc', mb: 2 }} />
+        <FontAwesomeIcon icon={faUsers} style={{ fontSize: 96, color: '#ccc', marginBottom: 16 }} />
         <Typography variant="h6" color="text.secondary" gutterBottom>
           Chọn một nhóm để bắt đầu chat
         </Typography>

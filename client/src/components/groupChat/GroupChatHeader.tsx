@@ -1,9 +1,6 @@
 import { Box, Avatar, Typography, IconButton, useMediaQuery, useTheme } from '@mui/material';
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
-import SearchIcon from '@mui/icons-material/Search';
-import FolderIcon from '@mui/icons-material/Folder';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faUserPlus, faSearch, faFolder, faEllipsisV, faArrowLeft, faUser } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 import type { GroupDetail } from '../../services/api/groupChats';
 
@@ -42,7 +39,7 @@ export default function GroupChatHeader({ group, onMembersClick, onMenuClick, on
           onClick={handleBack}
           sx={{ color: '#65676b', mr: -0.5 }}
         >
-          <ArrowBackIcon fontSize="small" />
+          <FontAwesomeIcon icon={faArrowLeft} style={{ fontSize: '16px' }} />
         </IconButton>
       )}
       <Avatar
@@ -62,35 +59,54 @@ export default function GroupChatHeader({ group, onMembersClick, onMenuClick, on
           variant="subtitle1"
           sx={{
             fontWeight: 600,
-            fontSize: '0.9375rem',
-            color: '#050505',
+            fontSize: '1.0625rem',
+            color: '#1877f2',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
+            mb: 0.25,
           }}
         >
           {group.name}
         </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <FontAwesomeIcon 
+            icon={faUser} 
+            style={{ 
+              fontSize: '12px', 
+              color: '#65676b' 
+            }} 
+          />
+          <Typography
+            variant="caption"
+            sx={{
+              fontSize: '0.8125rem',
+              color: '#65676b',
+            }}
+          >
+            {group.members?.length || 0} thành viên
+          </Typography>
+        </Box>
       </Box>
       <IconButton
         size="small"
         onClick={onMembersClick}
         sx={{ color: '#65676b' }}
       >
-        <PersonAddIcon fontSize="small" />
+        <FontAwesomeIcon icon={faUserPlus} style={{ fontSize: '16px' }} />
       </IconButton>
       <IconButton size="small" onClick={onSearchClick} sx={{ color: '#65676b' }}>
-        <SearchIcon fontSize="small" />
+        <FontAwesomeIcon icon={faSearch} style={{ fontSize: '16px' }} />
       </IconButton>
       <IconButton size="small" onClick={onFilesClick} sx={{ color: '#65676b' }}>
-        <FolderIcon fontSize="small" />
+        <FontAwesomeIcon icon={faFolder} style={{ fontSize: '16px' }} />
       </IconButton>
       <IconButton
         size="small"
         onClick={onMenuClick}
         sx={{ color: '#65676b' }}
       >
-        <MoreVertIcon fontSize="small" />
+        <FontAwesomeIcon icon={faEllipsisV} style={{ fontSize: '16px' }} />
       </IconButton>
     </Box>
   );

@@ -5,7 +5,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   Box,
-  TextField,
   Grid,
   Autocomplete,
   Paper,
@@ -15,10 +14,9 @@ import {
   Tab,
   Chip,
 } from '@mui/material';
-import { Button } from '../components/common';
-import SaveIcon from '@mui/icons-material/Save';
-import ExitToAppIcon from '@mui/icons-material/ExitToApp';
-import RefreshIcon from '@mui/icons-material/Refresh';
+import { Button, Input } from '../components/common';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSave, faSignOutAlt, faRefresh } from '@fortawesome/free-solid-svg-icons';
 import { PurchaseRequest } from '../types';
 import { useMaterialStore } from '../stores/materialStore';
 import { useProjectStore } from '../stores/projectStore';
@@ -260,7 +258,7 @@ export default function PurchaseRequestAddEdit() {
               <Button
                 variant="contained"
                 color="warning"
-                startIcon={<RefreshIcon />}
+                startIcon={<FontAwesomeIcon icon={faRefresh} />}
                 onClick={handleResubmit}
                 disabled={isSubmitting}
                 sx={{
@@ -274,7 +272,7 @@ export default function PurchaseRequestAddEdit() {
               <Button
                 variant="contained"
                 color="primary"
-                startIcon={<SaveIcon />}
+                startIcon={<FontAwesomeIcon icon={faSave} />}
                 onClick={handleSubmit(onSubmit)}
                 disabled={isSubmitting}
                 sx={{
@@ -286,7 +284,7 @@ export default function PurchaseRequestAddEdit() {
             )}
             <Button
               variant="outlined"
-              startIcon={<ExitToAppIcon />}
+              startIcon={<FontAwesomeIcon icon={faSignOutAlt} />}
               onClick={handleExit}
               sx={{
                 width: { xs: '100%', sm: 'auto' },
@@ -322,7 +320,7 @@ export default function PurchaseRequestAddEdit() {
                             onChange={(_, newValue) => field.onChange(newValue?.id || '')}
                             disabled={!canEdit && !!purchaseRequest}
                             renderInput={(params) => (
-                              <TextField
+                              <Input
                                 {...params}
                                 label="Vật tư *"
                                 placeholder="Tìm kiếm vật tư..."
@@ -348,7 +346,7 @@ export default function PurchaseRequestAddEdit() {
                         name="quantity"
                         control={control}
                         render={({ field }) => (
-                          <TextField
+                          <Input
                             fullWidth
                             label="Số lượng *"
                             type="number"
@@ -377,7 +375,7 @@ export default function PurchaseRequestAddEdit() {
                             onChange={(_, newValue) => field.onChange(newValue?.id || '')}
                             disabled={!canEdit && !!purchaseRequest}
                             renderInput={(params) => (
-                              <TextField
+                              <Input
                                 {...params}
                                 label="Dự án"
                                 placeholder="Chọn dự án (tùy chọn)..."
@@ -403,7 +401,7 @@ export default function PurchaseRequestAddEdit() {
                         name="reason"
                         control={control}
                         render={({ field }) => (
-                          <TextField
+                          <Input
                             {...field}
                             fullWidth
                             label="Lý do *"
@@ -439,7 +437,7 @@ export default function PurchaseRequestAddEdit() {
                     </Grid>
                     {purchaseRequest.approvedBy && (
                       <Grid item xs={12} sm={6}>
-                        <TextField
+                        <Input
                           fullWidth
                           label="Người duyệt"
                           value={purchaseRequest.approvedBy}
@@ -449,7 +447,7 @@ export default function PurchaseRequestAddEdit() {
                     )}
                     {purchaseRequest.projectName && (
                       <Grid item xs={12} sm={6}>
-                        <TextField
+                        <Input
                           fullWidth
                           label="Dự án"
                           value={purchaseRequest.projectName}
@@ -484,7 +482,7 @@ export default function PurchaseRequestAddEdit() {
                       value={materials.find((m) => m.id === field.value) || null}
                       onChange={(_, newValue) => field.onChange(newValue?.id || '')}
                       renderInput={(params) => (
-                        <TextField
+                        <Input
                           {...params}
                           label="Vật tư *"
                           placeholder="Tìm kiếm vật tư..."
@@ -510,7 +508,7 @@ export default function PurchaseRequestAddEdit() {
                   name="quantity"
                   control={control}
                   render={({ field }) => (
-                    <TextField
+                              <Input
                       fullWidth
                       label="Số lượng *"
                       type="number"
@@ -537,7 +535,7 @@ export default function PurchaseRequestAddEdit() {
                       value={projects.find((p) => p.id === field.value) || null}
                       onChange={(_, newValue) => field.onChange(newValue?.id || '')}
                       renderInput={(params) => (
-                        <TextField
+                        <Input
                           {...params}
                           label="Dự án"
                           placeholder="Chọn dự án (tùy chọn)..."
@@ -563,7 +561,7 @@ export default function PurchaseRequestAddEdit() {
                   name="reason"
                   control={control}
                   render={({ field }) => (
-                    <TextField
+                              <Input
                       {...field}
                       fullWidth
                       label="Lý do *"

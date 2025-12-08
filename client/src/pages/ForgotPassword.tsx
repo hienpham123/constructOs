@@ -4,11 +4,10 @@ import {
   Container,
   Box,
   Paper,
-  TextField,
   Typography,
   Alert,
 } from '@mui/material';
-import { Button } from '../components/common';
+import { Button, Input } from '../components/common';
 import { authAPI } from '../services/api';
 import logoImage from '../images/logo.svg';
 
@@ -122,7 +121,7 @@ export default function ForgotPassword() {
                   Nếu email tồn tại, chúng tôi đã gửi link đặt lại mật khẩu. Vui lòng kiểm tra email.
                 </Alert>
               )}
-              <TextField
+              <Input
                 margin="normal"
                 required
                 fullWidth

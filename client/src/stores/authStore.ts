@@ -9,6 +9,7 @@ interface AuthUser {
   email: string;
   phone?: string;
   role: 'admin' | 'project_manager' | 'accountant' | 'warehouse' | 'site_manager' | 'engineer' | 'client';
+  role_description?: string;
   status?: string;
   avatar?: string;
   createdAt?: string;

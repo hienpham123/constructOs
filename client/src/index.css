@@ -4,16 +4,46 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-x: hidden !important;
+  width: 100%;
+  max-width: 100vw;
+}
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: SegoeuiPc,Segoe UI,San Francisco,Helvetica Neue,Helvetica,Lucida Grande,Roboto,Ubuntu,Tahoma,Microsoft Sans Serif,Arial,sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden !important;
+  width: 100%;
+  max-width: 100vw;
+  position: relative;
 }
 
 #root {
   width: 100%;
   height: 100vh;
+  overflow-x: hidden !important;
+  max-width: 100vw;
+  position: relative;
+}
+
+/* DatePicker border-radius - Apply to all DatePicker inputs */
+.MuiPickersInputBase-root,
+.MuiPickersOutlinedInput-root,
+.MuiPickersInputBase-root.MuiPickersOutlinedInput-root,
+[class*="MuiPickers"] .MuiOutlinedInput-root,
+[class*="MuiPickers"] .MuiOutlinedInput-root fieldset,
+[class*="MuiPickers"] .MuiOutlinedInput-notchedOutline,
+.MuiPickersTextField-root .MuiOutlinedInput-root,
+.MuiPickersTextField-root .MuiOutlinedInput-root fieldset,
+.MuiPickersTextField-root .MuiOutlinedInput-notchedOutline {
+  border-radius: 4px !important;
+}
+
+.MuiPickersInputBase-root fieldset,
+.MuiPickersOutlinedInput-root fieldset,
+.MuiPickersInputBase-root.MuiPickersOutlinedInput-root fieldset {
+  border-radius: 4px !important;
 }
 

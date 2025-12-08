@@ -5,7 +5,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   Box,
-  TextField,
   Grid,
   MenuItem,
   FormControl,
@@ -20,17 +19,20 @@ import {
   styled,
   CircularProgress,
 } from '@mui/material';
-import { Button } from '../components/common';
-import DeleteIcon from '@mui/icons-material/Delete';
-import DownloadIcon from '@mui/icons-material/Download';
-import ImageIcon from '@mui/icons-material/Image';
-import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
-import DescriptionIcon from '@mui/icons-material/Description';
-import TableChartIcon from '@mui/icons-material/TableChart';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import HomeIcon from '@mui/icons-material/Home';
-import SaveIcon from '@mui/icons-material/Save';
-import ExitToAppIcon from '@mui/icons-material/ExitToApp';
+import { Button, Input } from '../components/common';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { 
+  faTrash, 
+  faDownload, 
+  faImage, 
+  faFilePdf, 
+  faFileAlt, 
+  faTable, 
+  faUpload, 
+  faHome, 
+  faSave, 
+  faSignOutAlt 
+} from '@fortawesome/free-solid-svg-icons';
 import { MaterialTransaction } from '../types';
 import { useMaterialStore } from '../stores/materialStore';
 import { useProjectStore } from '../stores/projectStore';
@@ -170,13 +172,13 @@ export default function TransactionAddEdit() {
   };
 
   const getFileIcon = (url: string) => {
-    if (!url) return <DescriptionIcon />;
+    if (!url) return <FontAwesomeIcon icon={faFileAlt} />;
     const lowerUrl = url.toLowerCase();
-    if (lowerUrl.includes('.pdf')) return <PictureAsPdfIcon />;
-    if (lowerUrl.includes('.xls') || lowerUrl.includes('.xlsx') || lowerUrl.includes('.csv')) return <TableChartIcon />;
-    if (lowerUrl.includes('.doc') || lowerUrl.includes('.docx')) return <DescriptionIcon />;
-    if (isImageUrl(url)) return <ImageIcon />;
-    return <DescriptionIcon />;
+    if (lowerUrl.includes('.pdf')) return <FontAwesomeIcon icon={faFilePdf} />;
+    if (lowerUrl.includes('.xls') || lowerUrl.includes('.xlsx') || lowerUrl.includes('.csv')) return <FontAwesomeIcon icon={faTable} />;
+    if (lowerUrl.includes('.doc') || lowerUrl.includes('.docx')) return <FontAwesomeIcon icon={faFileAlt} />;
+    if (isImageUrl(url)) return <FontAwesomeIcon icon={faImage} />;
+    return <FontAwesomeIcon icon={faFileAlt} />;
   };
 
   const getFileName = (url: string): string => {
@@ -407,7 +409,7 @@ export default function TransactionAddEdit() {
             onClick={() => navigate('/')}
             sx={{ textDecoration: 'none', color: 'text.primary', cursor: 'pointer' }}
           >
-            <HomeIcon sx={{ mr: 0.5, verticalAlign: 'middle', fontSize: 20 }} />
+            <FontAwesomeIcon icon={faHome} style={{ marginRight: 4, verticalAlign: 'middle', fontSize: 20 }} />
             Trang chủ
           </Link>
           <Link
@@ -447,7 +449,7 @@ export default function TransactionAddEdit() {
             <Button
               variant="contained"
               color="primary"
-              startIcon={<SaveIcon />}
+              startIcon={<FontAwesomeIcon icon={faSave} />}
               onClick={handleSubmit(onSubmit)}
               disabled={isSubmitting}
               sx={{
@@ -458,7 +460,7 @@ export default function TransactionAddEdit() {
             </Button>
             <Button
               variant="outlined"
-              startIcon={<ExitToAppIcon />}
+              startIcon={<FontAwesomeIcon icon={faSignOutAlt} />}
               onClick={handleExit}
               sx={{
                 width: { xs: '100%', sm: 'auto' },
@@ -484,7 +486,7 @@ export default function TransactionAddEdit() {
                     value={field.value ? materials.find((m) => m.id === field.value) || null : null}
                     onChange={(_, newValue) => field.onChange(newValue?.id || '')}
                     renderInput={(params) => (
-                      <TextField
+                      <Input
                         {...params}
                         label="Vật tư *"
                         placeholder="Tìm kiếm vật tư..."
@@ -527,7 +529,7 @@ export default function TransactionAddEdit() {
                 name="quantity"
                 control={control}
                 render={({ field }) => (
-                  <TextField
+                  <Input
                     fullWidth
                     label="Số lượng *"
                     type="number"
@@ -554,7 +556,7 @@ export default function TransactionAddEdit() {
                     value={field.value ? projects.find((p) => p.id === field.value) || null : null}
                     onChange={(_, newValue) => field.onChange(newValue?.id || '')}
                     renderInput={(params) => (
-                      <TextField
+                      <Input
                         {...params}
                         label="Dự án"
                         placeholder="Tìm kiếm dự án..."
@@ -581,7 +583,7 @@ export default function TransactionAddEdit() {
                 name="reason"
                 control={control}
                 render={({ field }) => (
-                  <TextField
+                  <Input
                     {...field}
                     fullWidth
                     label="Lý do *"
@@ -605,7 +607,7 @@ export default function TransactionAddEdit() {
                         role={undefined}
                         variant="outlined"
                         tabIndex={-1}
-                        startIcon={<CloudUploadIcon />}
+                        startIcon={<FontAwesomeIcon icon={faUpload} />}
                       >
                         Tải file lên
                         <VisuallyHiddenInput
@@ -681,7 +683,7 @@ export default function TransactionAddEdit() {
                                       },
                                     }}
                                   >
-                                    <DeleteIcon fontSize="small" />
+                                    <FontAwesomeIcon icon={faTrash} style={{ fontSize: '16px' }} />
                                   </IconButton>
                                   <Box
                                     component="img"
@@ -750,7 +752,7 @@ export default function TransactionAddEdit() {
                                       },
                                     }}
                                   >
-                                    <DeleteIcon fontSize="small" />
+                                    <FontAwesomeIcon icon={faTrash} style={{ fontSize: '16px' }} />
                                   </IconButton>
                                   <Box display="flex" alignItems="center" gap={1} mb={1}>
                                     {getFileIcon(url)}
@@ -814,7 +816,7 @@ export default function TransactionAddEdit() {
                                     }}
                                     sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.75rem' }}
                                   >
-                                    <DownloadIcon fontSize="small" />
+                                    <FontAwesomeIcon icon={faDownload} style={{ fontSize: '16px' }} />
                                     <Typography variant="caption">Tải về</Typography>
                                   </Link>
                                 </Paper>

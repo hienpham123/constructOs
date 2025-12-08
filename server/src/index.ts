@@ -15,6 +15,7 @@ import projectCommentRoutes from './routes/projectCommentRoutes.js';
 import purchaseRequestCommentRoutes from './routes/purchaseRequestCommentRoutes.js';
 import transactionAttachmentRoutes from './routes/transactionAttachmentRoutes.js';
 import groupChatRoutes from './routes/groupChatRoutes.js';
+import directMessageRoutes from './routes/directMessageRoutes.js';
 // Import database connection (test connection on startup)
 import './config/db.js';
 import { initializeSocket } from './utils/socket.js';
@@ -53,6 +54,7 @@ app.use('/api/project-comments', projectCommentRoutes);
 app.use('/api/purchase-request-comments', purchaseRequestCommentRoutes);
 app.use('/api/transaction-attachments', transactionAttachmentRoutes);
 app.use('/api/group-chats', groupChatRoutes);
+app.use('/api/direct-messages', directMessageRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

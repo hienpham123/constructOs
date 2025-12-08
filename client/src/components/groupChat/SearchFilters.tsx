@@ -1,5 +1,6 @@
-import { Box, Typography, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { Box, Typography } from '@mui/material';
+import { DatePicker } from '../common';
+import PeoplePicker, { type PeoplePickerOption } from '../common/PeoplePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { Dayjs } from 'dayjs';
@@ -24,6 +25,32 @@ export default function SearchFilters({
   onStartDateChange,
   onEndDateChange,
 }: SearchFiltersProps) {
+  // Convert members to PeoplePickerOption format
+  const memberOptions: PeoplePickerOption[] = members.map((member) => ({
+    id: member.userId,
+    name: member.name,
+    avatar: member.avatar,
+  }));
+
+  // Find selected member option
+  const selectedMember = selectedSenderId
+    ? memberOptions.find((m) => m.id === selectedSenderId) || null
+    : null;
+
+  // Add "Tất cả" option
+  const allOptions: PeoplePickerOption[] = [
+    { id: '', name: 'Tất cả', avatar: null },
+    ...memberOptions,
+  ];
+
+  const handleSenderChange = (value: PeoplePickerOption | null) => {
+    if (!value || value.id === '') {
+      onSenderChange(undefined);
+    } else {
+      onSenderChange(value.id);
+    }
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="vi">
       <Box sx={{ mb: 2 }}>
@@ -33,63 +60,47 @@ export default function SearchFilters({
         
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {/* Filter by sender */}
-          <FormControl fullWidth size="small">
-            <InputLabel>Người gửi</InputLabel>
-            <Select
-              value={selectedSenderId || ''}
-              label="Người gửi"
-              onChange={(e) => onSenderChange(e.target.value || undefined)}
-              sx={{
-                '& .MuiSelect-select': {
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                },
-              }}
-            >
-              <MenuItem value="">Tất cả</MenuItem>
-              {members.map((member) => (
-                <MenuItem key={member.userId} value={member.userId}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    {member.avatar && (
-                      <Box
-                        component="img"
-                        src={member.avatar}
-                        alt={member.name}
-                        sx={{ width: 24, height: 24, borderRadius: '50%' }}
-                      />
-                    )}
-                    <Typography>{member.name}</Typography>
-                  </Box>
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <PeoplePicker
+            label="Người gửi"
+            placeholder="Chọn người gửi..."
+            multiple={false}
+            value={selectedMember}
+            onChange={(value) => handleSenderChange(value as PeoplePickerOption | null)}
+            options={allOptions}
+            size="small"
+            fullWidth
+          />
 
           {/* Filter by date */}
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <DatePicker
-              label="Từ ngày"
-              value={startDate}
-              onChange={onStartDateChange}
-              slotProps={{
-                textField: {
-                  size: 'small',
-                  fullWidth: true,
-                },
-              }}
-            />
-            <DatePicker
-              label="Đến ngày"
-              value={endDate}
-              onChange={onEndDateChange}
-              slotProps={{
-                textField: {
-                  size: 'small',
-                  fullWidth: true,
-                },
-              }}
-            />
+          <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <DatePicker
+                label="Từ ngày"
+                value={startDate}
+                onChange={onStartDateChange}
+                slotProps={{
+                  textField: {
+                    size: 'small',
+                    fullWidth: true,
+                  },
+                }}
+                sx={{ width: '100%' }}
+              />
+            </Box>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <DatePicker
+                label="Đến ngày"
+                value={endDate}
+                onChange={onEndDateChange}
+                slotProps={{
+                  textField: {
+                    size: 'small',
+                    fullWidth: true,
+                  },
+                }}
+                sx={{ width: '100%' }}
+              />
+            </Box>
           </Box>
         </Box>
       </Box>

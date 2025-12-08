@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import {
   Box,
-  TextField,
   IconButton,
   Popover,
   Chip,
 } from '@mui/material';
-import SendIcon from '@mui/icons-material/Send';
-import AttachFileIcon from '@mui/icons-material/AttachFile';
-import InsertEmoticonIcon from '@mui/icons-material/InsertEmoticon';
+import { Input } from '../common';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPaperPlane, faPaperclip, faSmile, faImage } from '@fortawesome/free-solid-svg-icons';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import { getFileIcon } from '../../utils/fileHelpers';
 
@@ -58,25 +57,25 @@ export default function MessageInput({
             size="small"
             onClick={(e) => setEmojiPickerAnchor(e.currentTarget)}
             sx={{
-              color: '#65676b',
+              color: '#1877f2',
               '&:hover': {
-                bgcolor: '#f0f2f5',
+                bgcolor: '#e7f3ff',
               },
             }}
           >
-            <InsertEmoticonIcon fontSize="small" />
+            <FontAwesomeIcon icon={faSmile} style={{ fontSize: '20px' }} />
           </IconButton>
           <IconButton
             component="label"
             size="small"
             sx={{
-              color: '#65676b',
+              color: '#1877f2',
               '&:hover': {
-                bgcolor: '#f0f2f5',
+                bgcolor: '#e7f3ff',
               },
             }}
           >
-            {getFileIcon('image/*')}
+            <FontAwesomeIcon icon={faImage} style={{ fontSize: '20px' }} />
             <input
               ref={imageInputRef}
               type="file"
@@ -90,13 +89,13 @@ export default function MessageInput({
             component="label"
             size="small"
             sx={{
-              color: '#65676b',
+              color: '#1877f2',
               '&:hover': {
-                bgcolor: '#f0f2f5',
+                bgcolor: '#e7f3ff',
               },
             }}
           >
-            <AttachFileIcon fontSize="small" />
+            <FontAwesomeIcon icon={faPaperclip} style={{ fontSize: '20px' }} />
             <input
               ref={fileInputRef}
               type="file"
@@ -131,7 +130,7 @@ export default function MessageInput({
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
         >
-          <TextField
+          <Input
             inputRef={textInputRef}
             fullWidth
             multiline
@@ -214,9 +213,9 @@ export default function MessageInput({
             }}
           >
             {content || selectedFiles.length > 0 ? (
-              <SendIcon fontSize="small" />
+              <FontAwesomeIcon icon={faPaperPlane} style={{ fontSize: '16px' }} />
             ) : (
-              <InsertEmoticonIcon fontSize="small" />
+              <FontAwesomeIcon icon={faSmile} style={{ fontSize: '16px' }} />
             )}
           </IconButton>
         </Box>

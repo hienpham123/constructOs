@@ -1,8 +1,8 @@
 import React from 'react';
-import { Box, TextField, IconButton, Chip, Popover } from '@mui/material';
-import SendIcon from '@mui/icons-material/Send';
-import AttachFileIcon from '@mui/icons-material/AttachFile';
-import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
+import { Box, IconButton, Chip, Popover } from '@mui/material';
+import { Input } from '../common';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPaperPlane, faPaperclip, faSmile } from '@fortawesome/free-solid-svg-icons';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import { getFileIcon } from '../../utils/fileHelpers';
 
@@ -68,7 +68,7 @@ export default function CommentInput({
               },
             }}
           >
-            <AttachFileIcon fontSize="small" />
+            <FontAwesomeIcon icon={faPaperclip} style={{ fontSize: '16px' }} />
             <input
               ref={fileInputRef}
               type="file"
@@ -88,12 +88,12 @@ export default function CommentInput({
               },
             }}
           >
-            <EmojiEmotionsIcon fontSize="small" />
+            <FontAwesomeIcon icon={faSmile} style={{ fontSize: '16px' }} />
           </IconButton>
         </Box>
         {/* Input Field */}
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', px: 2, py: 1.5 }}>
-          <TextField
+          <Input
             fullWidth
             multiline
             maxRows={4}
@@ -138,7 +138,7 @@ export default function CommentInput({
               },
             }}
           >
-            <SendIcon fontSize="small" />
+            <FontAwesomeIcon icon={faPaperPlane} style={{ fontSize: '16px' }} />
           </IconButton>
         </Box>
       </Box>

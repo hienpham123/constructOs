@@ -3,7 +3,6 @@ import {
   Box,
   Typography,
   Paper,
-  TextField,
   Grid,
   Avatar,
   Alert,
@@ -13,9 +12,9 @@ import {
   IconButton,
   Tooltip,
 } from '@mui/material';
-import { Button } from '../components/common';
-import SaveIcon from '@mui/icons-material/Save';
-import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
+import { Button, Input } from '../components/common';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSave, faCamera } from '@fortawesome/free-solid-svg-icons';
 import { useAuthStore } from '../stores/authStore';
 import { usersAPI } from '../services/api';
 import { formatDate, formatDateTime } from '../utils/dateFormat';
@@ -248,7 +247,7 @@ export default function Profile() {
                   {uploadingAvatar ? (
                     <CircularProgress size={20} color="inherit" />
                   ) : (
-                    <PhotoCameraIcon />
+                    <FontAwesomeIcon icon={faCamera} />
                   )}
                 </IconButton>
               </Tooltip>
@@ -306,7 +305,7 @@ export default function Profile() {
             <form onSubmit={handleSubmit}>
               <Grid container spacing={2}>
                 <Grid item xs={12}>
-                  <TextField
+                  <Input
                     fullWidth
                     label="Họ và tên"
                     name="name"
@@ -316,7 +315,7 @@ export default function Profile() {
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField
+                  <Input
                     fullWidth
                     label="Email"
                     name="email"
@@ -328,7 +327,7 @@ export default function Profile() {
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField
+                  <Input
                     fullWidth
                     label="Số điện thoại"
                     name="phone"
@@ -341,7 +340,7 @@ export default function Profile() {
                     type="submit"
                     variant="contained"
                     color="primary"
-                    startIcon={loading ? <CircularProgress size={20} /> : <SaveIcon />}
+                    startIcon={loading ? <CircularProgress size={20} /> : <FontAwesomeIcon icon={faSave} />}
                     disabled={loading}
                   >
                     {loading ? 'Đang lưu...' : 'Lưu thay đổi'}

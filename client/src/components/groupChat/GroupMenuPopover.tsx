@@ -1,7 +1,6 @@
 import { Popover, MenuList, MenuItem, ListItemText } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
-import PushPinIcon from '@mui/icons-material/PushPin';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEdit, faThumbtack, faTrash } from '@fortawesome/free-solid-svg-icons';
 import type { GroupDetail } from '../../services/api/groupChats';
 import { groupChatsAPI } from '../../services/api/groupChats';
 
@@ -84,11 +83,25 @@ export default function GroupMenuPopover({
             onEditClick();
           }}
         >
-          <EditIcon sx={{ mr: 1, fontSize: 20 }} />
+          <FontAwesomeIcon 
+            icon={faEdit} 
+            style={{ 
+              marginRight: 8, 
+              fontSize: 20,
+              color: '#65676b',
+            }} 
+          />
           <ListItemText>Chỉnh sửa nhóm</ListItemText>
         </MenuItem>
         <MenuItem onClick={handlePinToggle}>
-          <PushPinIcon sx={{ mr: 1, fontSize: 20 }} />
+          <FontAwesomeIcon 
+            icon={faThumbtack} 
+            style={{ 
+              marginRight: 8, 
+              fontSize: 20,
+              color: '#65676b',
+            }} 
+          />
           <ListItemText>{group?.pinned ? 'Bỏ ghim nhóm' : 'Ghim nhóm'}</ListItemText>
         </MenuItem>
         {group?.createdBy === currentUserId && (
@@ -107,7 +120,14 @@ export default function GroupMenuPopover({
             },
           }}
         >
-          <DeleteIcon sx={{ mr: 1, fontSize: 20 }} />
+          <FontAwesomeIcon 
+            icon={faTrash} 
+            style={{ 
+              marginRight: 8, 
+              fontSize: 20,
+              color: '#d32f2f',
+            }} 
+          />
           <ListItemText>Xóa nhóm</ListItemText>
         </MenuItem>
         )}

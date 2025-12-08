@@ -1,5 +1,7 @@
-import { Box, List, Button } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
+import { Box, List } from '@mui/material';
+import { Button } from '../common';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPlus } from '@fortawesome/free-solid-svg-icons';
 import { type GroupChat } from '../../services/api/groupChats';
 import GroupListSearch from './GroupListSearch';
 import GroupListTabs from './GroupListTabs';
@@ -99,7 +101,7 @@ export default function GroupListSidebar({
         <Button
           variant="contained"
           fullWidth
-          startIcon={<AddIcon />}
+          startIcon={<FontAwesomeIcon icon={faPlus} />}
           onClick={onCreateGroup}
           sx={{
             textTransform: 'none',

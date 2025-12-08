@@ -5,15 +5,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   Box,
-  TextField,
   Paper,
   Typography,
   Breadcrumbs,
   Link,
   CircularProgress,
 } from '@mui/material';
-import { Button } from '../components/common';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { Button, Input, DatePicker } from '../components/common';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import 'dayjs/locale/vi';
@@ -21,9 +19,8 @@ import dayjs from 'dayjs';
 import { dailyReportsAPI } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 import { showSuccess, showError } from '../utils/notifications';
-import HomeIcon from '@mui/icons-material/Home';
-import SaveIcon from '@mui/icons-material/Save';
-import ExitToAppIcon from '@mui/icons-material/ExitToApp';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faHome, faSave, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 
 const dailyReportSchema = z.object({
   content: z.string().min(1, 'Nội dung báo cáo là bắt buộc'),
@@ -171,7 +168,7 @@ export default function DailyReportAddEdit() {
             }}
             sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
           >
-            <HomeIcon fontSize="small" />
+            <FontAwesomeIcon icon={faHome} style={{ fontSize: '16px' }} />
             Trang chủ
           </Link>
           <Link
@@ -205,7 +202,7 @@ export default function DailyReportAddEdit() {
               </Typography>
               <Button
                 variant="outlined"
-                startIcon={<ExitToAppIcon />}
+                startIcon={<FontAwesomeIcon icon={faSignOutAlt} />}
                 onClick={() => navigate('/daily-reports')}
               >
                 Quay lại
@@ -228,7 +225,7 @@ export default function DailyReportAddEdit() {
                   type="submit"
                   variant="contained"
                   color="primary"
-                  startIcon={<SaveIcon />}
+                  startIcon={<FontAwesomeIcon icon={faSave} />}
                   disabled={loading}
                   sx={{
                     width: { xs: '100%', sm: 'auto' },
@@ -239,7 +236,7 @@ export default function DailyReportAddEdit() {
               )}
               <Button
                 variant="outlined"
-                startIcon={<ExitToAppIcon />}
+                startIcon={<FontAwesomeIcon icon={faSignOutAlt} />}
                 onClick={() => navigate('/daily-reports')}
                 disabled={loading}
                 sx={{
@@ -259,7 +256,7 @@ export default function DailyReportAddEdit() {
                     label="Ngày báo cáo *"
                     value={field.value}
                     onChange={field.onChange}
-                    disabled={isViewMode}
+                    disabled={true}
                     slotProps={{
                       textField: {
                         variant: 'outlined',
@@ -276,7 +273,7 @@ export default function DailyReportAddEdit() {
                 name="content"
                 control={control}
                 render={({ field }) => (
-                  <TextField
+                  <Input
                     {...field}
                     label="Nội dung báo cáo *"
                     multiline
@@ -294,7 +291,7 @@ export default function DailyReportAddEdit() {
                 name="suggestion"
                 control={control}
                 render={({ field }) => (
-                  <TextField
+                  <Input
                     {...field}
                     label="Đề xuất"
                     multiline
@@ -312,7 +309,7 @@ export default function DailyReportAddEdit() {
                 name="time_slot"
                 control={control}
                 render={({ field }) => (
-                  <TextField
+                  <Input
                     {...field}
                     label="Khung giờ"
                     placeholder="Ví dụ: 08:00-12:00, 13:00-17:00"
@@ -329,7 +326,7 @@ export default function DailyReportAddEdit() {
                 name="location"
                 control={control}
                 render={({ field }) => (
-                  <TextField
+                  <Input
                     {...field}
                     label="Vị trí"
                     placeholder="Ví dụ: Công trường A, Văn phòng"

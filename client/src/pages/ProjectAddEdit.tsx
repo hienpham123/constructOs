@@ -7,7 +7,6 @@ import { Dayjs } from 'dayjs';
 import dayjs from '../config/dayjs';
 import {
   Box,
-  TextField,
   Grid,
   MenuItem,
   FormControl,
@@ -17,9 +16,8 @@ import {
   Typography,
   CircularProgress,
 } from '@mui/material';
-import { Button } from '../components/common';
+import { Button, Input, DatePicker } from '../components/common';
 import Breadcrumb from '../components/common/Breadcrumb';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import 'dayjs/locale/vi';
@@ -30,8 +28,8 @@ import { projectsAPI } from '../services/api';
 import { normalizeProject } from '../utils/normalize';
 import { formatCurrencyInput, parseCurrencyInput } from '../utils/currencyFormat';
 import { normalizeNumber } from '../utils/normalize';
-import SaveIcon from '@mui/icons-material/Save';
-import ExitToAppIcon from '@mui/icons-material/ExitToApp';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSave, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 
 const projectSchema = z.object({
   name: z.string().min(1, 'Tên dự án là bắt buộc'),
@@ -229,7 +227,7 @@ export default function ProjectAddEdit() {
               <Button
                 variant="contained"
                 color="primary"
-                startIcon={<SaveIcon />}
+                startIcon={<FontAwesomeIcon icon={faSave} />}
                 onClick={handleSubmit(onSubmit)}
                 disabled={isSubmitting}
                 sx={{
@@ -240,7 +238,7 @@ export default function ProjectAddEdit() {
               </Button>
               <Button
                 variant="outlined"
-                startIcon={<ExitToAppIcon />}
+                startIcon={<FontAwesomeIcon icon={faSignOutAlt} />}
                 onClick={handleExit}
                 sx={{
                   width: { xs: '100%', sm: 'auto' },
@@ -261,7 +259,7 @@ export default function ProjectAddEdit() {
                   name="name"
                   control={control}
                   render={({ field }) => (
-                    <TextField
+                    <Input
                       {...field}
                       label="Tên dự án *"
                       fullWidth
@@ -276,7 +274,7 @@ export default function ProjectAddEdit() {
                   name="investor"
                   control={control}
                   render={({ field }) => (
-                    <TextField
+                    <Input
                       {...field}
                       label="Chủ đầu tư *"
                       fullWidth
@@ -291,7 +289,7 @@ export default function ProjectAddEdit() {
                   name="contactPerson"
                   control={control}
                   render={({ field }) => (
-                    <TextField
+                    <Input
                       {...field}
                       label="Đầu mối"
                       fullWidth
@@ -306,7 +304,7 @@ export default function ProjectAddEdit() {
                   name="location"
                   control={control}
                   render={({ field }) => (
-                    <TextField
+                    <Input
                       {...field}
                       label="Địa điểm *"
                       fullWidth
@@ -361,7 +359,7 @@ export default function ProjectAddEdit() {
                   name="budget"
                   control={control}
                   render={({ field }) => (
-                    <TextField
+                    <Input
                       {...field}
                       label="Ngân sách *"
                       fullWidth
@@ -404,7 +402,7 @@ export default function ProjectAddEdit() {
                   name="description"
                   control={control}
                   render={({ field }) => (
-                    <TextField
+                    <Input
                       {...field}
                       label="Mô tả"
                       fullWidth
@@ -421,7 +419,7 @@ export default function ProjectAddEdit() {
                   name="progress"
                   control={control}
                   render={({ field }) => (
-                    <TextField
+                    <Input
                       {...field}
                       label="Tiến độ (%) *"
                       fullWidth

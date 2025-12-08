@@ -14,21 +14,26 @@ import {
   Collapse,
   alpha,
 } from '@mui/material';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import ConstructionIcon from '@mui/icons-material/Construction';
-import InventoryIcon from '@mui/icons-material/Inventory';
-import PeopleIcon from '@mui/icons-material/People';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ExpandLess from '@mui/icons-material/ExpandLess';
-import ExpandMore from '@mui/icons-material/ExpandMore';
-import ListAltIcon from '@mui/icons-material/ListAlt';
-import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import SecurityIcon from '@mui/icons-material/Security';
-import AssessmentIcon from '@mui/icons-material/Assessment';
-import DescriptionIcon from '@mui/icons-material/Description';
-import ChatIcon from '@mui/icons-material/Chat';
 import IconButton from '@mui/material/IconButton';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faHome,
+  faFolder,
+  faBox,
+  faUser,
+  faUsers,
+  faLock,
+  faChartBar,
+  faFileAlt,
+  faComments,
+  faListAlt,
+  faExchangeAlt,
+  faShoppingCart,
+  faChevronLeft,
+  faChevronRight,
+  faChevronDown,
+  faChevronUp,
+} from '@fortawesome/free-solid-svg-icons';
 import logoImage from '../../images/logo.svg';
 
 const drawerWidth = 280;
@@ -42,27 +47,27 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
-  { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-  { text: 'Dự án', icon: <ConstructionIcon />, path: '/projects' },
+  { text: 'Dashboard', icon: <FontAwesomeIcon icon={faHome} />, path: '/' },
+  { text: 'Dự án', icon: <FontAwesomeIcon icon={faFolder} />, path: '/projects' },
   {
     text: 'Vật tư',
-    icon: <InventoryIcon />,
+    icon: <FontAwesomeIcon icon={faBox} />,
     path: '/materials',
     submenu: [
-      { text: 'Danh sách vật tư', icon: <ListAltIcon />, path: '/materials/list' },
-      { text: 'Nhập xuất kho', icon: <SwapHorizIcon />, path: '/materials/transactions' },
-      { text: 'Đề xuất mua hàng', icon: <ShoppingCartIcon />, path: '/materials/purchase-requests' },
+      { text: 'Danh sách vật tư', icon: <FontAwesomeIcon icon={faListAlt} />, path: '/materials/list' },
+      { text: 'Nhập xuất kho', icon: <FontAwesomeIcon icon={faExchangeAlt} />, path: '/materials/transactions' },
+      { text: 'Đề xuất mua hàng', icon: <FontAwesomeIcon icon={faShoppingCart} />, path: '/materials/purchase-requests' },
     ],
   },
-  { text: 'Nhân sự', icon: <PeopleIcon />, path: '/personnel' },
-  { text: 'Vai trò', icon: <SecurityIcon />, path: '/roles' },
-  { text: 'Group Chat', icon: <ChatIcon />, path: '/group-chats' },
+  { text: 'Nhân sự', icon: <FontAwesomeIcon icon={faUsers} />, path: '/personnel' },
+  { text: 'Vai trò', icon: <FontAwesomeIcon icon={faLock} />, path: '/roles' },
+  { text: 'Group Chat', icon: <FontAwesomeIcon icon={faComments} />, path: '/chats' },
   {
     text: 'Báo cáo',
-    icon: <AssessmentIcon />,
+    icon: <FontAwesomeIcon icon={faChartBar} />,
     path: '/reports',
     submenu: [
-      { text: 'Báo cáo ngày', icon: <DescriptionIcon />, path: '/daily-reports' },
+      { text: 'Báo cáo ngày', icon: <FontAwesomeIcon icon={faFileAlt} />, path: '/daily-reports' },
     ],
   },
 ];
@@ -143,17 +148,16 @@ export default function Sidebar({
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Toolbar
         sx={{
-          background: '#1e293b',
+          background: '#2c3e50',
           color: 'white',
           display: 'flex',
           alignItems: 'center',
           justifyContent: open ? 'space-between' : 'center',
           gap: 2,
           minHeight: '64px !important',
-          cursor: !open ? 'pointer' : 'default',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          cursor: 'default',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
         }}
-        onClick={!open ? handleCollapse : undefined}
       >
         {open && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}>
@@ -201,26 +205,14 @@ export default function Sidebar({
             </Box>
           </Box>
         )}
-        {variant === 'permanent' && open && (
-          <IconButton
-            onClick={handleCollapse}
-            sx={{
-              color: 'white',
-              '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              },
-            }}
-          >
-            <ChevronLeftIcon />
-          </IconButton>
-        )}
       </Toolbar>
       <Divider />
       <List
         sx={{
           flexGrow: 1,
           overflow: 'auto',
-          py: 1,
+          py: 0.5,
+          backgroundColor: '#2c3e50',
           '&::-webkit-scrollbar': {
             width: '6px',
           },
@@ -228,10 +220,10 @@ export default function Sidebar({
             backgroundColor: 'transparent',
           },
           '&::-webkit-scrollbar-thumb': {
-            backgroundColor: (theme) => alpha(theme.palette.text.secondary, 0.2),
+            backgroundColor: 'rgba(255, 255, 255, 0.2)',
             borderRadius: 0,
             '&:hover': {
-              backgroundColor: (theme) => alpha(theme.palette.text.secondary, 0.3),
+              backgroundColor: 'rgba(255, 255, 255, 0.3)',
             },
           },
         }}
@@ -247,23 +239,24 @@ export default function Sidebar({
                 <ListItemButton
                   onClick={() => handleItemClick(item)}
                   sx={{
-                    minHeight: 48,
+                    minHeight: 42,
                     justifyContent: open ? 'initial' : 'center',
-                    px: 2.5,
-                    my: 0.5,
+                    px: 2,
+                    py: 0.75,
+                    my: 0.25,
                     mx: 1,
                     borderRadius: 0,
                     backgroundColor: itemActive && !hasSubmenu
-                      ? 'rgba(220, 38, 38, 0.15)'
+                      ? 'rgba(52, 152, 219, 0.15)'
                       : 'transparent',
                     borderLeft: itemActive && !hasSubmenu ? '3px solid' : '3px solid transparent',
-                    borderColor: itemActive && !hasSubmenu ? '#dc2626' : 'transparent',
-                    color: itemActive && !hasSubmenu ? '#ffffff' : 'rgba(255, 255, 255, 0.7)',
+                    borderColor: itemActive && !hasSubmenu ? '#3498db' : 'transparent',
+                    color: itemActive && !hasSubmenu ? '#3498db' : 'rgba(255, 255, 255, 0.75)',
                     '&:hover': {
                       backgroundColor: itemActive && !hasSubmenu
-                        ? 'rgba(220, 38, 38, 0.2)'
-                        : 'rgba(255, 255, 255, 0.06)',
-                      color: itemActive && !hasSubmenu ? '#ffffff' : 'rgba(255, 255, 255, 0.9)',
+                        ? 'rgba(52, 152, 219, 0.2)'
+                        : 'rgba(255, 255, 255, 0.05)',
+                      color: itemActive && !hasSubmenu ? '#3498db' : 'rgba(255, 255, 255, 0.95)',
                       transition: 'all 0.2s ease-in-out',
                     },
                     transition: 'all 0.2s ease-in-out',
@@ -272,9 +265,12 @@ export default function Sidebar({
                   <ListItemIcon
                     sx={{
                       minWidth: 0,
-                      mr: open ? 3 : 'auto',
+                      mr: open ? 2.5 : 'auto',
                       justifyContent: 'center',
                       color: 'inherit',
+                      '& svg': {
+                        fontSize: '18px',
+                      },
                     }}
                   >
                     {item.icon}
@@ -289,8 +285,8 @@ export default function Sidebar({
                     sx={{ opacity: open ? 1 : 0 }}
                   />
                   {open && hasSubmenu && (
-                    <Box sx={{ opacity: open ? 1 : 0 }}>
-                      {submenuOpen ? <ExpandLess /> : <ExpandMore />}
+                    <Box sx={{ opacity: open ? 1 : 0, ml: 'auto' }}>
+                      {submenuOpen ? <FontAwesomeIcon icon={faChevronUp} style={{ fontSize: '18px' }} /> : <FontAwesomeIcon icon={faChevronDown} style={{ fontSize: '18px' }} />}
                     </Box>
                   )}
                 </ListItemButton>
@@ -305,36 +301,36 @@ export default function Sidebar({
                           key={subItem.text}
                           onClick={(e) => handleSubmenuClick(subItem, e)}
                           sx={{
-                            pl: 6,
-                            py: 1,
+                            pl: 5,
+                            py: 0.75,
                             mx: 1,
+                            minHeight: 38,
                             borderRadius: 0,
                             backgroundColor: subActive
-                              ? 'rgba(220, 38, 38, 0.15)'
+                              ? 'rgba(52, 152, 219, 0.15)'
                               : 'transparent',
                             borderLeft: subActive ? '3px solid' : '3px solid transparent',
-                            borderColor: subActive ? '#dc2626' : 'transparent',
-                            color: subActive ? '#ffffff' : 'rgba(255, 255, 255, 0.6)',
+                            borderColor: subActive ? '#3498db' : 'transparent',
+                            color: subActive ? '#3498db' : 'rgba(255, 255, 255, 0.65)',
                             '&:hover': {
                               backgroundColor: subActive
-                                ? 'rgba(220, 38, 38, 0.2)'
+                                ? 'rgba(52, 152, 219, 0.2)'
                                 : 'rgba(255, 255, 255, 0.04)',
-                              color: subActive ? '#ffffff' : 'rgba(255, 255, 255, 0.8)',
+                              color: subActive ? '#3498db' : 'rgba(255, 255, 255, 0.85)',
                               transition: 'all 0.2s ease-in-out',
                             },
                             transition: 'all 0.2s ease-in-out',
                           }}
                         >
-                          <ListItemIcon
-                            sx={{
-                              minWidth: 0,
-                              mr: 2,
-                              justifyContent: 'center',
+                          <FontAwesomeIcon 
+                            icon={faChevronRight}
+                            style={{ 
+                              fontSize: '16px', 
+                              marginRight: '12px',
                               color: 'inherit',
-                            }}
-                          >
-                            {subItem.icon}
-                          </ListItemIcon>
+                              opacity: 0.7,
+                            }} 
+                          />
                           <ListItemText
                             primary={subItem.text}
                             primaryTypographyProps={{
@@ -375,8 +371,8 @@ export default function Sidebar({
                 easing: theme.transitions.easing.sharp,
                 duration: theme.transitions.duration.enteringScreen,
               }),
-            borderRight: '1px solid #e5e7eb',
-            backgroundColor: '#1e293b',
+            borderRight: '1px solid rgba(0, 0, 0, 0.1)',
+            backgroundColor: '#2c3e50',
             color: 'rgba(255, 255, 255, 0.9)',
             overflowX: 'hidden',
             boxShadow: 'none',

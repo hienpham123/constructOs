@@ -4,15 +4,14 @@ import {
   Container,
   Box,
   Paper,
-  TextField,
   Typography,
   Alert,
   InputAdornment,
   IconButton,
 } from '@mui/material';
-import { Button } from '../components/common';
-import Visibility from '@mui/icons-material/Visibility';
-import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import { Button, Input } from '../components/common';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { useAuthStore } from '../stores/authStore';
 import logoImage from '../images/logo.svg';
 
@@ -117,7 +116,7 @@ export default function Login() {
                   {error}
                 </Alert>
               )}
-              <TextField
+              <Input
                 margin="normal"
                 required
                 fullWidth
@@ -135,7 +134,7 @@ export default function Login() {
                   },
                 }}
               />
-              <TextField
+              <Input
                 margin="normal"
                 required
                 fullWidth
@@ -160,7 +159,7 @@ export default function Login() {
                         onClick={() => setShowPassword(!showPassword)}
                         edge="end"
                       >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                        {showPassword ? <FontAwesomeIcon icon={faEyeSlash} /> : <FontAwesomeIcon icon={faEye} />}
                       </IconButton>
                     </InputAdornment>
                   ),

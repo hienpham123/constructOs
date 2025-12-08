@@ -1,5 +1,6 @@
 import { Box, Tabs, Tab, IconButton, Menu, MenuItem } from '@mui/material';
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import { useState } from 'react';
 
 interface GroupListTabsProps {
@@ -24,22 +25,6 @@ export default function GroupListTabs({ activeTab, onTabChange }: GroupListTabsP
         onChange={(_, newValue) => onTabChange(newValue)}
         sx={{
           flex: 1,
-          minHeight: 40,
-          '& .MuiTab-root': {
-            minHeight: 40,
-            textTransform: 'none',
-            fontSize: '0.875rem',
-            fontWeight: 500,
-            color: '#65676b',
-            '&.Mui-selected': {
-              color: '#1877f2',
-              fontWeight: 600,
-            },
-          },
-          '& .MuiTabs-indicator': {
-            backgroundColor: '#1877f2',
-            height: 3,
-          },
         }}
       >
         <Tab value="priority" label="Ưu tiên" />
@@ -50,7 +35,7 @@ export default function GroupListTabs({ activeTab, onTabChange }: GroupListTabsP
         onClick={(e) => setCategoryMenuAnchor(e.currentTarget)}
         sx={{ color: '#65676b' }}
       >
-        <ArrowDropDownIcon />
+        <FontAwesomeIcon icon={faChevronDown} />
       </IconButton>
       <Menu
         anchorEl={categoryMenuAnchor}

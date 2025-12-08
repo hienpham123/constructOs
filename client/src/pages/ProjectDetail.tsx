@@ -13,7 +13,8 @@ import {
   ListItemText,
 } from '@mui/material';
 import { Button } from '../components/common';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import { useProjectStore } from '../stores/projectStore';
 import { formatDate } from '../utils/dateFormat';
 import { usePermissions } from '../hooks/usePermissions';
@@ -49,7 +50,7 @@ export default function ProjectDetail() {
   return (
     <Box>
       <Button
-        startIcon={<ArrowBackIcon />}
+        startIcon={<FontAwesomeIcon icon={faArrowLeft} />}
         onClick={() => navigate('/projects')}
         sx={{ mb: 2 }}
       >
@@ -132,7 +133,15 @@ export default function ProjectDetail() {
                     <LinearProgress
                       variant="determinate"
                       value={selectedProject.progress}
-                      sx={{ height: 20, borderRadius: 0, mb: 1 }}
+                      color="primary"
+                      sx={{ 
+                        mb: 1,
+                        height: 16,
+                        borderRadius: '8px',
+                        '& .MuiLinearProgress-bar': {
+                          borderRadius: '8px',
+                        },
+                      }}
                     />
                     <Typography variant="h4" align="center">
                       {selectedProject.progress}%
