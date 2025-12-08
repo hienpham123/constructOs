@@ -65,6 +65,25 @@ DB_PASSWORD=your_password
 DB_URL=postgresql://username:password@localhost:5432/constructos
 ```
 
+## Setup Database Cho Máy Mới
+
+Khi clone code về máy mới, xem hướng dẫn chi tiết:
+👉 **[SETUP_DATABASE.md](./SETUP_DATABASE.md)** - Hướng dẫn đầy đủ setup database
+
+### Quick Start
+
+1. **Export database từ máy hiện tại:**
+   ```bash
+   cd database/scripts
+   ./export_database.sh
+   ```
+
+2. **Import database trên máy mới:**
+   ```bash
+   cd database/scripts
+   ./import_database.sh ../exports/constructOS_schema_YYYYMMDD_HHMMSS.sql
+   ```
+
 ## Next Steps
 
 1. Cài đặt database client library (pg cho PostgreSQL, mysql2 cho MySQL)

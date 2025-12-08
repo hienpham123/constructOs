@@ -37,6 +37,11 @@ uploads/
 *.sqlite
 *.sqlite3
 
+# Database exports (large files, only commit schema if needed)
+database/exports/*.sql
+!database/exports/.gitkeep
+!database/exports/*_schema_*.sql  # Allow schema-only exports
+
 # Build outputs
 build/
 out/

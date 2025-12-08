@@ -74,6 +74,38 @@ Dừng phpMyAdmin web server.
 ./database/scripts/stop_phpmyadmin.sh
 ```
 
+### 10. `export_database.sh` - Export Database
+Export database thành SQL file (schema + data, schema only, hoặc data only).
+
+```bash
+./database/scripts/export_database.sh                    # Tự động đọc từ .env
+./database/scripts/export_database.sh constructOS        # Chỉ định tên database
+./database/scripts/export_database.sh constructOS ./exports  # Chỉ định output dir
+```
+
+**Output files:**
+- `constructOS_export_YYYYMMDD_HHMMSS.sql` - Full export (schema + data)
+- `constructOS_schema_YYYYMMDD_HHMMSS.sql` - Schema only
+- `constructOS_data_YYYYMMDD_HHMMSS.sql` - Data only
+
+**Use cases:**
+- Backup database
+- Chia sẻ database với team
+- Setup database trên máy mới
+
+### 11. `import_database.sh` - Import Database
+Import database từ SQL file.
+
+```bash
+./database/scripts/import_database.sh ../exports/file.sql                    # Tự động đọc từ .env
+./database/scripts/import_database.sh ../exports/file.sql constructOS        # Chỉ định tên database
+```
+
+**Use cases:**
+- Restore từ backup
+- Setup database trên máy mới từ file export
+- Đồng bộ database giữa các máy
+
 ---
 
 ## 🚀 Quick Start
