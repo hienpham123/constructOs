@@ -61,8 +61,23 @@ export async function query<T = any>(
       throw new Error('Database pool is not available');
     }
 
-    const result = await pool.query(pgSql, params);
-    return result.rows as T;
+    try {
+      const result = await pool.query(pgSql, params);
+      return result.rows as T;
+    } catch (queryError: any) {
+      // Handle specific pg client errors
+      if (queryError.message && queryError.message.includes('handleEmptyQuery')) {
+        console.warn('PostgreSQL handleEmptyQuery warning (non-critical):', queryError.message);
+        // Try to reconnect and retry once
+        try {
+          const result = await pool.query(pgSql, params);
+          return result.rows as T;
+        } catch (retryError) {
+          throw retryError;
+        }
+      }
+      throw queryError;
+    }
   } catch (error: any) {
     console.error('Database query error:', error.message);
     console.error('SQL:', sql);
