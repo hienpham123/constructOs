@@ -4,13 +4,14 @@ async function addAttachmentToTransactions() {
   console.log('🔄 Bắt đầu thêm cột attachment vào material_transactions...');
 
   try {
-    // Check if column exists
+    // Check if column exists (PostgreSQL syntax)
     const columns = await query<any[]>(
-      `SELECT COLUMN_NAME 
-       FROM INFORMATION_SCHEMA.COLUMNS 
-       WHERE TABLE_SCHEMA = DATABASE() 
-       AND TABLE_NAME = 'material_transactions' 
-       AND COLUMN_NAME = 'attachment'`
+      `SELECT column_name 
+       FROM information_schema.columns 
+       WHERE table_schema = 'public' 
+       AND table_name = $1 
+       AND column_name = $2`,
+      ['material_transactions', 'attachment']
     );
 
     if (columns.length === 0) {
@@ -42,20 +43,26 @@ async function addAttachmentToTransactions() {
       console.log('✅ Đã cập nhật các bản ghi adjustment → import');
     }
 
-    // Modify type column to VARCHAR (remove ENUM constraint)
+    // Modify type column to VARCHAR (PostgreSQL syntax)
     await query(`
       ALTER TABLE material_transactions 
-      MODIFY COLUMN type VARCHAR(20) NOT NULL
+      ALTER COLUMN type TYPE VARCHAR(20),
+      ALTER COLUMN type SET NOT NULL
     `);
     console.log('✅ Đã cập nhật cột type thành VARCHAR(20)');
 
-    // Verify changes
-    const describeResult = await query<any[]>('DESCRIBE material_transactions');
+    // Verify changes (PostgreSQL syntax)
+    const describeResult = await query<any[]>(
+      `SELECT column_name, data_type, is_nullable 
+       FROM information_schema.columns 
+       WHERE table_schema = 'public' AND table_name = $1
+       AND column_name IN ($2, $3)
+       ORDER BY column_name`,
+      ['material_transactions', 'attachment', 'type']
+    );
     console.log('\n📊 Kiểm tra kết quả:');
     describeResult.forEach((col) => {
-      if (col.Field === 'attachment' || col.Field === 'type') {
-        console.log(`  - ${col.Field}: ${col.Type} (null: ${col.Null === 'YES' ? 'YES' : 'NO'})`);
-      }
+      console.log(`  - ${col.column_name}: ${col.data_type} (null: ${col.is_nullable === 'YES' ? 'YES' : 'NO'})`);
     });
 
     const sampleTransactions = await query<any[]>(
