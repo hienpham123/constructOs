@@ -123,15 +123,61 @@ export default function GroupChatDetail() {
       return;
     }
 
+    // Disconnect existing socket if any
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+
     const socket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:2222', {
       auth: { token },
       transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: Infinity,
     });
+
+    const joinRooms = () => {
+      if (socket.connected && id) {
+        console.log('Joining rooms for group:', id);
+        // Small delay to ensure socket is fully ready
+        setTimeout(() => {
+          if (socket.connected && id) {
+            socket.emit('join-groups');
+            socket.emit('join-group', id);
+          }
+        }, 100);
+      }
+    };
 
     socket.on('connect', () => {
       console.log('Socket connected');
-      socket.emit('join-groups');
-      socket.emit('join-group', id);
+      joinRooms();
+    });
+
+    socket.on('disconnect', (reason) => {
+      console.log('Socket disconnected:', reason);
+      // Socket.io will automatically attempt to reconnect
+    });
+
+    socket.on('reconnect', (attemptNumber) => {
+      console.log('Socket reconnected after', attemptNumber, 'attempts');
+      // Rejoin rooms after reconnection
+      joinRooms();
+    });
+
+    socket.on('reconnect_attempt', (attemptNumber) => {
+      console.log('Reconnection attempt:', attemptNumber);
+    });
+
+    socket.on('reconnect_error', (error) => {
+      console.error('Reconnection error:', error);
+    });
+
+    socket.on('reconnect_failed', () => {
+      console.error('Reconnection failed - max attempts reached');
+      // Could show a notification to user here
     });
 
     socket.on('message-received', (data: { groupId: string; message: GroupMessage; senderId?: string }) => {
