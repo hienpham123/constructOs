@@ -153,6 +153,25 @@ npm run dev
 
 Server sẽ chạy tại `http://localhost:2222`. Xem thêm trong `server/README.md`.
 
+## 🚀 Deployment
+
+Dự án hỗ trợ nhiều phương án deploy:
+
+### Quick Deploy (Khuyến nghị)
+- **Frontend**: Netlify (miễn phí, CDN toàn cầu)
+- **Backend**: Render (miễn phí)
+- **Database**: PlanetScale MySQL (miễn phí)
+
+👉 Xem: [DEPLOY_QUICK_NETLIFY_RENDER.md](./DEPLOY_QUICK_NETLIFY_RENDER.md)
+
+### Docker Compose (VPS)
+Deploy tất cả services lên VPS với Docker.
+
+👉 Xem: [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+### Tất cả phương án
+👉 Xem: [DEPLOY_OPTIONS.md](./DEPLOY_OPTIONS.md) để so sánh các phương án
+
 ### Cấu hình API URL
 
 Tạo file `.env` trong thư mục gốc:

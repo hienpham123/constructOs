@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: constructos-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-constructOS}
+      MYSQL_USER: ${DB_USER:-constructos_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-your_secure_password_here}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/mysql_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database/seeds/initial_data.sql:/docker-entrypoint-initdb.d/02-initial_data.sql:ro
+    networks:
+      - constructos-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Backend API Server
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: constructos-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 2222
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-constructos_user}
+      DB_PASSWORD: ${DB_PASSWORD:-your_secure_password_here}
+      DB_NAME: ${DB_NAME:-constructOS}
+      DB_CONNECTION_LIMIT: 10
+      JWT_SECRET: ${JWT_SECRET:-change-this-to-a-strong-secret-key}
+      API_BASE_URL: ${API_BASE_URL:-http://localhost:2222}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+    ports:
+      - "${BACKEND_PORT:-2222}:2222"
+    volumes:
+      - ./server/uploads:/app/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - constructos-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:2222/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend Web Application
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:2222/api}
+    container_name: constructos-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    depends_on:
+      - backend
+    networks:
+      - constructos-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  constructos-network:
+    driver: bridge
+

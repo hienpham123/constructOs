@@ -1,34 +1,35 @@
-import mysql from 'mysql2/promise';
+import pg from 'pg';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
+const { Pool } = pg;
+
 // Database configuration
 const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '3306'),
-  user: process.env.DB_USER || 'root',
+  port: parseInt(process.env.DB_PORT || '5432'),
+  user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'constructos',
-  waitForConnections: true,
-  connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT || '10'),
-  queueLimit: 0,
-  enableKeepAlive: true,
-  keepAliveInitialDelay: 0,
+  max: parseInt(process.env.DB_CONNECTION_LIMIT || '10'),
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
 };
 
 // Create connection pool
-export const pool = mysql.createPool(dbConfig);
+export const pool = new Pool(dbConfig);
 
 // Test connection
 pool
-  .getConnection()
-  .then((connection) => {
-    console.log('✅ Connected to MySQL database:', dbConfig.database);
-    connection.release();
+  .connect()
+  .then((client) => {
+    console.log('✅ Connected to PostgreSQL database:', dbConfig.database);
+    client.release();
   })
   .catch((error) => {
-    console.error('❌ MySQL connection error:', error.message);
+    console.error('❌ PostgreSQL connection error:', error.message);
     console.error('Please check your database configuration in .env file');
   });
 
@@ -38,8 +39,8 @@ export async function query<T = any>(
   params?: any[]
 ): Promise<T> {
   try {
-    const [results] = await pool.execute(sql, params);
-    return results as T;
+    const result = await pool.query(sql, params);
+    return result.rows as T;
   } catch (error: any) {
     console.error('Database query error:', error.message);
     console.error('SQL:', sql);
@@ -50,20 +51,20 @@ export async function query<T = any>(
 
 // Helper function for transactions
 export async function transaction<T>(
-  callback: (connection: mysql.PoolConnection) => Promise<T>
+  callback: (client: pg.PoolClient) => Promise<T>
 ): Promise<T> {
-  const connection = await pool.getConnection();
-  await connection.beginTransaction();
+  const client = await pool.connect();
+  await client.query('BEGIN');
 
   try {
-    const result = await callback(connection);
-    await connection.commit();
+    const result = await callback(client);
+    await client.query('COMMIT');
     return result;
   } catch (error) {
-    await connection.rollback();
+    await client.query('ROLLBACK');
     throw error;
   } finally {
-    connection.release();
+    client.release();
   }
 }
 

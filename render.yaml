@@ -1,0 +1,48 @@
+# Render Configuration for ConstructOS Backend
+# Documentation: https://render.com/docs/yaml-spec
+
+services:
+  # Backend API Service
+  - type: web
+    name: constructos-backend
+    env: node
+    region: singapore  # Change to your preferred region (oregon, frankfurt, singapore, etc.)
+    plan: starter  # Options: free, starter, standard, pro
+    buildCommand: cd server && npm install && npm run build
+    startCommand: cd server && npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000  # Render uses port 10000 by default
+      - key: DB_HOST
+        sync: false  # Set this in Render dashboard
+      - key: DB_PORT
+        value: 3306
+      - key: DB_USER
+        sync: false  # Set this in Render dashboard
+      - key: DB_PASSWORD
+        sync: false  # Set this in Render dashboard (mark as secret)
+      - key: DB_NAME
+        sync: false  # Set this in Render dashboard
+      - key: DB_CONNECTION_LIMIT
+        value: 10
+      - key: JWT_SECRET
+        sync: false  # Set this in Render dashboard (mark as secret, generate with: openssl rand -base64 32)
+      - key: API_BASE_URL
+        sync: false  # Set this to your Render backend URL (e.g., https://constructos-backend.onrender.com)
+      - key: FRONTEND_URL
+        sync: false  # Set this to your Netlify frontend URL (e.g., https://constructos.netlify.app)
+      - key: CORS_ORIGIN
+        sync: false  # Set this to your Netlify frontend URL
+
+databases:
+  # MySQL Database (if using Render's managed database)
+  - name: constructos-db
+    databaseName: constructOS
+    plan: starter  # Options: starter, standard, pro
+    region: singapore  # Should match service region
+    # Note: Render provides PostgreSQL by default, but you can use external MySQL
+    # For MySQL, you may need to use an external service like PlanetScale, AWS RDS, or Railway
+
