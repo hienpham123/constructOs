@@ -290,16 +290,20 @@ export default function Layout() {
         </Toolbar>
       </AppBar>
       )}
+      {/* Mobile sidebar - temporary drawer */}
       <Sidebar
         variant="temporary"
         mobileOpen={mobileOpen}
         onClose={handleDrawerToggle}
       />
-      <Sidebar
-        variant="permanent"
-        collapsed={collapsed}
-        onCollapseChange={setCollapsed}
-      />
+      {/* Desktop sidebar - permanent drawer, hidden on mobile */}
+      <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+        <Sidebar
+          variant="permanent"
+          collapsed={collapsed}
+          onCollapseChange={setCollapsed}
+        />
+      </Box>
       <Box
         component="main"
         sx={{
