@@ -135,7 +135,12 @@ export default function Layout() {
             aria-label="open drawer"
             edge="start"
             onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
+            sx={{ 
+              mr: 2, 
+              display: { xs: 'flex', sm: 'none' },
+              minWidth: 40,
+              minHeight: 40,
+            }}
           >
             <FontAwesomeIcon icon={faBars} style={{ fontSize: '20px' }} />
           </IconButton>
