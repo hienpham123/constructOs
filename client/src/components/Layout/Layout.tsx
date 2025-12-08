@@ -109,8 +109,8 @@ export default function Layout() {
   const sidebarWidth = collapsed && !isMobile ? collapsedWidth : drawerWidth;
   const isGroupChat = location.pathname.startsWith('/group-chats');
   const isChat = location.pathname.startsWith('/chats');
-  // Always show header on mobile to access hamburger button
-  const hideHeader = (isGroupChat || isChat) && !isMobile;
+  // Hide header on chat pages (both mobile and desktop)
+  const hideHeader = isGroupChat || isChat;
 
   return (
     <Box sx={{ display: 'flex', overflowX: 'hidden', width: '100%', maxWidth: '100vw' }}>

@@ -1,6 +1,6 @@
-import { Box, List, TextField, InputAdornment, Button, Typography } from '@mui/material';
+import { Box, List, TextField, InputAdornment, Button, Typography, IconButton, useMediaQuery, useTheme } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMagnifyingGlass, faPlus, faUserPlus } from '@fortawesome/free-solid-svg-icons';
+import { faMagnifyingGlass, faPlus, faUserPlus, faBars } from '@fortawesome/free-solid-svg-icons';
 import { type GroupChat } from '../../services/api/groupChats';
 import { type DirectConversation } from '../../services/api/directMessages';
 import { formatZaloTime } from '../../utils/dateFormat';
@@ -41,6 +41,14 @@ export default function UnifiedChatListSidebar({
   onUpdateConversation,
 }: UnifiedChatListSidebarProps) {
   const { user } = useAuthStore();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
+  // Get mobile drawer toggle function from Layout context or window
+  const handleDrawerToggle = () => {
+    // Dispatch custom event to trigger drawer toggle in Layout
+    window.dispatchEvent(new CustomEvent('toggleMobileDrawer'));
+  };
 
   // Combine and sort items: pinned first, then by last message time
   const allItems: UnifiedChatItem[] = [
@@ -99,7 +107,23 @@ export default function UnifiedChatListSidebar({
       }}
     >
       {/* Search bar */}
-      <Box sx={{ p: 2, borderBottom: '1px solid #e4e6eb' }}>
+      <Box sx={{ p: 2, borderBottom: '1px solid #e4e6eb', display: 'flex', alignItems: 'center', gap: 1 }}>
+        {/* Hamburger icon for mobile */}
+        {isMobile && (
+          <IconButton
+            onClick={handleDrawerToggle}
+            sx={{
+              minWidth: 40,
+              minHeight: 40,
+              color: '#65676b',
+              '&:hover': {
+                backgroundColor: '#f0f2f5',
+              },
+            }}
+          >
+            <FontAwesomeIcon icon={faBars} style={{ fontSize: '18px' }} />
+          </IconButton>
+        )}
         <TextField
           fullWidth
           size="small"
