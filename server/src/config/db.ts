@@ -49,8 +49,19 @@ export async function query<T = any>(
   params?: any[]
 ): Promise<T> {
   try {
+    // Validate SQL is not empty
+    if (!sql || typeof sql !== 'string' || sql.trim().length === 0) {
+      throw new Error('SQL query cannot be empty');
+    }
+
     // Convert MySQL placeholders to PostgreSQL placeholders
     const pgSql = convertMySQLToPostgreSQL(sql, params);
+    
+    // Validate converted SQL
+    if (!pgSql || pgSql.trim().length === 0) {
+      throw new Error('Converted SQL query cannot be empty');
+    }
+
     const result = await pool.query(pgSql, params);
     return result.rows as T;
   } catch (error: any) {

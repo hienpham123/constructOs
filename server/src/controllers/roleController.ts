@@ -13,7 +13,7 @@ export const getRoles = async (req: Request, res: Response) => {
     const queryParams: any[] = [];
 
     if (search && typeof search === 'string' && search.trim()) {
-      whereClause = 'WHERE name LIKE ? OR description LIKE ?';
+      whereClause = 'WHERE name LIKE $1 OR description LIKE $2';
       const searchTerm = `%${search.trim()}%`;
       queryParams.push(searchTerm, searchTerm);
     }
@@ -24,7 +24,7 @@ export const getRoles = async (req: Request, res: Response) => {
     const validSortOrder = sortOrder === 'desc' ? 'DESC' : 'ASC';
 
     // Build and execute query
-    const sql = `SELECT * FROM roles ${whereClause} ORDER BY ${validSortBy} ${validSortOrder}`;
+    const sql = `SELECT * FROM roles ${whereClause} ORDER BY ${validSortBy} ${validSortOrder}`.trim();
     const roles = await query<any[]>(sql, queryParams);
 
     // Get permissions for each role
