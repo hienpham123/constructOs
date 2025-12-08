@@ -56,6 +56,11 @@ export async function query<T = any>(
       throw new Error('Converted SQL query cannot be empty');
     }
 
+    // Ensure pool is ready before querying
+    if (!pool || pool.ended) {
+      throw new Error('Database pool is not available');
+    }
+
     const result = await pool.query(pgSql, params);
     return result.rows as T;
   } catch (error: any) {
