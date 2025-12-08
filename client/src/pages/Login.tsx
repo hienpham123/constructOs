@@ -150,6 +150,21 @@ export default function Login() {
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 1,
                   },
+                  // Hide browser's default password reveal button
+                  '& input[type="password"]::-webkit-credentials-auto-fill-button': {
+                    display: 'none !important',
+                    visibility: 'hidden',
+                  },
+                  '& input::-webkit-password-toggle-button': {
+                    display: 'none !important',
+                    visibility: 'hidden',
+                  },
+                  '& input::-ms-reveal': {
+                    display: 'none !important',
+                  },
+                  '& input::-ms-clear': {
+                    display: 'none !important',
+                  },
                 }}
                 InputProps={{
                   endAdornment: (
@@ -157,12 +172,29 @@ export default function Login() {
                       <IconButton
                         aria-label="toggle password visibility"
                         onClick={() => setShowPassword(!showPassword)}
+                        onMouseDown={(e) => e.preventDefault()}
                         edge="end"
+                        tabIndex={-1}
+                        sx={{
+                          color: 'action.active',
+                          '&:focus': {
+                            outline: 'none',
+                          },
+                        }}
                       >
-                        {showPassword ? <FontAwesomeIcon icon={faEyeSlash} /> : <FontAwesomeIcon icon={faEye} />}
+                        <FontAwesomeIcon 
+                          icon={showPassword ? faEyeSlash : faEye} 
+                          style={{ fontSize: '18px' }}
+                        />
                       </IconButton>
                     </InputAdornment>
                   ),
+                  inputProps: {
+                    style: {
+                      // Hide browser's default password reveal button
+                      WebkitAppearance: 'none',
+                    },
+                  },
                 }}
               />
               <Button

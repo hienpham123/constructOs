@@ -2,10 +2,11 @@ import { TextField, TextFieldProps } from '@mui/material';
 
 export type InputProps = TextFieldProps;
 
-export function Input({ sx, ...props }: InputProps) {
+export function Input({ sx, InputProps: inputPropsProp, ...props }: InputProps) {
   return (
     <TextField
       {...props}
+      InputProps={inputPropsProp}
       sx={{
         '& .MuiOutlinedInput-root': {
           borderRadius: '4px',
