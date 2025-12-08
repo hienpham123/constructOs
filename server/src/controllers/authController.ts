@@ -35,7 +35,8 @@ export const register = async (req: Request, res: Response) => {
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
     
-    // Validate role_id
+    // Validate and resolve role_id
+    // Frontend may send role name (string) or role UUID
     let roleId = role;
     if (!roleId) {
       // Try to get a default role (first role in database)
@@ -52,17 +53,53 @@ export const register = async (req: Request, res: Response) => {
         return res.status(400).json({ error: 'Role (role_id) is required and no default role found' });
       }
     } else {
-      // Validate that the role exists
-      try {
-        const roleCheck = await query<any[]>(
-          'SELECT id FROM roles WHERE id = ?',
-          [roleId]
-        );
-        if (roleCheck.length === 0) {
-          return res.status(400).json({ error: `Role with id ${roleId} does not exist` });
+      // Check if role is a UUID format (36 chars with dashes)
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(roleId);
+      
+      if (!isUUID) {
+        // Role is a name string, find the UUID by name
+        try {
+          // Map common role names to database role names
+          const roleNameMap: { [key: string]: string } = {
+            'admin': 'admin',
+            'project_manager': 'project_manager',
+            'accountant': 'accountant',
+            'warehouse': 'warehouse',
+            'site_manager': 'site_manager',
+            'engineer': 'engineer',
+            'client': 'client',
+            'kế toán': 'accountant',
+            'quản lý công trường': 'site_manager',
+            'quản lý dự án': 'project_manager',
+          };
+          
+          const mappedRoleName = roleNameMap[roleId.toLowerCase()] || roleId.toLowerCase();
+          const roleResult = await query<any[]>(
+            'SELECT id FROM roles WHERE LOWER(name) = $1',
+            [mappedRoleName]
+          );
+          
+          if (roleResult.length === 0) {
+            return res.status(400).json({ error: `Role "${roleId}" not found. Please use a valid role name or UUID.` });
+          }
+          
+          roleId = roleResult[0].id;
+        } catch (roleError: any) {
+          return res.status(400).json({ error: `Invalid role: ${roleError.message}` });
         }
-      } catch (roleError: any) {
-        return res.status(400).json({ error: `Invalid role_id: ${roleError.message}` });
+      } else {
+        // Role is a UUID, validate it exists
+        try {
+          const roleCheck = await query<any[]>(
+            'SELECT id FROM roles WHERE id = $1',
+            [roleId]
+          );
+          if (roleCheck.length === 0) {
+            return res.status(400).json({ error: `Role with id ${roleId} does not exist` });
+          }
+        } catch (roleError: any) {
+          return res.status(400).json({ error: `Invalid role_id: ${roleError.message}` });
+        }
       }
     }
     
