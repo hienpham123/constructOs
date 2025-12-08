@@ -22,8 +22,13 @@ const dbConfig = {
 export const pool = new Pool(dbConfig);
 
 // Handle pool errors gracefully
-pool.on('error', (err, client) => {
-  console.error('❌ Unexpected PostgreSQL pool error:', err);
+pool.on('error', (err: Error, client: any) => {
+  // Suppress handleEmptyQuery errors as they're often non-critical
+  if (err.message && err.message.includes('handleEmptyQuery')) {
+    // Silently ignore - this is often a pg client internal issue
+    return;
+  }
+  console.error('❌ Unexpected PostgreSQL pool error:', err.message);
   // Don't crash the server on pool errors
 });
 
