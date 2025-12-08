@@ -21,7 +21,7 @@ const dbConfig = {
 // Create connection pool
 export const pool = new Pool(dbConfig);
 
-// Test connection
+// Test connection (non-blocking, don't wait for it)
 pool
   .connect()
   .then((client) => {
@@ -31,6 +31,7 @@ pool
   .catch((error) => {
     console.error('❌ PostgreSQL connection error:', error.message);
     console.error('Please check your database configuration in .env file');
+    // Don't throw - let server start even if DB connection fails initially
   });
 
 // Helper function to convert MySQL placeholders (?) to PostgreSQL placeholders ($1, $2, ...)
