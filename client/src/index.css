@@ -67,3 +67,32 @@ input[type="password"]::-ms-clear {
   opacity: 0 !important;
 }
 
+/* Prevent zoom on input focus on iOS Safari */
+/* iOS Safari zooms in when input font-size is less than 16px */
+input,
+textarea,
+select {
+  font-size: 16px !important;
+}
+
+/* Material-UI TextField inputs */
+.MuiInputBase-input,
+.MuiOutlinedInput-input,
+.MuiFilledInput-input,
+.MuiInput-input {
+  font-size: 16px !important;
+}
+
+/* Material-UI TextField on mobile */
+@media (max-width: 600px) {
+  input,
+  textarea,
+  select,
+  .MuiInputBase-input,
+  .MuiOutlinedInput-input,
+  .MuiFilledInput-input,
+  .MuiInput-input {
+    font-size: 16px !important;
+  }
+}
+

@@ -279,7 +279,7 @@ function DirectMessageInput({
             sx={{
               '& .MuiOutlinedInput-root': {
                 borderRadius: '20px',
-                fontSize: '0.9375rem',
+                fontSize: '1rem', // 16px to prevent zoom on iOS Safari
                 color: '#050505',
                 '& fieldset': {
                   borderColor: 'transparent',

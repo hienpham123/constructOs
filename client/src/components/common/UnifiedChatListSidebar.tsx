@@ -141,9 +141,13 @@ export default function UnifiedChatListSidebar({
             '& .MuiOutlinedInput-root': {
               bgcolor: '#f0f2f5',
               borderRadius: '20px',
+              fontSize: '1rem', // 16px to prevent zoom on iOS Safari
               '& fieldset': {
                 border: 'none',
               },
+            },
+            '& .MuiInputBase-input': {
+              fontSize: '1rem', // 16px to prevent zoom on iOS Safari
             },
           }}
         />

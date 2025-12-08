@@ -10,7 +10,7 @@ export function Input({ sx, InputProps: inputPropsProp, ...props }: InputProps) 
       sx={{
         '& .MuiOutlinedInput-root': {
           borderRadius: '4px',
-          fontSize: '0.875rem',
+          fontSize: '1rem', // 16px to prevent zoom on iOS Safari
           fontFamily: 'SegoeuiPc,Segoe UI,San Francisco,Helvetica Neue,Helvetica,Lucida Grande,Roboto,Ubuntu,Tahoma,Microsoft Sans Serif,Arial,sans-serif',
           '& fieldset': {
             borderColor: '#d0d0d0',
@@ -37,14 +37,14 @@ export function Input({ sx, InputProps: inputPropsProp, ...props }: InputProps) 
         },
         '& .MuiInputLabel-root': {
           fontFamily: 'SegoeuiPc,Segoe UI,San Francisco,Helvetica Neue,Helvetica,Lucida Grande,Roboto,Ubuntu,Tahoma,Microsoft Sans Serif,Arial,sans-serif',
-          fontSize: '0.875rem',
+          fontSize: '1rem', // 16px to prevent zoom on iOS Safari
           '&.Mui-focused': {
             color: '#4680ff',
           },
         },
         '& .MuiInputBase-input': {
           fontFamily: 'SegoeuiPc,Segoe UI,San Francisco,Helvetica Neue,Helvetica,Lucida Grande,Roboto,Ubuntu,Tahoma,Microsoft Sans Serif,Arial,sans-serif',
-          fontSize: '0.875rem',
+          fontSize: '1rem', // 16px to prevent zoom on iOS Safari
         },
         ...sx,
       }}

@@ -28,7 +28,7 @@ export default function DirectMessageListSearch({ searchTerm, onSearchChange }: 
           '& .MuiOutlinedInput-root': {
             borderRadius: '20px',
             bgcolor: '#f0f2f5',
-            fontSize: '0.875rem',
+            fontSize: '1rem', // 16px to prevent zoom on iOS Safari
             '& fieldset': {
               borderColor: 'transparent',
             },
