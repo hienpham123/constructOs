@@ -21,14 +21,10 @@ const dbConfig = {
 // Create connection pool
 export const pool = new Pool(dbConfig);
 
-// Test connection will happen on first query
-// No need to test on startup - let it fail gracefully on first use
-pool.on('connect', () => {
-  console.log('✅ PostgreSQL pool connected');
-});
-
-pool.on('error', (err) => {
+// Handle pool errors gracefully
+pool.on('error', (err, client) => {
   console.error('❌ Unexpected PostgreSQL pool error:', err);
+  // Don't crash the server on pool errors
 });
 
 // Helper function to convert MySQL placeholders (?) to PostgreSQL placeholders ($1, $2, ...)
