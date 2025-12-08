@@ -117,8 +117,8 @@ export default function Layout() {
         <AppBar
           position="fixed"
           sx={{
-            width: { sm: `calc(100% - ${sidebarWidth}px)` },
-            ml: { sm: `${sidebarWidth}px` },
+            width: { xs: '100%', sm: `calc(100% - ${sidebarWidth}px)` },
+            ml: { xs: 0, sm: `${sidebarWidth}px` },
             transition: theme.transitions.create(['width', 'margin'], {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.enteringScreen,
@@ -127,6 +127,7 @@ export default function Layout() {
             color: 'text.primary',
             boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.08)',
             borderBottom: '1px solid #e0e0e0',
+            zIndex: (theme) => theme.zIndex.drawer + 1,
           }}
         >
         <Toolbar>
