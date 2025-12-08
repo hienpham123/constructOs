@@ -309,8 +309,8 @@ export default function Layout() {
         sx={{
           flexGrow: 1,
           p: hideHeader ? 0 : 3,
-          width: { sm: `calc(100% - ${sidebarWidth}px)` },
-          maxWidth: { sm: `calc(100vw - ${sidebarWidth}px)` },
+          width: { xs: '100%', sm: `calc(100% - ${sidebarWidth}px)` },
+          maxWidth: { xs: '100vw', sm: `calc(100vw - ${sidebarWidth}px)` },
           mt: hideHeader ? 0 : 8,
           overflowX: 'hidden',
           transition: theme.transitions.create(['width', 'margin'], {
