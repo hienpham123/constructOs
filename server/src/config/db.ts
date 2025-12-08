@@ -14,8 +14,14 @@ const dbConfig = {
   database: process.env.DB_NAME || 'constructos',
   max: parseInt(process.env.DB_CONNECTION_LIMIT || '10'),
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000, // Increase timeout
-  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+  connectionTimeoutMillis: 10000, // Increase timeout to 10 seconds
+  // Always use SSL for Supabase (production), but allow non-SSL for local dev
+  ssl: process.env.DB_SSL === 'true' || process.env.DB_HOST?.includes('supabase') 
+    ? { rejectUnauthorized: false } 
+    : false,
+  // Keep connections alive
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10000,
 };
 
 // Create connection pool with lazy initialization
