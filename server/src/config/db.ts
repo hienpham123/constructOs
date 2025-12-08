@@ -21,20 +21,15 @@ const dbConfig = {
 // Create connection pool
 export const pool = new Pool(dbConfig);
 
-// Test connection (non-blocking, don't wait for it)
-// Use a simple query instead of just connect to avoid handleEmptyQuery error
-setTimeout(() => {
-  pool
-    .query('SELECT NOW()')
-    .then(() => {
-      console.log('✅ Connected to PostgreSQL database:', dbConfig.database);
-    })
-    .catch((error) => {
-      console.error('❌ PostgreSQL connection error:', error.message);
-      console.error('Please check your database configuration in .env file');
-      // Don't throw - let server start even if DB connection fails initially
-    });
-}, 1000); // Wait 1 second for pool to initialize
+// Test connection will happen on first query
+// No need to test on startup - let it fail gracefully on first use
+pool.on('connect', () => {
+  console.log('✅ PostgreSQL pool connected');
+});
+
+pool.on('error', (err) => {
+  console.error('❌ Unexpected PostgreSQL pool error:', err);
+});
 
 // Helper function to convert MySQL placeholders (?) to PostgreSQL placeholders ($1, $2, ...)
 function convertMySQLToPostgreSQL(sql: string, params?: any[]): string {
