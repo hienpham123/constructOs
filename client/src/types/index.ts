@@ -140,7 +140,7 @@ export interface Personnel {
   team?: string;
   projectId?: string;
   projectName?: string;
-  status: 'active' | 'inactive' | 'on_leave';
+  status: 'active' | 'inactive' | 'on_leave' | 'banned';
   hireDate: string;
   createdAt: string;
 }

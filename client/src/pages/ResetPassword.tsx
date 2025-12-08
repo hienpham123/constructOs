@@ -331,7 +331,7 @@ export default function ResetPassword() {
                         edge="end"
                         disabled={success}
                       >
-                        {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                        {showConfirmPassword ? <FontAwesomeIcon icon={faEyeSlash} /> : <FontAwesomeIcon icon={faEye} />}
                       </IconButton>
                     </InputAdornment>
                   ),
