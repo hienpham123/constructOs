@@ -287,8 +287,44 @@ export const updatePersonnel = async (req: Request, res: Response) => {
       }
     }
     
+    // Handle code update - check for uniqueness if code is being changed
+    let code = existing[0].code; // Default to existing code
+    if (personnelData.code !== undefined && personnelData.code !== null && personnelData.code !== '') {
+      const newCode = personnelData.code.trim();
+      // Only check uniqueness if code is different from current code
+      if (newCode !== existing[0].code) {
+        // Check if new code already exists for another user
+        const codeCheck = await query<any[]>(
+          'SELECT id FROM users WHERE code = ? AND id != ?',
+          [newCode, id]
+        );
+        if (codeCheck.length > 0) {
+          return res.status(400).json({ 
+            error: 'Mã nhân sự đã tồn tại',
+            message: `Code "${newCode}" is already used by another user` 
+          });
+        }
+        code = newCode;
+      }
+    }
+    
+    // Handle email update - check for uniqueness if email is being changed
+    const email = normalizeString(personnelData.email || existing[0].email);
+    if (email && email !== existing[0].email) {
+      // Check if new email already exists for another user
+      const emailCheck = await query<any[]>(
+        'SELECT id FROM users WHERE email = ? AND id != ?',
+        [email, id]
+      );
+      if (emailCheck.length > 0) {
+        return res.status(400).json({ 
+          error: 'Email đã tồn tại',
+          message: `Email "${email}" is already used by another user` 
+        });
+      }
+    }
+    
     // Use existing values if not provided
-    const code = personnelData.code !== undefined ? personnelData.code : existing[0].code;
     const status = personnelData.status !== undefined ? personnelData.status : existing[0].status;
     const hireDate = personnelData.hireDate ? toMySQLDate(personnelData.hireDate) : existing[0].hire_date;
     
@@ -301,7 +337,7 @@ export const updatePersonnel = async (req: Request, res: Response) => {
         code,
         personnelData.name,
         personnelData.phone,
-        normalizeString(personnelData.email || existing[0].email),
+        email,
         positionValue,
         normalizeString(personnelData.team !== undefined ? personnelData.team : existing[0].team || null),
         projectId,
@@ -330,6 +366,29 @@ export const updatePersonnel = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Error updating personnel:', error);
     console.error('Request data:', req.body);
+    
+    // Handle duplicate key errors
+    if (error.code === '23505' || error.code === 'ER_DUP_ENTRY' || 
+        error.message?.includes('duplicate key') || 
+        error.message?.includes('unique constraint')) {
+      if (error.message?.includes('users_code_key') || error.message?.includes('code')) {
+        return res.status(400).json({ 
+          error: 'Mã nhân sự đã tồn tại',
+          message: 'Code already exists for another user' 
+        });
+      }
+      if (error.message?.includes('users_email_key') || error.message?.includes('email')) {
+        return res.status(400).json({ 
+          error: 'Email đã tồn tại',
+          message: 'Email already exists for another user' 
+        });
+      }
+      return res.status(400).json({ 
+        error: 'Dữ liệu trùng lặp',
+        message: error.message 
+      });
+    }
+    
     res.status(500).json({ 
       error: 'Không thể cập nhật nhân sự',
       message: error.message 
