@@ -1,176 +1,214 @@
-# 🔐 Environment Variables cho Render Backend
+# 🔧 Environment Variables cho Render (Dev - PostgreSQL)
 
-Danh sách đầy đủ các environment variables cần thiết để deploy backend lên Render.
+Hướng dẫn cấu hình biến môi trường trên Render để deploy backend với PostgreSQL (Supabase).
 
-## 📋 Copy & Paste Template
+## ✅ Các Biến Môi Trường Cần Thiết
 
-Sử dụng template này để copy vào Render dashboard:
+### 1. Database Configuration (PostgreSQL - Supabase)
 
 ```env
-# ============================================
-# SERVER CONFIGURATION
-# ============================================
-NODE_ENV=production
+# Database Type (optional - auto-detect nếu không set)
+DB_TYPE=postgres
+
+# Supabase Database Connection
+DB_HOST=db.xxxxx.supabase.co
+# Hoặc nếu dùng Session Pooler (khuyến nghị):
+DB_HOST=aws-0-ap-southeast-1.pooler.supabase.com
+
+DB_PORT=5432
+# Hoặc nếu dùng Session Pooler:
+DB_PORT=6543
+
+DB_USER=postgres
+# Hoặc nếu dùng Session Pooler:
+DB_USER=postgres.xxxxx
+
+DB_PASSWORD=your-supabase-password
+DB_NAME=postgres
+
+# SSL Configuration (bắt buộc cho Supabase)
+DB_SSL=true
+
+# Connection Pool
+DB_CONNECTION_LIMIT=10
+```
+
+### 2. Server Configuration
+
+```env
+# Port (Render tự động set, nhưng có thể override)
 PORT=10000
 
-# ============================================
-# DATABASE CONFIGURATION
-# ============================================
-DB_HOST=your-database-host-here
-DB_PORT=3306
-DB_USER=your-database-user-here
-DB_PASSWORD=your-database-password-here
-DB_NAME=constructOS
-DB_CONNECTION_LIMIT=10
+# Node Environment (QUAN TRỌNG: không được là 'production')
+NODE_ENV=development
+# Hoặc
+NODE_ENV=staging
 
-# ============================================
-# SECURITY
-# ============================================
-JWT_SECRET=your-jwt-secret-here-generate-with-openssl-rand-base64-32
-
-# ============================================
-# API CONFIGURATION
-# ============================================
+# API Base URL (cho avatar URLs và CORS)
 API_BASE_URL=https://constructos-backend.onrender.com
-FRONTEND_URL=https://your-app.netlify.app
-CORS_ORIGIN=https://your-app.netlify.app
+
+# Frontend URL (cho CORS)
+FRONTEND_URL=https://your-frontend.netlify.app
+CORS_ORIGIN=https://your-frontend.netlify.app
 ```
 
----
-
-## 📝 Chi Tiết Từng Biến
-
-### 1. NODE_ENV
-- **Value**: `production`
-- **Secret**: ❌ No
-- **Mô tả**: Môi trường chạy (production)
-
-### 2. PORT
-- **Value**: `10000`
-- **Secret**: ❌ No
-- **Mô tả**: ⚠️ **QUAN TRỌNG**: Render sử dụng port 10000, không đổi!
-
-### 3. DB_HOST
-- **Value**: Host của database
-- **Secret**: ❌ No
-- **Ví dụ**: 
-  - PlanetScale: `aws.connect.psdb.cloud`
-  - Railway: `containers-us-west-xxx.railway.app`
-  - Custom MySQL: `your-mysql-host.com`
-
-### 4. DB_PORT
-- **Value**: `3306`
-- **Secret**: ❌ No
-- **Mô tả**: Port MySQL (thường là 3306)
-
-### 5. DB_USER
-- **Value**: Username database
-- **Secret**: ❌ No
-- **Ví dụ**: `constructos_user` hoặc username từ database service
-
-### 6. DB_PASSWORD
-- **Value**: Password database
-- **Secret**: ✅ **YES - Mark as Secret!**
-- **Mô tả**: Mật khẩu database, **PHẢI đánh dấu Secret**
-
-### 7. DB_NAME
-- **Value**: `constructOS`
-- **Secret**: ❌ No
-- **Mô tả**: Tên database
-
-### 8. DB_CONNECTION_LIMIT
-- **Value**: `10`
-- **Secret**: ❌ No
-- **Mô tả**: Số connection tối đa
-
-### 9. JWT_SECRET
-- **Value**: Random string (32+ characters)
-- **Secret**: ✅ **YES - Mark as Secret!**
-- **Cách tạo**:
-  ```bash
-  openssl rand -base64 32
-  ```
-- **Mô tả**: Secret key cho JWT tokens, **PHẢI đánh dấu Secret**
-
-### 10. API_BASE_URL
-- **Value**: URL của Render service
-- **Secret**: ❌ No
-- **Ví dụ**: `https://constructos-backend.onrender.com`
-- **Mô tả**: URL backend (cập nhật sau khi deploy)
-
-### 11. FRONTEND_URL
-- **Value**: URL frontend (Netlify)
-- **Secret**: ❌ No
-- **Ví dụ**: `https://constructos.netlify.app`
-- **Mô tả**: URL frontend (set sau khi deploy frontend)
-
-### 12. CORS_ORIGIN
-- **Value**: URL frontend (Netlify)
-- **Secret**: ❌ No
-- **Ví dụ**: `https://constructos.netlify.app`
-- **Mô tả**: URL frontend cho CORS (set sau khi deploy frontend)
-
----
-
-## 🔒 Biến Cần Đánh Dấu Secret
-
-⚠️ **QUAN TRỌNG**: Các biến sau **PHẢI** được đánh dấu "Secret" trong Render:
-
-- ✅ `DB_PASSWORD`
-- ✅ `JWT_SECRET`
-
-**Cách đánh dấu Secret**:
-1. Trong Render dashboard → Environment Variables
-2. Click vào biến
-3. Check box **"Mark as Secret"**
-4. Save
-
----
-
-## 📝 Ví Dụ Với PlanetScale
-
-Nếu bạn dùng PlanetScale MySQL:
+### 3. Security
 
 ```env
-DB_HOST=aws.connect.psdb.cloud
-DB_PORT=3306
-DB_USER=your-planetscale-user
-DB_PASSWORD=your-planetscale-password
-DB_NAME=constructOS
+# JWT Secret (PHẢI thay đổi từ default!)
+JWT_SECRET=your-super-secret-jwt-key-min-32-characters-change-this
 ```
 
-Lấy thông tin từ PlanetScale dashboard → Database → Connection strings
+## 🎯 Logic Auto-Detect Database
 
----
+Code sẽ tự động chọn PostgreSQL nếu:
 
-## 📝 Ví Dụ Với Railway MySQL
+1. ✅ **DB_TYPE=postgres** (explicit override)
+2. ✅ **DB_PORT=5432** hoặc **6543** (PostgreSQL ports)
+3. ✅ **DB_HOST** chứa `supabase`, `render`, hoặc `railway`
+4. ✅ **NODE_ENV** không phải `production` (production sẽ dùng MySQL)
 
-Nếu bạn dùng Railway MySQL:
+## 📋 Checklist Setup trên Render
 
-```env
-DB_HOST=containers-us-west-xxx.railway.app
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=your-railway-password
-DB_NAME=railway
+### Bước 1: Vào Render Dashboard
+1. Vào project backend của bạn trên Render
+2. Click **"Environment"** tab
+
+### Bước 2: Thêm Database Variables
+
+Thêm các biến sau (thay giá trị bằng thông tin Supabase của bạn):
+
+```
+Key: DB_TYPE
+Value: postgres
 ```
 
-Lấy thông tin từ Railway dashboard → Database → Variables
+```
+Key: DB_HOST
+Value: db.xxxxx.supabase.co
+# Hoặc Session Pooler: aws-0-ap-southeast-1.pooler.supabase.com
+```
+
+```
+Key: DB_PORT
+Value: 5432
+# Hoặc Session Pooler: 6543
+```
+
+```
+Key: DB_USER
+Value: postgres
+# Hoặc Session Pooler: postgres.xxxxx
+```
+
+```
+Key: DB_PASSWORD
+Value: [your-supabase-password]
+```
+
+```
+Key: DB_NAME
+Value: postgres
+```
+
+```
+Key: DB_SSL
+Value: true
+```
+
+```
+Key: DB_CONNECTION_LIMIT
+Value: 10
+```
+
+### Bước 3: Thêm Server Variables
+
+```
+Key: NODE_ENV
+Value: development
+# HOẶC staging (KHÔNG được là 'production')
+```
+
+```
+Key: API_BASE_URL
+Value: https://constructos-backend.onrender.com
+```
+
+```
+Key: FRONTEND_URL
+Value: https://your-frontend.netlify.app
+```
+
+```
+Key: CORS_ORIGIN
+Value: https://your-frontend.netlify.app
+```
+
+```
+Key: JWT_SECRET
+Value: [your-secure-jwt-secret-min-32-chars]
+```
+
+### Bước 4: Kiểm Tra
+
+Sau khi thêm tất cả biến, server sẽ:
+- ✅ Tự động detect PostgreSQL
+- ✅ Log: `📦 Using PostgreSQL database`
+- ✅ Kết nối đến Supabase
+
+## ⚠️ Lưu Ý Quan Trọng
+
+1. **NODE_ENV**: 
+   - ✅ `development` hoặc `staging` → PostgreSQL
+   - ❌ `production` → MySQL (sẽ không dùng Supabase)
+
+2. **DB_HOST với Session Pooler**:
+   - Nếu dùng Session Pooler (port 6543), DB_HOST sẽ khác
+   - Format: `aws-0-[region].pooler.supabase.com`
+   - DB_USER: `postgres.[project-ref]`
+
+3. **DB_SSL**: 
+   - Phải là `true` cho Supabase
+   - Không được là `false` hoặc bỏ trống
+
+4. **Port**:
+   - Render tự động set PORT, không cần config
+   - Nhưng có thể override nếu cần
+
+## 🧪 Test Sau Khi Deploy
+
+1. Xem logs trên Render → sẽ thấy:
+   ```
+   📦 Using PostgreSQL database
+      Environment: development
+   ✅ Database connection successful
+   ```
+
+2. Test API endpoint:
+   ```bash
+   curl https://constructos-backend.onrender.com/api/health
+   ```
+
+3. Test đăng ký user → sẽ tự động gán role `construction_department`
+
+## 📝 Tóm Tắt
+
+**Minimum Required Variables:**
+- `DB_HOST` (chứa 'supabase')
+- `DB_PORT` (5432 hoặc 6543)
+- `DB_USER`
+- `DB_PASSWORD`
+- `DB_NAME` (postgres)
+- `DB_SSL` (true)
+- `NODE_ENV` (development hoặc staging)
+- `API_BASE_URL`
+- `JWT_SECRET`
+
+**Optional:**
+- `DB_TYPE=postgres` (để chắc chắn)
+- `DB_CONNECTION_LIMIT` (default: 10)
+- `FRONTEND_URL` và `CORS_ORIGIN` (cho CORS)
 
 ---
 
-## ✅ Checklist
-
-Trước khi deploy, đảm bảo:
-
-- [ ] Tất cả biến đã được set
-- [ ] `DB_PASSWORD` đã được mark as Secret
-- [ ] `JWT_SECRET` đã được mark as Secret
-- [ ] `PORT=10000` (không đổi!)
-- [ ] `API_BASE_URL` sẽ được cập nhật sau khi deploy
-- [ ] `FRONTEND_URL` và `CORS_ORIGIN` sẽ được set sau khi deploy frontend
-
----
-
-**Lưu ý**: Sau khi deploy thành công, quay lại cập nhật `API_BASE_URL` với URL thực tế của Render service.
-
+**Sau khi set xong, Render sẽ tự động rebuild và deploy với PostgreSQL!** 🚀
