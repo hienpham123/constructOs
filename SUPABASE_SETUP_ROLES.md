@@ -114,5 +114,47 @@ Script sử dụng `ON CONFLICT DO UPDATE`, nên:
 
 ---
 
+## 📝 Bảng Users Trống - Điều Này Bình Thường!
+
+Sau khi insert roles, bảng `users` vẫn trống là **hoàn toàn bình thường**. Bảng `users` sẽ có dữ liệu khi:
+
+1. ✅ **User đăng ký qua frontend** (khuyến nghị)
+2. ✅ **Hoặc insert admin user thủ công** (nếu cần)
+
+### Cách 1: Test Đăng Ký (Khuyến nghị)
+
+1. Vào trang đăng ký trên Netlify: `https://constructos.netlify.app/register`
+2. Điền thông tin:
+   - Họ và tên
+   - Email
+   - Số điện thoại
+   - Mật khẩu (tối thiểu 6 ký tự)
+3. Click **"Đăng ký"**
+4. User mới sẽ được tạo với role `construction_department` mặc định
+5. Kiểm tra trong Supabase Table Editor → bảng `users` sẽ có dữ liệu
+
+### Cách 2: Tạo Admin User Thủ Công (Tùy chọn)
+
+Nếu muốn tạo admin user để test đăng nhập:
+
+1. **Generate password hash:**
+   ```bash
+   cd server
+   node ../database/seeds/generate_password_hash.js your_password
+   ```
+
+2. **Copy hash và chạy script:**
+   - Mở file `database/seeds/insert_admin_user.sql`
+   - Thay `$2b$10$YOUR_BCRYPT_HASH_HERE` bằng hash vừa generate
+   - Chạy script trong Supabase SQL Editor
+
+3. **Đăng nhập với:**
+   - Email: `admin@constructos.com`
+   - Password: password bạn đã dùng để generate hash
+
+---
+
 **Sau khi insert roles, đăng ký sẽ hoạt động bình thường!** 🎉
+
+**Bảng users sẽ có dữ liệu sau khi user đầu tiên đăng ký!** ✅
 
