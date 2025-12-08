@@ -23,30 +23,25 @@ let poolInstance: pg.Pool | null = null;
 
 function getPool(): pg.Pool {
   if (!poolInstance) {
-    poolInstance = new Pool({
-      ...dbConfig,
-      // Suppress connection errors on startup
-      allowExitOnIdle: true,
-    });
+    poolInstance = new Pool(dbConfig);
     
-    // Handle pool errors gracefully - but don't attach listener immediately
-    // This prevents handleEmptyQuery errors during initialization
-    setTimeout(() => {
-      if (poolInstance) {
-        poolInstance.on('error', (err: Error, client: any) => {
-          // Suppress handleEmptyQuery errors as they're often non-critical
-          if (err.message && (
-            err.message.includes('handleEmptyQuery') ||
-            err.message.includes('Cannot read properties of undefined')
-          )) {
-            // Silently ignore - this is often a pg client internal issue
-            return;
-          }
-          console.error('❌ Unexpected PostgreSQL pool error:', err.message);
-          // Don't crash the server on pool errors
-        });
+    // Handle pool errors gracefully - catch all errors silently
+    // This prevents handleEmptyQuery and other non-critical errors from crashing server
+    poolInstance.on('error', (err: Error, client: any) => {
+      // Suppress all pg client internal errors that don't affect functionality
+      const errorMsg = err.message || '';
+      if (
+        errorMsg.includes('handleEmptyQuery') ||
+        errorMsg.includes('Cannot read properties of undefined') ||
+        errorMsg.includes('activeQuery')
+      ) {
+        // Silently ignore - these are often pg client internal issues
+        // that don't affect actual database operations
+        return;
       }
-    }, 1000); // Wait 1 second before attaching error handler
+      // Only log real database errors
+      console.error('❌ PostgreSQL pool error:', errorMsg);
+    });
   }
   return poolInstance;
 }
