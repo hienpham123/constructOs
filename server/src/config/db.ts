@@ -70,15 +70,21 @@ export async function query<T = any>(
       const result = await pool.query(pgSql, params);
       return result.rows as T;
     } catch (queryError: any) {
-      // Handle specific pg client errors
-      if (queryError.message && queryError.message.includes('handleEmptyQuery')) {
-        console.warn('PostgreSQL handleEmptyQuery warning (non-critical):', queryError.message);
-        // Try to reconnect and retry once
+      // Handle specific pg client errors (handleEmptyQuery is often non-critical)
+      if (queryError.message && (
+        queryError.message.includes('handleEmptyQuery') ||
+        (queryError.message.includes('Cannot read properties of undefined') && 
+         queryError.message.includes('handleEmptyQuery'))
+      )) {
+        // This is often a pg client internal issue, try once more with small delay
         try {
+          await new Promise(resolve => setTimeout(resolve, 100)); // Small delay
           const result = await pool.query(pgSql, params);
           return result.rows as T;
-        } catch (retryError) {
-          throw retryError;
+        } catch (retryError: any) {
+          // If retry fails, log and throw original error
+          console.warn('Query retry failed after handleEmptyQuery error');
+          throw queryError;
         }
       }
       throw queryError;
