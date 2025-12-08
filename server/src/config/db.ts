@@ -14,22 +14,38 @@ const dbConfig = {
   database: process.env.DB_NAME || 'constructos',
   max: parseInt(process.env.DB_CONNECTION_LIMIT || '10'),
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 5000, // Increase timeout
   ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
 };
 
-// Create connection pool
-export const pool = new Pool(dbConfig);
+// Create connection pool with lazy initialization
+let poolInstance: pg.Pool | null = null;
 
-// Handle pool errors gracefully
-pool.on('error', (err: Error, client: any) => {
-  // Suppress handleEmptyQuery errors as they're often non-critical
-  if (err.message && err.message.includes('handleEmptyQuery')) {
-    // Silently ignore - this is often a pg client internal issue
-    return;
+function getPool(): pg.Pool {
+  if (!poolInstance) {
+    poolInstance = new Pool(dbConfig);
+    
+    // Handle pool errors gracefully
+    poolInstance.on('error', (err: Error, client: any) => {
+      // Suppress handleEmptyQuery errors as they're often non-critical
+      if (err.message && (
+        err.message.includes('handleEmptyQuery') ||
+        err.message.includes('Cannot read properties of undefined')
+      )) {
+        // Silently ignore - this is often a pg client internal issue
+        return;
+      }
+      console.error('❌ Unexpected PostgreSQL pool error:', err.message);
+      // Don't crash the server on pool errors
+    });
   }
-  console.error('❌ Unexpected PostgreSQL pool error:', err.message);
-  // Don't crash the server on pool errors
+  return poolInstance;
+}
+
+export const pool = new Proxy({} as pg.Pool, {
+  get(target, prop) {
+    return getPool()[prop as keyof pg.Pool];
+  }
 });
 
 // Helper function to convert MySQL placeholders (?) to PostgreSQL placeholders ($1, $2, ...)
@@ -61,6 +77,9 @@ export async function query<T = any>(
       throw new Error('Converted SQL query cannot be empty');
     }
 
+    // Get pool instance
+    const pool = getPool();
+    
     // Ensure pool is ready before querying
     if (!pool || pool.ended) {
       throw new Error('Database pool is not available');
@@ -101,6 +120,7 @@ export async function query<T = any>(
 export async function transaction<T>(
   callback: (client: pg.PoolClient) => Promise<T>
 ): Promise<T> {
+  const pool = getPool();
   const client = await pool.connect();
   await client.query('BEGIN');
 
