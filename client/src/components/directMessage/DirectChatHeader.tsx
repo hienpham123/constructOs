@@ -1,7 +1,8 @@
-import { Box, Typography, Avatar, IconButton, Popover, MenuList, MenuItem } from '@mui/material';
+import { Box, Typography, Avatar, IconButton, Popover, MenuList, MenuItem, useMediaQuery, useTheme } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEllipsisV, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faEllipsisV, faTrash, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import { useState, memo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { type DirectConversationDetail } from '../../services/api/directMessages';
 
 interface DirectChatHeaderProps {
@@ -11,6 +12,9 @@ interface DirectChatHeaderProps {
 
 function DirectChatHeader({ conversation, onDeleteConversation }: DirectChatHeaderProps) {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -18,6 +22,10 @@ function DirectChatHeader({ conversation, onDeleteConversation }: DirectChatHead
 
   const handleMenuClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleBackClick = () => {
+    navigate('/chats');
   };
 
   if (!conversation) {
@@ -53,6 +61,23 @@ function DirectChatHeader({ conversation, onDeleteConversation }: DirectChatHead
         width: '100%',
       }}
     >
+      {/* Back button for mobile */}
+      {isMobile && (
+        <IconButton
+          onClick={handleBackClick}
+          sx={{
+            mr: 1,
+            color: '#65676b',
+            minWidth: 40,
+            minHeight: 40,
+            '&:hover': {
+              bgcolor: '#f0f2f5',
+            },
+          }}
+        >
+          <FontAwesomeIcon icon={faArrowLeft} style={{ fontSize: '18px' }} />
+        </IconButton>
+      )}
       <Avatar
         src={conversation.otherUser.avatar || undefined}
         sx={{
