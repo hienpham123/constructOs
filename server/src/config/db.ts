@@ -67,57 +67,97 @@ export async function query<T = any>(
   sql: string,
   params?: any[]
 ): Promise<T> {
-  try {
-    // Validate SQL is not empty
-    if (!sql || typeof sql !== 'string' || sql.trim().length === 0) {
-      throw new Error('SQL query cannot be empty');
-    }
-
-    // Convert MySQL placeholders to PostgreSQL placeholders
-    const pgSql = convertMySQLToPostgreSQL(sql, params);
-    
-    // Validate converted SQL
-    if (!pgSql || pgSql.trim().length === 0) {
-      throw new Error('Converted SQL query cannot be empty');
-    }
-
-    // Get pool instance
-    const pool = getPool();
-    
-    // Ensure pool is ready before querying
-    if (!pool || pool.ended) {
-      throw new Error('Database pool is not available');
-    }
-
+  let retries = 3;
+  let lastError: any;
+  
+  while (retries > 0) {
     try {
-      const result = await pool.query(pgSql, params);
-      return result.rows as T;
-    } catch (queryError: any) {
-      // Handle specific pg client errors (handleEmptyQuery is often non-critical)
-      if (queryError.message && (
-        queryError.message.includes('handleEmptyQuery') ||
-        (queryError.message.includes('Cannot read properties of undefined') && 
-         queryError.message.includes('handleEmptyQuery'))
-      )) {
-        // This is often a pg client internal issue, try once more with small delay
-        try {
-          await new Promise(resolve => setTimeout(resolve, 100)); // Small delay
-          const result = await pool.query(pgSql, params);
-          return result.rows as T;
-        } catch (retryError: any) {
-          // If retry fails, log and throw original error
-          console.warn('Query retry failed after handleEmptyQuery error');
-          throw queryError;
-        }
+      // Validate SQL is not empty
+      if (!sql || typeof sql !== 'string' || sql.trim().length === 0) {
+        throw new Error('SQL query cannot be empty');
       }
-      throw queryError;
+
+      // Convert MySQL placeholders to PostgreSQL placeholders
+      const pgSql = convertMySQLToPostgreSQL(sql, params);
+      
+      // Validate converted SQL
+      if (!pgSql || pgSql.trim().length === 0) {
+        throw new Error('Converted SQL query cannot be empty');
+      }
+
+      // Get pool instance
+      const pool = getPool();
+      
+      // Ensure pool is ready before querying
+      if (!pool || pool.ended) {
+        throw new Error('Database pool is not available');
+      }
+
+      try {
+        const result = await pool.query(pgSql, params);
+        return result.rows as T;
+      } catch (queryError: any) {
+        // Handle connection errors - retry with new connection
+        if (queryError.message && (
+          queryError.message.includes('Connection terminated') ||
+          queryError.message.includes('Connection ended') ||
+          queryError.message.includes('Client has encountered a connection error') ||
+          queryError.message.includes('server closed the connection')
+        )) {
+          lastError = queryError;
+          retries--;
+          if (retries > 0) {
+            // Wait a bit before retrying
+            await new Promise(resolve => setTimeout(resolve, 500));
+            // Force pool to create new connection
+            continue;
+          }
+        }
+        
+        // Handle specific pg client errors (handleEmptyQuery is often non-critical)
+        if (queryError.message && (
+          queryError.message.includes('handleEmptyQuery') ||
+          (queryError.message.includes('Cannot read properties of undefined') && 
+           queryError.message.includes('handleEmptyQuery'))
+        )) {
+          // This is often a pg client internal issue, try once more with small delay
+          try {
+            await new Promise(resolve => setTimeout(resolve, 100)); // Small delay
+            const result = await pool.query(pgSql, params);
+            return result.rows as T;
+          } catch (retryError: any) {
+            // If retry fails, log and throw original error
+            console.warn('Query retry failed after handleEmptyQuery error');
+            throw queryError;
+          }
+        }
+        throw queryError;
+      }
+    } catch (error: any) {
+      lastError = error;
+      // Don't retry for validation errors
+      if (error.message && (
+        error.message.includes('cannot be empty') ||
+        error.message.includes('not available')
+      )) {
+        throw error;
+      }
+      
+      retries--;
+      if (retries > 0) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        continue;
+      }
+      
+      console.error('Database query error:', error.message);
+      console.error('SQL:', sql);
+      console.error('Params:', params);
+      throw error;
     }
-  } catch (error: any) {
-    console.error('Database query error:', error.message);
-    console.error('SQL:', sql);
-    console.error('Params:', params);
-    throw error;
   }
+  
+  // If we get here, all retries failed
+  throw lastError || new Error('Database query failed after retries');
 }
 
 // Helper function for transactions
