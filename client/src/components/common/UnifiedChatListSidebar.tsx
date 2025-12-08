@@ -165,7 +165,6 @@ export default function UnifiedChatListSidebar({
                 }
                 onGroupClick={handleGroupClick}
                 onConversationClick={handleConversationClick}
-                currentUserId={user?.id}
               />
             ))}
           </List>

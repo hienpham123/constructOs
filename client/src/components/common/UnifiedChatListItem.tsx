@@ -4,6 +4,7 @@ import { faThumbtack } from '@fortawesome/free-solid-svg-icons';
 import { type GroupChat } from '../../services/api/groupChats';
 import { type DirectConversation } from '../../services/api/directMessages';
 import { formatZaloTime } from '../../utils/dateFormat';
+import { useAuthStore } from '../../stores/authStore';
 
 type UnifiedChatItem = 
   | { type: 'group'; data: GroupChat }
@@ -14,7 +15,6 @@ interface UnifiedChatListItemProps {
   isSelected: boolean;
   onGroupClick: (groupId: string) => void;
   onConversationClick: (conversationId: string) => void;
-  currentUserId?: string;
 }
 
 export default function UnifiedChatListItem({
@@ -22,25 +22,24 @@ export default function UnifiedChatListItem({
   isSelected,
   onGroupClick,
   onConversationClick,
-  currentUserId,
 }: UnifiedChatListItemProps) {
+  const { user } = useAuthStore();
   const isGroup = item.type === 'group';
-  const data = item.data;
   
-  const pinned = isGroup ? data.pinned : data.pinned;
-  const unreadCount = isGroup ? data.unreadCount : data.unreadCount;
-  const avatar = isGroup ? data.avatar : data.otherUser.avatar;
-  const name = isGroup ? data.name : data.otherUser.name;
-  const lastMessage = isGroup ? data.lastMessage : data.lastMessage;
+  const pinned = item.data.pinned;
+  const unreadCount = item.data.unreadCount;
+  const avatar = isGroup ? item.data.avatar : item.data.otherUser.avatar;
+  const name = isGroup ? item.data.name : item.data.otherUser.name;
+  const lastMessage = item.data.lastMessage;
   const lastMessageTime = isGroup 
-    ? (data.lastMessageAt ? formatZaloTime(data.lastMessageAt) : null)
-    : (data.lastMessage ? formatZaloTime(data.lastMessage.createdAt) : null);
+    ? (item.data.lastMessageAt ? formatZaloTime(item.data.lastMessageAt) : null)
+    : (item.data.lastMessage ? formatZaloTime(item.data.lastMessage.createdAt) : null);
 
   const handleClick = () => {
     if (isGroup) {
-      onGroupClick(data.id);
+      onGroupClick(item.data.id);
     } else {
-      onConversationClick(data.id);
+      onConversationClick(item.data.id);
     }
   };
 
@@ -152,15 +151,15 @@ export default function UnifiedChatListItem({
                     fontSize: '0.8125rem',
                   }}
                 >
-                  {isGroup ? (
+                  {isGroup && lastMessage && 'userName' in lastMessage ? (
                     <>
                       <Box component="span" sx={{ fontWeight: 500 }}>
-                        {lastMessage.userName === currentUserId ? 'Bạn' : lastMessage.userName}
+                        {lastMessage.userName === user?.name ? 'Bạn' : lastMessage.userName}
                       </Box>
                       : {lastMessage.content}
                     </>
                   ) : (
-                    lastMessage.content || 'Đã gửi một tệp'
+                    lastMessage?.content || 'Đã gửi một tệp'
                   )}
                 </Typography>
               ) : (
