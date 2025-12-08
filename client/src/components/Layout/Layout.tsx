@@ -79,6 +79,18 @@ export default function Layout() {
     }
   }, [location.pathname]);
 
+  // Listen for custom event to toggle mobile drawer from chat pages
+  useEffect(() => {
+    const handleToggleDrawer = () => {
+      setMobileOpen(prev => !prev);
+    };
+    
+    window.addEventListener('toggleMobileDrawer', handleToggleDrawer);
+    return () => {
+      window.removeEventListener('toggleMobileDrawer', handleToggleDrawer);
+    };
+  }, []);
+
   // Get avatar URL with cache busting
   const getAvatarUrl = () => {
     if (!user?.avatar) return undefined;
