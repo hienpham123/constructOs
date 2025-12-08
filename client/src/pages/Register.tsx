@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Container,
@@ -10,12 +10,20 @@ import {
   Grid,
   InputAdornment,
   IconButton,
+  CircularProgress,
 } from '@mui/material';
 import { Button, Input } from '../components/common';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { useAuthStore } from '../stores/authStore';
+import { rolesAPI } from '../services/api';
 import logoImage from '../images/logo.svg';
+
+interface Role {
+  id: string;
+  name: string;
+  description?: string;
+}
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -24,14 +32,43 @@ export default function Register() {
     phone: '',
     password: '',
     confirmPassword: '',
-    role: 'client',
+    role: '',
   });
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [loadingRoles, setLoadingRoles] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { register } = useAuthStore();
+
+  // Fetch roles from API
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        setLoadingRoles(true);
+        // Use public endpoint for roles (no auth required)
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:2222/api';
+        const response = await fetch(`${apiUrl}/roles/public`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch roles');
+        }
+        const data = await response.json();
+        setRoles(data);
+        // Set default role to first role if available
+        if (data.length > 0 && !formData.role) {
+          setFormData(prev => ({ ...prev, role: data[0].name }));
+        }
+      } catch (err) {
+        console.error('Error fetching roles:', err);
+        // Don't set error here, just log it
+      } finally {
+        setLoadingRoles(false);
+      }
+    };
+    fetchRoles();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -218,19 +255,27 @@ export default function Register() {
                     name="role"
                     value={formData.role}
                     onChange={handleChange}
+                    disabled={loadingRoles || roles.length === 0}
                     sx={{
                       '& .MuiOutlinedInput-root': {
                         borderRadius: 1,
                       },
                     }}
                   >
-                    <MenuItem value="client">Khách hàng</MenuItem>
-                    <MenuItem value="engineer">Kỹ sư</MenuItem>
-                    <MenuItem value="site_manager">Quản lý công trường</MenuItem>
-                    <MenuItem value="warehouse">Kho</MenuItem>
-                    <MenuItem value="accountant">Kế toán</MenuItem>
-                    <MenuItem value="project_manager">Quản lý dự án</MenuItem>
-                    <MenuItem value="admin">Quản trị viên</MenuItem>
+                    {loadingRoles ? (
+                      <MenuItem disabled>
+                        <CircularProgress size={20} sx={{ mr: 1 }} />
+                        Đang tải...
+                      </MenuItem>
+                    ) : roles.length === 0 ? (
+                      <MenuItem disabled>Không có vai trò nào</MenuItem>
+                    ) : (
+                      roles.map((role) => (
+                        <MenuItem key={role.id} value={role.name}>
+                          {role.description || role.name}
+                        </MenuItem>
+                      ))
+                    )}
                   </Input>
                 </Grid>
                 <Grid item xs={12}>

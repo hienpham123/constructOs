@@ -11,7 +11,10 @@ import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// All routes require authentication
+// Public endpoint to get roles (for registration)
+router.get('/public', getRoles);
+
+// All other routes require authentication
 router.use(authenticate);
 
 // Get user's own permissions
