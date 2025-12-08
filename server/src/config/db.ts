@@ -33,13 +33,25 @@ pool
     console.error('Please check your database configuration in .env file');
   });
 
+// Helper function to convert MySQL placeholders (?) to PostgreSQL placeholders ($1, $2, ...)
+function convertMySQLToPostgreSQL(sql: string, params?: any[]): string {
+  if (!params || params.length === 0) {
+    return sql;
+  }
+  
+  let paramIndex = 1;
+  return sql.replace(/\?/g, () => `$${paramIndex++}`);
+}
+
 // Helper function to execute queries
 export async function query<T = any>(
   sql: string,
   params?: any[]
 ): Promise<T> {
   try {
-    const result = await pool.query(sql, params);
+    // Convert MySQL placeholders to PostgreSQL placeholders
+    const pgSql = convertMySQLToPostgreSQL(sql, params);
+    const result = await pool.query(pgSql, params);
     return result.rows as T;
   } catch (error: any) {
     console.error('Database query error:', error.message);
