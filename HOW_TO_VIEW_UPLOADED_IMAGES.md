@@ -116,7 +116,81 @@ http://localhost:2222/uploads/transactions/ed404a14-057e-40ac-876b-dfe75d535ca6.
 
 ## 🔍 Cách Tìm Ảnh Đã Upload
 
-### Cách 1: Xem Trong Database
+### Cách 1: Sử Dụng API Endpoint (Khuyến Nghị)
+
+**Endpoint mới:** `/api/files/all`
+
+Xem tất cả files đã upload qua API:
+
+**Local:**
+```
+GET http://localhost:2222/api/files/all
+```
+
+**Production:**
+```
+GET https://constructos-backend.onrender.com/api/files/all
+```
+
+**Query Parameters:**
+- `type` (optional): Lọc theo loại file
+  - `avatars` - Avatar của users
+  - `transactions` - Transaction attachments
+  - `comments` - Project comment attachments
+  - `purchase-request-comments` - Purchase request comment attachments
+  - `group-avatars` - Group chat avatars
+  - `group-messages` - Group message attachments
+  - `direct-messages` - Direct message attachments
+- `limit` (optional, default: 100, max: 500): Số lượng file trả về
+- `offset` (optional, default: 0): Vị trí bắt đầu
+
+**Ví dụ:**
+```bash
+# Xem tất cả files
+curl http://localhost:2222/api/files/all
+
+# Chỉ xem avatars
+curl http://localhost:2222/api/files/all?type=avatars
+
+# Xem transaction attachments với pagination
+curl http://localhost:2222/api/files/all?type=transactions&limit=50&offset=0
+```
+
+**Response:**
+```json
+{
+  "files": [
+    {
+      "id": "uuid",
+      "type": "avatar",
+      "category": "users",
+      "filename": "abc123.jpg",
+      "originalFilename": "abc123.jpg",
+      "fileUrl": "http://localhost:2222/uploads/avatars/abc123.jpg",
+      "relatedId": "user-uuid",
+      "relatedName": "User Name",
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    }
+  ],
+  "total": 10,
+  "counts": {
+    "avatars": 5,
+    "transactions": 3,
+    "project-comments": 2
+  },
+  "limit": 100,
+  "offset": 0
+}
+```
+
+**Thống kê files:**
+```
+GET /api/files/stats
+```
+
+Trả về số lượng files theo từng loại.
+
+### Cách 2: Xem Trong Database
 
 1. **Avatar của user:**
    ```sql
@@ -136,7 +210,7 @@ http://localhost:2222/uploads/transactions/ed404a14-057e-40ac-876b-dfe75d535ca6.
    SELECT id, comment_id, filename, file_url FROM comment_attachments;
    ```
 
-### Cách 2: Xem Trong Supabase Table Editor
+### Cách 3: Xem Trong Supabase Table Editor
 
 1. Vào Supabase Dashboard
 2. Click **"Table Editor"**
@@ -145,7 +219,7 @@ http://localhost:2222/uploads/transactions/ed404a14-057e-40ac-876b-dfe75d535ca6.
    - `transaction_attachments` → xem cột `file_url`
    - `comment_attachments` → xem cột `file_url`
 
-### Cách 3: Xem Trong Frontend
+### Cách 4: Xem Trong Frontend
 
 1. Vào trang profile/user → xem avatar
 2. Vào trang material transactions → xem attachments
