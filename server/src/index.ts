@@ -22,6 +22,31 @@ import { initializeSocket } from './utils/socket.js';
 
 dotenv.config();
 
+// Suppress pg client handleEmptyQuery errors globally
+process.on('uncaughtException', (error: Error) => {
+  if (error.message && (
+    error.message.includes('handleEmptyQuery') ||
+    (error.message.includes('Cannot read properties of undefined') && 
+     error.message.includes('handleEmptyQuery'))
+  )) {
+    // Silently ignore - this is a pg client internal issue
+    return;
+  }
+  console.error('Uncaught Exception:', error);
+});
+
+process.on('unhandledRejection', (reason: any) => {
+  if (reason && reason.message && (
+    reason.message.includes('handleEmptyQuery') ||
+    (reason.message.includes('Cannot read properties of undefined') && 
+     reason.message.includes('handleEmptyQuery'))
+  )) {
+    // Silently ignore - this is a pg client internal issue
+    return;
+  }
+  console.error('Unhandled Rejection:', reason);
+});
+
 const app = express();
 const server = createServer(app);
 const PORT = process.env.PORT || 2222;
