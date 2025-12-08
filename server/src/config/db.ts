@@ -26,9 +26,16 @@ const dbConfig = {
 
 // Create connection pool with lazy initialization
 let poolInstance: pg.Pool | null = null;
+let connectionTested = false;
 
 function getPool(): pg.Pool {
   if (!poolInstance) {
+    console.log('🔌 Initializing PostgreSQL connection pool...');
+    console.log(`   Host: ${dbConfig.host}:${dbConfig.port}`);
+    console.log(`   Database: ${dbConfig.database}`);
+    console.log(`   User: ${dbConfig.user}`);
+    console.log(`   SSL: ${dbConfig.ssl ? 'enabled' : 'disabled'}`);
+    
     poolInstance = new Pool(dbConfig);
     
     // Handle pool errors gracefully - catch all errors silently
@@ -48,8 +55,32 @@ function getPool(): pg.Pool {
       // Only log real database errors
       console.error('❌ PostgreSQL pool error:', errorMsg);
     });
+    
+    // Test connection on first pool creation
+    if (!connectionTested) {
+      connectionTested = true;
+      testConnection().catch(err => {
+        console.error('⚠️  Database connection test failed:', err.message);
+        console.error('   Please check your database configuration and ensure PostgreSQL is running.');
+      });
+    }
   }
   return poolInstance;
+}
+
+// Test database connection
+async function testConnection(): Promise<void> {
+  const pool = getPool();
+  try {
+    const client = await pool.connect();
+    const result = await client.query('SELECT NOW() as current_time');
+    console.log('✅ Database connection successful');
+    console.log(`   Server time: ${result.rows[0].current_time}`);
+    client.release();
+  } catch (error: any) {
+    console.error('❌ Database connection failed:', error.message);
+    throw error;
+  }
 }
 
 export const pool = new Proxy({} as pg.Pool, {
@@ -108,15 +139,36 @@ export async function query<T = any>(
           queryError.message.includes('Connection terminated') ||
           queryError.message.includes('Connection ended') ||
           queryError.message.includes('Client has encountered a connection error') ||
-          queryError.message.includes('server closed the connection')
+          queryError.message.includes('server closed the connection') ||
+          queryError.message.includes('connect ECONNREFUSED') ||
+          queryError.message.includes('getaddrinfo ENOTFOUND')
         )) {
           lastError = queryError;
           retries--;
           if (retries > 0) {
+            console.warn(`⚠️  Connection error, retrying... (${3 - retries}/3)`);
             // Wait a bit before retrying
-            await new Promise(resolve => setTimeout(resolve, 500));
-            // Force pool to create new connection
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Force pool to create new connection by resetting pool instance
+            if (poolInstance && !poolInstance.ended) {
+              try {
+                await poolInstance.end();
+              } catch (e) {
+                // Ignore errors when ending pool
+              }
+            }
+            poolInstance = null;
+            connectionTested = false;
+            // Get new pool instance
+            const newPool = getPool();
             continue;
+          } else {
+            console.error('❌ All connection retries failed');
+            console.error('   Error:', queryError.message);
+            console.error('   Please check:');
+            console.error('   1. Database server is running');
+            console.error('   2. DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME are correct');
+            console.error('   3. Network connectivity to database');
           }
         }
         
