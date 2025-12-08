@@ -101,7 +101,7 @@ export const register = async (req: Request, res: Response) => {
         // Role is a UUID, validate it exists
         try {
           const roleCheck = await query<any[]>(
-            'SELECT id FROM roles WHERE id = $1',
+            'SELECT id FROM roles WHERE id = ?',
             [roleId]
           );
           if (roleCheck.length === 0) {
