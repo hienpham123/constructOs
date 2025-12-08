@@ -19,7 +19,7 @@ function GroupChatHeader({ group, onMembersClick, onMenuClick, onSearchClick, on
   const navigate = useNavigate();
 
   const handleBack = () => {
-    navigate('/group-chats');
+    navigate('/chats');
   };
 
   return (
