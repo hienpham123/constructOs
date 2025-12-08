@@ -39,15 +39,25 @@ export const register = async (req: Request, res: Response) => {
     // Frontend may send role name (string) or role UUID
     let roleId = role;
     if (!roleId) {
-      // Try to get a default role (first role in database)
+      // Try to get default role "construction_department"
       try {
         const defaultRole = await query<any[]>(
-          'SELECT id FROM roles LIMIT 1'
+          'SELECT id FROM roles WHERE LOWER(name) = ? OR LOWER(name) = ?',
+          ['construction_department', 'phòng xây dựng']
         );
         if (defaultRole.length > 0) {
           roleId = defaultRole[0].id;
         } else {
-          return res.status(400).json({ error: 'No roles found in database. Please create at least one role first.' });
+          // Fallback: get first role if construction_department doesn't exist
+          const fallbackRole = await query<any[]>(
+            'SELECT id FROM roles LIMIT 1'
+          );
+          if (fallbackRole.length > 0) {
+            roleId = fallbackRole[0].id;
+            console.warn('⚠️  Role "construction_department" not found, using first available role');
+          } else {
+            return res.status(400).json({ error: 'No roles found in database. Please create at least one role first.' });
+          }
         }
       } catch (roleError) {
         return res.status(400).json({ error: 'Role (role_id) is required and no default role found' });
@@ -75,7 +85,7 @@ export const register = async (req: Request, res: Response) => {
           
           const mappedRoleName = roleNameMap[roleId.toLowerCase()] || roleId.toLowerCase();
           const roleResult = await query<any[]>(
-            'SELECT id FROM roles WHERE LOWER(name) = $1',
+            'SELECT id FROM roles WHERE LOWER(name) = ?',
             [mappedRoleName]
           );
           

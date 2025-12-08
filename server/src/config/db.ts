@@ -44,23 +44,26 @@ function getDatabaseType(): 'mysql' | 'postgres' {
 
 const dbType = getDatabaseType();
 
-// Re-export the appropriate database module based on environment
-let dbModule: {
+// Use dynamic import for ES modules compatibility
+let dbModulePromise: Promise<{
   pool: any;
   query: <T = any>(sql: string, params?: any[]) => Promise<T>;
   transaction: <T>(callback: (client: any) => Promise<T>) => Promise<T>;
   default: any;
-};
+}>;
 
 if (dbType === 'mysql') {
   console.log('📦 Using MySQL database');
   console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
-  dbModule = require('./db.mysql.js') as typeof dbModule;
+  dbModulePromise = import('./db.mysql.js');
 } else {
   console.log('📦 Using PostgreSQL database');
   console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
-  dbModule = require('./db.postgres.js') as typeof dbModule;
+  dbModulePromise = import('./db.postgres.js');
 }
+
+// Wait for module to load and export
+const dbModule = await dbModulePromise;
 
 export const pool = dbModule.pool;
 export const query = dbModule.query;
