@@ -847,7 +847,7 @@ export default function GroupChatDetail() {
           if (!id) return;
           try {
             await groupChatsAPI.deleteGroup(id);
-            window.location.href = '/group-chats';
+            window.location.href = '/chats';
           } catch (error: any) {
             // Error is handled by instance.ts interceptor or shown in UI
           }
