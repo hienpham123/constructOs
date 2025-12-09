@@ -26,6 +26,25 @@ export default function GroupChatDetail() {
   const { user } = useAuthStore();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Prevent body scroll on mobile
+  useEffect(() => {
+    if (isMobile) {
+      // Prevent body scroll
+      document.body.style.overflow = 'hidden';
+      document.body.style.height = '100vh';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      
+      return () => {
+        // Restore body scroll when component unmounts
+        document.body.style.overflow = '';
+        document.body.style.height = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+      };
+    }
+  }, [isMobile]);
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [messages, setMessages] = useState<GroupMessage[]>([]);
   const [content, setContent] = useState('');
@@ -660,7 +679,21 @@ export default function GroupChatDetail() {
   // Loading skeleton will be handled inside MessageList component
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, bgcolor: '#f0f2f5', overflow: 'hidden' }}>
+    <Box sx={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      flex: 1, 
+      bgcolor: '#f0f2f5', 
+      overflow: 'hidden',
+      height: { xs: '100vh', md: '100%' }, // Fixed height on mobile to prevent page scroll
+      maxHeight: { xs: '100vh', md: 'none' }, // Prevent exceeding viewport on mobile
+      position: { xs: 'fixed', md: 'relative' }, // Fixed on mobile to prevent body scroll
+      top: { xs: 0, md: 'auto' },
+      left: { xs: 0, md: 'auto' },
+      right: { xs: 0, md: 'auto' },
+      bottom: { xs: 0, md: 'auto' },
+      width: { xs: '100%', md: 'auto' },
+    }}>
       {!group && isLoading ? (
         <LinearProgress />
       ) : group ? (
