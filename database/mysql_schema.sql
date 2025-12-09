@@ -250,3 +250,43 @@ CREATE TABLE project_report_attachments (
     INDEX idx_uploaded_at (uploaded_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ============================================
+-- 15. PROJECT TASKS (multi-level)
+-- ============================================
+CREATE TABLE project_tasks (
+    id CHAR(36) PRIMARY KEY,
+    project_id CHAR(36) NOT NULL,
+    parent_task_id CHAR(36) NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    priority ENUM('low', 'normal', 'high') NOT NULL DEFAULT 'normal',
+    status ENUM('pending', 'in_progress', 'submitted', 'completed', 'blocked', 'cancelled') NOT NULL DEFAULT 'pending',
+    due_date DATE,
+    assigned_to CHAR(36) NOT NULL,
+    created_by CHAR(36) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (parent_task_id) REFERENCES project_tasks(id) ON DELETE CASCADE,
+    FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE RESTRICT,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_project_id (project_id),
+    INDEX idx_parent_task_id (parent_task_id),
+    INDEX idx_assigned_to (assigned_to)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
+-- 16. TASK ACTIVITY LOG
+-- ============================================
+CREATE TABLE task_activity (
+    id CHAR(36) PRIMARY KEY,
+    task_id CHAR(36) NOT NULL,
+    action VARCHAR(50) NOT NULL,
+    note TEXT,
+    actor_id CHAR(36) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (task_id) REFERENCES project_tasks(id) ON DELETE CASCADE,
+    FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_task_id (task_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

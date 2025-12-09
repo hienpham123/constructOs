@@ -10,6 +10,7 @@ export type { Role, RolePermission } from './roles';
 export { dailyReportsAPI } from './dailyReports';
 export { groupChatsAPI } from './groupChats';
 export type { GroupChat, GroupDetail, GroupMember, GroupMessage, GroupMessageAttachment } from './groupChats';
+export { tasksAPI } from './tasks';
 
 // Export default axios instance
 export { default as api } from './instance';

@@ -55,6 +55,7 @@ export const normalizeProject = (data: any): any => {
     actualCost: normalizeNumber(data.actualCost || data.actual_cost),
     managerId: data.managerId || data.manager_id || '',
     managerName: data.managerName || data.manager_name || '',
+    managers: data.managers || [], // Include managers array
     stages: data.stages || [],
     documents: data.documents || [],
     createdAt: data.created_at || data.createdAt || '',

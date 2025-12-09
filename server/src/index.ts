@@ -17,6 +17,7 @@ import transactionAttachmentRoutes from './routes/transactionAttachmentRoutes.js
 import groupChatRoutes from './routes/groupChatRoutes.js';
 import directMessageRoutes from './routes/directMessageRoutes.js';
 import fileRoutes from './routes/fileRoutes.js';
+import taskRoutes from './routes/taskRoutes.js';
 // Import database connection (test connection on startup)
 import './config/db.js';
 import { initializeSocket } from './utils/socket.js';
@@ -82,6 +83,7 @@ app.use('/api/transaction-attachments', transactionAttachmentRoutes);
 app.use('/api/group-chats', groupChatRoutes);
 app.use('/api/direct-messages', directMessageRoutes);
 app.use('/api/files', fileRoutes);
+app.use('/api', taskRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

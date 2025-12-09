@@ -16,7 +16,8 @@ import {
   Typography,
   CircularProgress,
 } from '@mui/material';
-import { Button, Input, DatePicker } from '../components/common';
+import { Button, Input, DatePicker, PeoplePicker } from '../components/common';
+import type { PeoplePickerOption } from '../components/common/PeoplePicker';
 import Breadcrumb from '../components/common/Breadcrumb';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -46,6 +47,7 @@ const projectSchema = z.object({
   budget: z.number().min(0, 'Ngân sách phải >= 0'),
   status: z.enum(['quoting', 'contract_signed_in_progress', 'completed', 'on_hold', 'design_consulting', 'in_progress', 'design_appraisal', 'preparing_acceptance', 'failed']),
   progress: z.number().min(0).max(100, 'Tiến độ phải từ 0-100'),
+  managers: z.array(z.any()).optional(),
 });
 
 type ProjectFormData = z.infer<typeof projectSchema>;
@@ -59,6 +61,7 @@ export default function ProjectAddEdit() {
   const isEditMode = Boolean(id);
   const [project, setProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [managers, setManagers] = useState<PeoplePickerOption[]>([]);
   
   const projectId = isEditMode && id ? id : null;
   
@@ -80,6 +83,7 @@ export default function ProjectAddEdit() {
       budget: 0,
       status: 'quoting',
       progress: 0,
+      managers: [],
     },
   });
 
@@ -115,6 +119,16 @@ export default function ProjectAddEdit() {
 
   useEffect(() => {
     if (project) {
+      // Load managers from project
+      const projectManagers = project.managers || [];
+      const managerOptions: PeoplePickerOption[] = projectManagers.map((m) => ({
+        id: m.userId,
+        name: m.userName,
+        email: m.userEmail,
+        avatar: m.userAvatar,
+      }));
+      setManagers(managerOptions);
+      
       reset({
         name: project.name || '',
         description: project.description || '',
@@ -126,8 +140,10 @@ export default function ProjectAddEdit() {
         budget: project.budget || 0,
         status: project.status || 'quoting',
         progress: project.progress || 0,
+        managers: managerOptions,
       });
     } else if (!isEditMode) {
+      setManagers([]);
       reset({
         name: '',
         description: '',
@@ -139,6 +155,7 @@ export default function ProjectAddEdit() {
         budget: 0,
         status: 'quoting',
         progress: 0,
+        managers: [],
       });
     }
   }, [project, isEditMode, reset]);
@@ -148,6 +165,9 @@ export default function ProjectAddEdit() {
     isSubmittingRef.current = true;
 
     try {
+      // Get manager IDs from PeoplePicker options
+      const managerIds = managers.map(m => m.id);
+      
       const projectData = {
         name: data.name,
         description: data.description || '',
@@ -159,8 +179,9 @@ export default function ProjectAddEdit() {
         budget: normalizeNumber(data.budget),
         actualCost: project?.actualCost || 0,
         progress: normalizeNumber(data.progress),
-        managerId: user?.id || '',
-        managerName: user?.name || '',
+        managers: managerIds, // Send array of manager IDs
+        managerId: managerIds.length > 0 ? managerIds[0] : user?.id || '', // Backward compatibility
+        managerName: managers.map(m => m.name).join(', ') || user?.name || '',
         status: data.status,
       };
 
@@ -254,6 +275,32 @@ export default function ProjectAddEdit() {
         <Paper sx={{ p: 3 }}>
           <form onSubmit={handleSubmit(onSubmit)}>
             <Grid container spacing={3}>
+              {/* Quản lý dự án */}
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: 'text.secondary' }}>
+                  Quản lý dự án
+                </Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <PeoplePicker
+                  label="Quản lý dự án"
+                  value={managers}
+                  onChange={(value) => {
+                    setManagers(value as PeoplePickerOption[]);
+                    // Update form value
+                    control._formValues.managers = value;
+                  }}
+                  multiple
+                  placeholder="Chọn quản lý dự án (có thể chọn nhiều người)..."
+                />
+              </Grid>
+
+              {/* Thông tin cơ bản */}
+              <Grid item xs={12} sx={{ mt: 1 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: 'text.secondary' }}>
+                  Thông tin cơ bản
+                </Typography>
+              </Grid>
               <Grid item xs={12} sm={6}>
                 <Controller
                   name="name"
@@ -314,6 +361,13 @@ export default function ProjectAddEdit() {
                   )}
                 />
               </Grid>
+
+              {/* Thời gian */}
+              <Grid item xs={12} sx={{ mt: 1 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: 'text.secondary' }}>
+                  Thời gian
+                </Typography>
+              </Grid>
               <Grid item xs={12} sm={6}>
                 <Controller
                   name="startDate"
@@ -353,6 +407,13 @@ export default function ProjectAddEdit() {
                     />
                   )}
                 />
+              </Grid>
+
+              {/* Tài chính & Trạng thái */}
+              <Grid item xs={12} sx={{ mt: 1 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: 'text.secondary' }}>
+                  Tài chính & Trạng thái
+                </Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Controller
@@ -397,23 +458,6 @@ export default function ProjectAddEdit() {
                   )}
                 />
               </Grid>
-              <Grid item xs={12}>
-                <Controller
-                  name="description"
-                  control={control}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      label="Mô tả"
-                      fullWidth
-                      multiline
-                      rows={4}
-                      error={!!errors.description}
-                      helperText={errors.description?.message}
-                    />
-                  )}
-                />
-              </Grid>
               <Grid item xs={12} sm={6}>
                 <Controller
                   name="progress"
@@ -436,6 +480,30 @@ export default function ProjectAddEdit() {
                           field.onChange(Math.min(100, Math.max(0, value)));
                         }
                       }}
+                    />
+                  )}
+                />
+              </Grid>
+
+              {/* Mô tả */}
+              <Grid item xs={12} sx={{ mt: 1 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: 'text.secondary' }}>
+                  Mô tả
+                </Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <Controller
+                  name="description"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      label="Mô tả"
+                      fullWidth
+                      multiline
+                      rows={4}
+                      error={!!errors.description}
+                      helperText={errors.description?.message}
                     />
                   )}
                 />

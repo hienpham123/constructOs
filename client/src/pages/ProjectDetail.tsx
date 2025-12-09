@@ -16,16 +16,20 @@ import { Button } from '../components/common';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import { useProjectStore } from '../stores/projectStore';
+import { projectsAPI } from '../services/api';
+import { normalizeProject } from '../utils/normalize';
 import { formatDate } from '../utils/dateFormat';
 import { usePermissions } from '../hooks/usePermissions';
 import { Alert } from '@mui/material';
 import CommentSection from '../components/CommentSection';
+import ProjectTasks from '../components/ProjectTasks';
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { projects, fetchProjects, selectedProject, setSelectedProject } = useProjectStore();
   const [tabValue, setTabValue] = useState(0);
+  const [isLoadingProject, setIsLoadingProject] = useState(false);
   const { canViewDocumentType, isLoading: permissionsLoading } = usePermissions();
 
   useEffect(() => {
@@ -34,16 +38,33 @@ export default function ProjectDetail() {
     }
   }, [projects.length, fetchProjects]);
 
+  // Fetch project by ID to ensure we have full data including managers
   useEffect(() => {
-    if (id && projects.length > 0) {
-      const project = projects.find((p) => p.id === id);
-      if (project) {
-        setSelectedProject(project);
+    const loadProject = async () => {
+      if (id) {
+        setIsLoadingProject(true);
+        try {
+          // Always fetch fresh project data to ensure managers are loaded
+          const data = await projectsAPI.getById(id);
+          const normalized = normalizeProject(data);
+          setSelectedProject(normalized);
+        } catch (error: any) {
+          console.error('Error fetching project:', error);
+          // Fallback to store if API fails
+          const project = projects.find((p) => p.id === id);
+          if (project) {
+            setSelectedProject(project);
+          }
+        } finally {
+          setIsLoadingProject(false);
+        }
       }
-    }
-  }, [id, projects, setSelectedProject]);
+    };
 
-  if (!selectedProject) {
+    loadProject();
+  }, [id, setSelectedProject]);
+
+  if (!selectedProject || isLoadingProject) {
     return <LinearProgress />;
   }
 
@@ -66,6 +87,7 @@ export default function ProjectDetail() {
           <Tab label="Thông tin dự án" />
           <Tab label="Hợp đồng" />
           <Tab label="Hồ sơ dự án" />
+          <Tab label="Công việc" />
         </Tabs>
 
         {tabValue === 0 && (
@@ -216,6 +238,12 @@ export default function ProjectDetail() {
                 <CommentSection projectId={selectedProject.id} category="project_files" />
               </>
             )}
+          </Box>
+        )}
+
+        {tabValue === 3 && (
+          <Box sx={{ mt: 2 }}>
+            <ProjectTasks projectId={selectedProject.id} />
           </Box>
         )}
       </Paper>

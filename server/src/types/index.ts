@@ -24,11 +24,20 @@ export interface Project {
   progress: number; // 0-100
   budget: number;
   actualCost: number;
-  managerId: string;
-  managerName: string;
+  managerId: string; // Deprecated: use managers array instead
+  managerName: string; // Deprecated: use managers array instead
+  managers?: ProjectManager[]; // Danh sách quản lý dự án
   stages: ProjectStage[];
   documents: ProjectDocument[];
   createdAt: string;
+}
+
+export interface ProjectManager {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail?: string;
+  userAvatar?: string;
 }
 
 export interface ProjectStage {
@@ -57,6 +66,35 @@ export interface ProjectDocument {
   url: string;
   uploadedBy: string;
   uploadedAt: string;
+}
+
+// Project Tasks
+export interface TaskActivity {
+  id: string;
+  taskId: string;
+  action: string;
+  note?: string;
+  actorId?: string;
+  createdAt: string;
+}
+
+export interface ProjectTask {
+  id: string;
+  projectId: string;
+  parentTaskId?: string | null;
+  title: string;
+  description?: string | null;
+  priority: 'low' | 'normal' | 'high';
+  status: 'pending' | 'in_progress' | 'submitted' | 'completed' | 'blocked' | 'cancelled';
+  dueDate?: string | null;
+  assignedTo: string;
+  assignedToName?: string;
+  createdBy?: string;
+  createdByName?: string;
+  createdAt: string;
+  updatedAt: string;
+  children?: ProjectTask[];
+  activity?: TaskActivity[];
 }
 
 export interface CommentAttachment {

@@ -451,6 +451,42 @@ CREATE INDEX IF NOT EXISTS idx_role_permissions_role_id ON role_permissions(role
 CREATE INDEX IF NOT EXISTS idx_role_permissions_permission_type ON role_permissions(permission_type);
 
 -- ============================================
+-- 23. PROJECT TASKS (multi-level)
+-- ============================================
+CREATE TABLE IF NOT EXISTS project_tasks (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    parent_task_id UUID REFERENCES project_tasks(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    priority VARCHAR(10) NOT NULL DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high')),
+    status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'submitted', 'completed', 'blocked', 'cancelled')),
+    due_date DATE,
+    assigned_to UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_project_tasks_project ON project_tasks(project_id);
+CREATE INDEX IF NOT EXISTS idx_project_tasks_parent ON project_tasks(parent_task_id);
+CREATE INDEX IF NOT EXISTS idx_project_tasks_assignee ON project_tasks(assigned_to);
+
+-- ============================================
+-- 24. TASK ACTIVITY LOG
+-- ============================================
+CREATE TABLE IF NOT EXISTS task_activity (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    task_id UUID NOT NULL REFERENCES project_tasks(id) ON DELETE CASCADE,
+    action VARCHAR(50) NOT NULL,
+    note TEXT,
+    actor_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_task_activity_task ON task_activity(task_id);
+
+-- ============================================
 -- TRIGGERS FOR AUTO-UPDATE TIMESTAMPS
 -- ============================================
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -511,6 +547,10 @@ CREATE TRIGGER update_direct_messages_updated_at BEFORE UPDATE ON direct_message
 
 DROP TRIGGER IF EXISTS update_role_permissions_updated_at ON role_permissions;
 CREATE TRIGGER update_role_permissions_updated_at BEFORE UPDATE ON role_permissions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_project_tasks_updated_at ON project_tasks;
+CREATE TRIGGER update_project_tasks_updated_at BEFORE UPDATE ON project_tasks
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================
