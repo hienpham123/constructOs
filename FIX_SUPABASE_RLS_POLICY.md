@@ -27,80 +27,95 @@ Copy và paste script sau vào SQL Editor, sau đó click **Run**:
 ```sql
 -- Enable storage policies for all buckets
 -- This allows service role to upload files to public buckets
+-- Note: Drop existing policies first to avoid conflicts
 
 -- Policy for avatars bucket
-CREATE POLICY IF NOT EXISTS "Allow service role upload to avatars"
+DROP POLICY IF EXISTS "Allow service role upload to avatars" ON storage.objects;
+CREATE POLICY "Allow service role upload to avatars"
 ON storage.objects FOR INSERT
 TO service_role
 WITH CHECK (bucket_id = 'avatars');
 
-CREATE POLICY IF NOT EXISTS "Allow public read from avatars"
+DROP POLICY IF EXISTS "Allow public read from avatars" ON storage.objects;
+CREATE POLICY "Allow public read from avatars"
 ON storage.objects FOR SELECT
 TO public
 USING (bucket_id = 'avatars');
 
 -- Policy for transactions bucket
-CREATE POLICY IF NOT EXISTS "Allow service role upload to transactions"
+DROP POLICY IF EXISTS "Allow service role upload to transactions" ON storage.objects;
+CREATE POLICY "Allow service role upload to transactions"
 ON storage.objects FOR INSERT
 TO service_role
 WITH CHECK (bucket_id = 'transactions');
 
-CREATE POLICY IF NOT EXISTS "Allow public read from transactions"
+DROP POLICY IF EXISTS "Allow public read from transactions" ON storage.objects;
+CREATE POLICY "Allow public read from transactions"
 ON storage.objects FOR SELECT
 TO public
 USING (bucket_id = 'transactions');
 
 -- Policy for comments bucket
-CREATE POLICY IF NOT EXISTS "Allow service role upload to comments"
+DROP POLICY IF EXISTS "Allow service role upload to comments" ON storage.objects;
+CREATE POLICY "Allow service role upload to comments"
 ON storage.objects FOR INSERT
 TO service_role
 WITH CHECK (bucket_id = 'comments');
 
-CREATE POLICY IF NOT EXISTS "Allow public read from comments"
+DROP POLICY IF EXISTS "Allow public read from comments" ON storage.objects;
+CREATE POLICY "Allow public read from comments"
 ON storage.objects FOR SELECT
 TO public
 USING (bucket_id = 'comments');
 
 -- Policy for purchase-request-comments bucket
-CREATE POLICY IF NOT EXISTS "Allow service role upload to purchase-request-comments"
+DROP POLICY IF EXISTS "Allow service role upload to purchase-request-comments" ON storage.objects;
+CREATE POLICY "Allow service role upload to purchase-request-comments"
 ON storage.objects FOR INSERT
 TO service_role
 WITH CHECK (bucket_id = 'purchase-request-comments');
 
-CREATE POLICY IF NOT EXISTS "Allow public read from purchase-request-comments"
+DROP POLICY IF EXISTS "Allow public read from purchase-request-comments" ON storage.objects;
+CREATE POLICY "Allow public read from purchase-request-comments"
 ON storage.objects FOR SELECT
 TO public
 USING (bucket_id = 'purchase-request-comments');
 
 -- Policy for group-avatars bucket
-CREATE POLICY IF NOT EXISTS "Allow service role upload to group-avatars"
+DROP POLICY IF EXISTS "Allow service role upload to group-avatars" ON storage.objects;
+CREATE POLICY "Allow service role upload to group-avatars"
 ON storage.objects FOR INSERT
 TO service_role
 WITH CHECK (bucket_id = 'group-avatars');
 
-CREATE POLICY IF NOT EXISTS "Allow public read from group-avatars"
+DROP POLICY IF EXISTS "Allow public read from group-avatars" ON storage.objects;
+CREATE POLICY "Allow public read from group-avatars"
 ON storage.objects FOR SELECT
 TO public
 USING (bucket_id = 'group-avatars');
 
 -- Policy for group-messages bucket
-CREATE POLICY IF NOT EXISTS "Allow service role upload to group-messages"
+DROP POLICY IF EXISTS "Allow service role upload to group-messages" ON storage.objects;
+CREATE POLICY "Allow service role upload to group-messages"
 ON storage.objects FOR INSERT
 TO service_role
 WITH CHECK (bucket_id = 'group-messages');
 
-CREATE POLICY IF NOT EXISTS "Allow public read from group-messages"
+DROP POLICY IF EXISTS "Allow public read from group-messages" ON storage.objects;
+CREATE POLICY "Allow public read from group-messages"
 ON storage.objects FOR SELECT
 TO public
 USING (bucket_id = 'group-messages');
 
 -- Policy for direct-messages bucket
-CREATE POLICY IF NOT EXISTS "Allow service role upload to direct-messages"
+DROP POLICY IF EXISTS "Allow service role upload to direct-messages" ON storage.objects;
+CREATE POLICY "Allow service role upload to direct-messages"
 ON storage.objects FOR INSERT
 TO service_role
 WITH CHECK (bucket_id = 'direct-messages');
 
-CREATE POLICY IF NOT EXISTS "Allow public read from direct-messages"
+DROP POLICY IF EXISTS "Allow public read from direct-messages" ON storage.objects;
+CREATE POLICY "Allow public read from direct-messages"
 ON storage.objects FOR SELECT
 TO public
 USING (bucket_id = 'direct-messages');
