@@ -45,7 +45,10 @@ export default function TaskStatusSelect({ value, onChange, size = 'small', disa
       value={value}
       onChange={(e) => onChange(e.target.value as ProjectTask['status'])}
       disabled={disabled}
-      sx={{ minWidth: 140 }}
+      sx={{ 
+        minWidth: { xs: '100%', sm: 140 },
+        width: { xs: '100%', sm: 'auto' }
+      }}
     >
       <MenuItem value={value} disabled>
         Trạng thái hiện tại

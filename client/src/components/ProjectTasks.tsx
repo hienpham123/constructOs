@@ -108,13 +108,23 @@ export default function ProjectTasks({ projectId }: ProjectTasksProps) {
 
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+      <Stack 
+        direction={{ xs: 'column', sm: 'row' }} 
+        justifyContent="space-between" 
+        alignItems={{ xs: 'stretch', sm: 'center' }}
+        spacing={{ xs: 2, sm: 0 }}
+        sx={{ mb: 2 }}
+      >
         <Typography variant="h6">Giao việc theo từng bậc</Typography>
         {isProjectManager && (
           <Button
             variant="contained"
             startIcon={<Add />}
             onClick={handleOpenCreateDialog}
+            sx={{ 
+              minWidth: { xs: 'auto', sm: 160 },
+              width: { xs: '100%', sm: 'auto' }
+            }}
           >
             Thêm công việc
           </Button>
