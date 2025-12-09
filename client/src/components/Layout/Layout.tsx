@@ -272,21 +272,9 @@ export default function Layout() {
               },
             }}
           >
-            <MenuItem onClick={() => { handleMenuClose(); }}>
-              <FontAwesomeIcon icon={faCog} style={{ fontSize: 18, marginRight: 12, color: '#666666' }} />
-              Settings
-            </MenuItem>
             <MenuItem onClick={() => { navigate('/profile'); handleMenuClose(); }}>
               <FontAwesomeIcon icon={faUserCircle} style={{ fontSize: 18, marginRight: 12, color: '#666666' }} />
               Profile
-            </MenuItem>
-            <MenuItem onClick={() => { handleMenuClose(); }}>
-              <FontAwesomeIcon icon={faEnvelope} style={{ fontSize: 18, marginRight: 12, color: '#666666' }} />
-              My Messages
-            </MenuItem>
-            <MenuItem onClick={() => { handleMenuClose(); }}>
-              <FontAwesomeIcon icon={faLock} style={{ fontSize: 18, marginRight: 12, color: '#666666' }} />
-              Lock Screen
             </MenuItem>
             <MenuItem 
               onClick={handleLogout}

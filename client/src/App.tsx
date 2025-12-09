@@ -25,6 +25,7 @@ import Profile from './pages/Profile';
 import GroupChats from './pages/GroupChats';
 import Chats from './pages/Chats';
 import { useAuthStore } from './stores/authStore';
+import { useInactivityTimer } from './hooks/useInactivityTimer';
 
 const theme = createTheme({
   palette: {
@@ -796,6 +797,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  // Theo dõi hoạt động người dùng và tự động logout sau 30 phút không hoạt động
+  useInactivityTimer(360);
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />

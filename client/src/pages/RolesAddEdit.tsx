@@ -132,10 +132,10 @@ export default function RolesAddEdit() {
         ]}
       />
 
-      <Box 
-        display="flex" 
-        justifyContent="space-between" 
-        alignItems="center" 
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
         mb={3}
         sx={{
           flexDirection: { xs: 'column', sm: 'row' },
@@ -146,8 +146,7 @@ export default function RolesAddEdit() {
         <Typography
           variant="h4"
           sx={{
-            fontWeight: 700,
-            background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
+            background: 'linear-gradient(135deg,rgb(22, 19, 19) 0%, rgb(22, 19, 19) 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
@@ -155,8 +154,8 @@ export default function RolesAddEdit() {
         >
           {isEditMode ? 'Chỉnh sửa vai trò' : 'Thêm vai trò mới'}
         </Typography>
-        <Box 
-          display="flex" 
+        <Box
+          display="flex"
           gap={2}
           sx={{
             width: { xs: '100%', sm: 'auto' },
@@ -164,29 +163,29 @@ export default function RolesAddEdit() {
           }}
         >
           <Button
-            variant="outlined"
-            startIcon={<FontAwesomeIcon icon={faArrowLeft} />}
-            onClick={() => navigate('/roles')}
-            sx={{ 
-              minHeight: '36px',
-              width: { xs: '100%', sm: 'auto' },
-            }}
-          >
-            Quay lại
-          </Button>
-          <Button
             type="submit"
             variant="contained"
             color="primary"
             startIcon={<FontAwesomeIcon icon={faSave} />}
             disabled={isSubmitting}
             onClick={handleSubmit(onSubmit)}
-            sx={{ 
+            sx={{
               minHeight: '36px',
               width: { xs: '100%', sm: 'auto' },
             }}
           >
             {isSubmitting ? 'Đang lưu...' : 'Lưu'}
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<FontAwesomeIcon icon={faArrowLeft} />}
+            onClick={() => navigate('/roles')}
+            sx={{
+              minHeight: '36px',
+              width: { xs: '100%', sm: 'auto' },
+            }}
+          >
+            Quay lại
           </Button>
         </Box>
       </Box>

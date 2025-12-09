@@ -198,7 +198,7 @@ export default function MaterialAddEdit() {
                 width: { xs: '100%', sm: 'auto' },
               }}
             >
-              {isSubmitting ? 'Đang lưu...' : 'Lưu dữ liệu'}
+              {isSubmitting ? 'Đang lưu...' : 'Lưu'}
             </Button>
             <Button
               variant="outlined"

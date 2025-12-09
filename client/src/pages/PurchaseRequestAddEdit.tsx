@@ -279,7 +279,7 @@ export default function PurchaseRequestAddEdit() {
                   width: { xs: '100%', sm: 'auto' },
                 }}
               >
-                {isSubmitting ? 'Đang lưu...' : isEditMode ? 'Cập nhật' : 'Lưu dữ liệu'}
+                {isSubmitting ? 'Đang lưu...' : isEditMode ? 'Cập nhật' : 'Lưu'}
               </Button>
             )}
             <Button
