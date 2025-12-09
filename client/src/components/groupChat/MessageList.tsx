@@ -1,4 +1,4 @@
-import { Box, Typography, CircularProgress } from '@mui/material';
+import { Box, Typography, CircularProgress, useMediaQuery, useTheme } from '@mui/material';
 import { useEffect, useRef, useMemo, useCallback, memo, useState } from 'react';
 import type { GroupMessage } from '../../services/api/groupChats';
 import MessageItem from './MessageItem';
@@ -58,6 +58,9 @@ function MessageList({
   isImageFile,
   formatFileSize,
 }: MessageListProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
   const isCurrentUser = useCallback((message: GroupMessage) => {
     return message.userId === currentUserId;
   }, [currentUserId]);
@@ -227,6 +230,9 @@ function MessageList({
         gap: 1,
         minHeight: 0,
         position: 'relative',
+        // On mobile: add padding to account for fixed header and input
+        pt: { xs: '72px', md: 2 }, // 60px header + 12px spacing on mobile
+        pb: { xs: '88px', md: 2 }, // 80px input + 8px spacing on mobile
       }}
     >
       {messages.length === 0 && !isLoading ? (

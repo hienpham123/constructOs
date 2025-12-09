@@ -201,7 +201,7 @@ export default function Projects() {
       setIsExporting(false);
     } catch (error) {
       console.error('Error exporting projects:', error);
-      alert('Không thể xuất dữ liệu. Vui lòng thử lại.');
+      // Error is handled by instance.ts interceptor
       setIsExporting(false);
     }
   };

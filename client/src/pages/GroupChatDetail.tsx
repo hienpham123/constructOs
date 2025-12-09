@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { Box, Typography, LinearProgress } from '@mui/material';
+import { Box, Typography, LinearProgress, useMediaQuery, useTheme } from '@mui/material';
 import { useAuthStore } from '../stores/authStore';
 import { getFileIcon, isImageFile, formatFileSize } from '../utils/fileHelpers';
 import EditGroupDialog from '../components/groupChat/EditGroupDialog';
@@ -24,6 +24,8 @@ import { io, Socket } from 'socket.io-client';
 export default function GroupChatDetail() {
   const { id } = useParams<{ id?: string }>();
   const { user } = useAuthStore();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [messages, setMessages] = useState<GroupMessage[]>([]);
   const [content, setContent] = useState('');
@@ -546,7 +548,7 @@ export default function GroupChatDetail() {
       setMessageToDelete(null);
     } catch (error: any) {
       console.error('Error deleting message:', error);
-      alert(error.response?.data?.error || 'Không thể xóa tin nhắn');
+      // Error is handled by instance.ts interceptor or shown in UI
     }
   };
 
@@ -579,8 +581,7 @@ export default function GroupChatDetail() {
       setEditingContent('');
     } catch (error: any) {
       console.error('Error updating message:', error);
-      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Không thể cập nhật tin nhắn';
-      alert(errorMessage);
+      // Error is handled by instance.ts interceptor or shown in UI
     }
   };
 
@@ -697,7 +698,15 @@ export default function GroupChatDetail() {
       />
 
       <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative', flexDirection: { xs: 'column', md: 'row' } }}>
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+        <Box
+          sx={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            minWidth: 0,
+          }}
+        >
           <MessageList
             messages={messages}
             currentUserId={user?.id}
@@ -725,8 +734,22 @@ export default function GroupChatDetail() {
             isImageFile={isImageFile}
             formatFileSize={formatFileSize}
           />
+        </Box>
 
-          {!editingMessageId && (
+        {/* Input/EditBar - fixed on mobile, normal on desktop */}
+        {!editingMessageId && (
+          <Box
+            sx={{
+              flexShrink: 0,
+              position: { xs: 'fixed', md: 'relative' },
+              bottom: { xs: 0, md: 'auto' },
+              left: { xs: 0, md: 'auto' },
+              right: { xs: 0, md: 'auto' },
+              width: { xs: '100%', md: 'auto' },
+              zIndex: { xs: 100, md: 'auto' },
+              bgcolor: { xs: 'white', md: 'transparent' },
+            }}
+          >
             <MessageInput
               groupName={group.name}
               content={content}
@@ -739,9 +762,22 @@ export default function GroupChatDetail() {
               onRemoveFile={removeFile}
               onSubmit={handleSubmit}
             />
-          )}
+          </Box>
+        )}
 
-          {editingMessageId && (
+        {editingMessageId && (
+          <Box
+            sx={{
+              flexShrink: 0,
+              position: { xs: 'fixed', md: 'relative' },
+              bottom: { xs: 0, md: 'auto' },
+              left: { xs: 0, md: 'auto' },
+              right: { xs: 0, md: 'auto' },
+              width: { xs: '100%', md: 'auto' },
+              zIndex: { xs: 100, md: 'auto' },
+              bgcolor: { xs: 'white', md: 'transparent' },
+            }}
+          >
             <MessageEditBar
               editingContent={editingContent}
               onContentChange={setEditingContent}
@@ -749,8 +785,8 @@ export default function GroupChatDetail() {
               onCancel={handleEditCancel}
               disabled={!editingContent}
             />
-          )}
-        </Box>
+          </Box>
+        )}
 
         {searchPanelOpen && group && (
           <SearchPanel
@@ -789,7 +825,7 @@ export default function GroupChatDetail() {
             await groupChatsAPI.deleteGroup(id);
             window.location.href = '/group-chats';
           } catch (error: any) {
-            alert(error.response?.data?.error || 'Không thể xóa nhóm');
+            // Error is handled by instance.ts interceptor or shown in UI
           }
         }}
         groupName={group?.name || null}

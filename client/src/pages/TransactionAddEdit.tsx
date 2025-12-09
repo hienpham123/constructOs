@@ -348,7 +348,7 @@ export default function TransactionAddEdit() {
           await materialsAPI.createTransactionAttachments(newTransactionId, pendingFilesRef.current);
         } catch (uploadError: any) {
           console.error('Error uploading files:', uploadError);
-          alert('Giao dịch đã được lưu nhưng không thể tải lên file. Vui lòng thử lại.');
+          // Error is handled by instance.ts interceptor
           isSubmittingRef.current = false;
           return;
         }
@@ -381,7 +381,7 @@ export default function TransactionAddEdit() {
       blobUrls.forEach((url) => {
         URL.revokeObjectURL(url);
       });
-      alert(error.response?.data?.error || error.message || 'Không thể lưu giao dịch. Vui lòng thử lại.');
+      // Error is handled by instance.ts interceptor
     } finally {
       isSubmittingRef.current = false;
     }

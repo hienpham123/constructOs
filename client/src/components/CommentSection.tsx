@@ -142,7 +142,7 @@ export default function CommentSection({ projectId, category }: CommentSectionPr
       setSelectedFiles([]);
     } catch (error: any) {
       console.error('Error creating comment:', error);
-      alert(error.response?.data?.error || 'Không thể gửi comment');
+      // Error is handled by instance.ts interceptor
     } finally {
       setIsSubmitting(false);
     }
@@ -163,7 +163,7 @@ export default function CommentSection({ projectId, category }: CommentSectionPr
       setCommentToDelete(null);
     } catch (error: any) {
       console.error('Error deleting comment:', error);
-      alert(error.response?.data?.error || 'Không thể xóa comment');
+      // Error is handled by instance.ts interceptor
     }
   };
 
@@ -179,7 +179,7 @@ export default function CommentSection({ projectId, category }: CommentSectionPr
 
   const handleEditSave = async () => {
     if (!editingCommentId || !editingContent.trim()) {
-      alert('Nội dung comment không được để trống');
+      // Validation error - content is required
       return;
     }
 
@@ -190,7 +190,7 @@ export default function CommentSection({ projectId, category }: CommentSectionPr
       setEditingContent('');
     } catch (error: any) {
       console.error('Error updating comment:', error);
-      alert(error.response?.data?.error || 'Không thể cập nhật comment');
+      // Error is handled by instance.ts interceptor
     }
   };
 

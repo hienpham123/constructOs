@@ -15,7 +15,7 @@ export const exportToExcel = (
   includeDateTime: boolean = false
 ) => {
   if (!data || data.length === 0) {
-    alert('Không có dữ liệu để xuất');
+    // No data to export
     return;
   }
 
@@ -47,7 +47,7 @@ export const exportToCSV = (
   includeDateTime: boolean = false
 ) => {
   if (!data || data.length === 0) {
-    alert('Không có dữ liệu để xuất');
+    // No data to export
     return;
   }
 

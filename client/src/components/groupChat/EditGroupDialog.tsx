@@ -78,7 +78,7 @@ export default function EditGroupDialog({
       await groupChatsAPI.addMembers(group.id, [member.id]);
       await loadGroup();
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Không thể thêm thành viên');
+      // Error is handled by instance.ts interceptor
     }
   };
 
@@ -97,7 +97,7 @@ export default function EditGroupDialog({
       await loadGroup();
       setMemberToDelete(null);
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Không thể xóa thành viên');
+      // Error is handled by instance.ts interceptor
     }
   };
 
@@ -116,7 +116,7 @@ export default function EditGroupDialog({
 
   const handleSubmit = async () => {
     if (!name.trim() || !group) {
-      alert('Vui lòng nhập tên nhóm');
+      // Validation error - name is required
       return;
     }
 
@@ -131,7 +131,7 @@ export default function EditGroupDialog({
       onSuccess();
     } catch (error: any) {
       console.error('Error updating group:', error);
-      alert(error.response?.data?.error || 'Không thể cập nhật nhóm');
+      // Error is handled by instance.ts interceptor
     } finally {
       setSubmitting(false);
     }

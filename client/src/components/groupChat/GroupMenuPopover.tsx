@@ -34,7 +34,7 @@ export default function GroupMenuPopover({
       onGroupUpdate({ ...group, pinned: result.pinned });
       onClose();
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Không thể thay đổi trạng thái ghim');
+      // Error is handled by instance.ts interceptor
     }
   };
 

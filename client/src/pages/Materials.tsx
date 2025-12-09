@@ -378,7 +378,7 @@ export default function Materials({ tab = 'list' }: MaterialsProps) {
       setIsExporting(false);
     } catch (error) {
       console.error('Error exporting materials:', error);
-      alert('Không thể xuất dữ liệu. Vui lòng thử lại.');
+      // Error is handled by instance.ts interceptor
       setIsExporting(false);
     }
   };

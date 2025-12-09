@@ -1,4 +1,4 @@
-import { Box, Typography, CircularProgress } from '@mui/material';
+import { Box, Typography, CircularProgress, useMediaQuery, useTheme } from '@mui/material';
 import { useEffect, useRef, useMemo, useCallback, memo, useState } from 'react';
 import type { DirectMessage } from '../../services/api/directMessages';
 import DirectMessageItem from './DirectMessageItem';
@@ -58,6 +58,8 @@ function DirectMessageList({
   isImageFile,
   formatFileSize,
 }: DirectMessageListProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isCurrentUser = useCallback((message: DirectMessage) => {
     return message.senderId === currentUserId;
   }, [currentUserId]);
@@ -227,6 +229,9 @@ function DirectMessageList({
         gap: 1,
         width: '100%',
         position: 'relative',
+        // On mobile: add padding to account for fixed header and input
+        pt: { xs: '72px', md: 2 }, // 60px header + 12px spacing on mobile
+        pb: { xs: '88px', md: 2 }, // 80px input + 8px spacing on mobile
       }}
     >
       {messages.length === 0 && !isLoading ? (

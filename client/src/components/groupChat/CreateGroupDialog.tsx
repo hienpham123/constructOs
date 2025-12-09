@@ -52,7 +52,7 @@ export default function CreateGroupDialog({
 
   const handleSubmit = async () => {
     if (!name.trim()) {
-      alert('Vui lòng nhập tên nhóm');
+      // Validation error - name is required
       return;
     }
 
@@ -82,7 +82,7 @@ export default function CreateGroupDialog({
       onSuccess();
     } catch (error: any) {
       console.error('Error creating group:', error);
-      alert(error.response?.data?.error || 'Không thể tạo nhóm');
+      // Error is handled by instance.ts interceptor
     } finally {
       setSubmitting(false);
     }

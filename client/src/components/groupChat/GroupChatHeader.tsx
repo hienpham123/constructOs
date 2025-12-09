@@ -32,6 +32,15 @@ function GroupChatHeader({ group, onMembersClick, onMenuClick, onSearchClick, on
         px: 2,
         py: 1.5,
         gap: 1.5,
+        // Fixed on mobile
+        position: { xs: 'fixed', md: 'relative' },
+        top: { xs: 0, md: 'auto' },
+        left: { xs: 0, md: 'auto' },
+        right: { xs: 0, md: 'auto' },
+        zIndex: { xs: 99, md: 'auto' },
+        width: { xs: '100%', md: 'auto' },
+        height: { xs: '60px', md: 'auto' },
+        minHeight: { xs: '60px', md: 'auto' },
       }}
     >
       {isMobile && (

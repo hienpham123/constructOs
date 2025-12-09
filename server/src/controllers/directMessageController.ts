@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { query } from '../config/db.js';
+import { getMinutesAgoSelectQuery } from '../utils/sqlHelpers.js';
 import { v4 as uuidv4 } from 'uuid';
 import { toMySQLDateTime } from '../utils/dataHelpers.js';
 import type { AuthRequest } from '../middleware/auth.js';
@@ -590,11 +591,9 @@ export const updateMessage = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: 'Bạn chỉ có thể chỉnh sửa tin nhắn của chính mình' });
     }
 
-    // Check if message is older than 30 minutes
-    const timeCheck = await query<any[]>(
-      'SELECT TIMESTAMPDIFF(MINUTE, created_at, NOW()) as minutes_ago FROM direct_messages WHERE id = ?',
-      [messageId]
-    );
+    // Check if message is older than 30 minutes (compatible with both MySQL and PostgreSQL)
+    const timeCheckQuery = getMinutesAgoSelectQuery('created_at', 'direct_messages', 'id = ?');
+    const timeCheck = await query<any[]>(timeCheckQuery, [messageId]);
 
     if (timeCheck.length > 0 && timeCheck[0].minutes_ago > 30) {
       return res.status(403).json({ error: 'Không thể chỉnh sửa tin nhắn sau 30 phút' });
@@ -688,11 +687,9 @@ export const deleteMessage = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: 'Bạn chỉ có thể xóa tin nhắn của chính mình' });
     }
 
-    // Check if message is older than 30 minutes
-    const timeCheck = await query<any[]>(
-      'SELECT TIMESTAMPDIFF(MINUTE, created_at, NOW()) as minutes_ago FROM direct_messages WHERE id = ?',
-      [messageId]
-    );
+    // Check if message is older than 30 minutes (compatible with both MySQL and PostgreSQL)
+    const timeCheckQuery = getMinutesAgoSelectQuery('created_at', 'direct_messages', 'id = ?');
+    const timeCheck = await query<any[]>(timeCheckQuery, [messageId]);
 
     if (timeCheck.length > 0 && timeCheck[0].minutes_ago > 30) {
       return res.status(403).json({ error: 'Không thể xóa tin nhắn sau 30 phút' });

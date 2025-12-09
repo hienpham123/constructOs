@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Typography, LinearProgress } from '@mui/material';
+import { Box, Typography, LinearProgress, useMediaQuery, useTheme } from '@mui/material';
 import { useAuthStore } from '../stores/authStore';
 import { getFileIcon, isImageFile, formatFileSize } from '../utils/fileHelpers';
 import DirectChatHeader from '../components/directMessage/DirectChatHeader';
@@ -20,6 +20,8 @@ export default function DirectChatDetail() {
   const { conversationId, userId } = useParams<{ conversationId?: string; userId?: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [conversation, setConversation] = useState<DirectConversationDetail | null>(null);
   const [messages, setMessages] = useState<DirectMessage[]>([]);
   const [content, setContent] = useState('');
@@ -546,7 +548,7 @@ export default function DirectChatDetail() {
       setMessageToDelete(null);
     } catch (error: any) {
       console.error('Error deleting message:', error);
-      alert(error.response?.data?.error || 'Không thể xóa tin nhắn');
+      // Error is handled by instance.ts interceptor or shown in UI
     }
   };
 
@@ -579,7 +581,7 @@ export default function DirectChatDetail() {
       setEditingContent('');
     } catch (error: any) {
       console.error('Error updating message:', error);
-      alert(error.response?.data?.error || 'Không thể cập nhật tin nhắn');
+      // Error is handled by instance.ts interceptor or shown in UI
     }
   };
 
@@ -592,7 +594,7 @@ export default function DirectChatDetail() {
       setDeleteConversationOpen(false);
     } catch (error: any) {
       console.error('Error deleting conversation:', error);
-      alert(error.response?.data?.error || 'Không thể xóa cuộc trò chuyện');
+      // Error is handled by instance.ts interceptor or shown in UI
     }
   };
 
@@ -616,20 +618,22 @@ export default function DirectChatDetail() {
       ) : conversation || userId ? (
         <>
           <DirectChatHeader
-        conversation={conversation}
-        onDeleteConversation={() => setDeleteConversationOpen(true)}
-      />
+            conversation={conversation}
+            onDeleteConversation={() => setDeleteConversationOpen(true)}
+          />
 
-      <Box
-        sx={{
-          flex: 1,
-          minHeight: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}
-      >
-        <DirectMessageList
+          {/* Message List - scrollable area with fixed header and input on mobile */}
+          <Box
+            sx={{
+              flex: 1,
+              minHeight: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              position: 'relative',
+            }}
+          >
+            <DirectMessageList
           messages={messages}
           currentUserId={user?.id}
           editingMessageId={editingMessageId}
@@ -657,26 +661,49 @@ export default function DirectChatDetail() {
           onImageError={(attachmentId) => {
             setImageErrors((prev) => new Set(prev).add(attachmentId));
           }}
-          getFileIcon={getFileIcon}
-          isImageFile={isImageFile}
-          formatFileSize={formatFileSize}
-        />
-      </Box>
+              getFileIcon={getFileIcon}
+              isImageFile={isImageFile}
+              formatFileSize={formatFileSize}
+            />
+          </Box>
 
-      {editingMessageId && conversation && (
-        <Box sx={{ flexShrink: 0 }}>
-          <MessageEditBar
-            content={editingContent}
-            onContentChange={setEditingContent}
-            onSave={handleEditSave}
-            onCancel={handleEditCancel}
-          />
-        </Box>
-      )}
+          {/* Input/EditBar - fixed on mobile, normal on desktop */}
+          {editingMessageId && conversation && (
+            <Box
+              sx={{
+                flexShrink: 0,
+                position: { xs: 'fixed', md: 'relative' },
+                bottom: { xs: 0, md: 'auto' },
+                left: { xs: 0, md: 'auto' },
+                right: { xs: 0, md: 'auto' },
+                width: { xs: '100%', md: 'auto' },
+                zIndex: { xs: 100, md: 'auto' },
+                bgcolor: { xs: 'white', md: 'transparent' },
+              }}
+            >
+              <MessageEditBar
+                content={editingContent}
+                onContentChange={setEditingContent}
+                onSave={handleEditSave}
+                onCancel={handleEditCancel}
+              />
+            </Box>
+          )}
 
-      {conversation && !editingMessageId && (
-        <Box sx={{ flexShrink: 0 }}>
-          <DirectMessageInput
+          {conversation && !editingMessageId && (
+            <Box
+              sx={{
+                flexShrink: 0,
+                position: { xs: 'fixed', md: 'relative' },
+                bottom: { xs: 0, md: 'auto' },
+                left: { xs: 0, md: 'auto' },
+                right: { xs: 0, md: 'auto' },
+                width: { xs: '100%', md: 'auto' },
+                zIndex: { xs: 100, md: 'auto' },
+                bgcolor: { xs: 'white', md: 'transparent' },
+              }}
+            >
+              <DirectMessageInput
             otherUserName={conversation.otherUser.name}
             content={content}
             selectedFiles={selectedFiles}

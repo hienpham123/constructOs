@@ -59,6 +59,12 @@ function DirectChatHeader({ conversation, onDeleteConversation }: DirectChatHead
         px: 2,
         bgcolor: 'white',
         width: '100%',
+        // Fixed on mobile
+        position: { xs: 'fixed', md: 'relative' },
+        top: { xs: 0, md: 'auto' },
+        left: { xs: 0, md: 'auto' },
+        right: { xs: 0, md: 'auto' },
+        zIndex: { xs: 99, md: 'auto' },
       }}
     >
       {/* Back button for mobile */}
