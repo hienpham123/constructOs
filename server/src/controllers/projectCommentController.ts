@@ -7,9 +7,25 @@ import type { ProjectComment, CommentAttachment } from '../types/index.js';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { 
+  isSupabaseStorageEnabled, 
+  getSupabaseStorageUrl 
+} from '../utils/supabaseStorage.js';
+import { handleFileUpload } from '../middleware/upload.js';
 
 // Helper function to get comment attachment URL
 function getCommentAttachmentUrl(filename: string): string {
+  // If already a full URL (from Supabase), return as is
+  if (filename.startsWith('http://') || filename.startsWith('https://')) {
+    return filename;
+  }
+  
+  // If Supabase Storage is enabled, get URL from Supabase
+  if (isSupabaseStorageEnabled()) {
+    return getSupabaseStorageUrl('comments', filename);
+  }
+  
+  // Fallback to local filesystem URL
   const baseUrl = process.env.API_BASE_URL || 
                   process.env.SERVER_URL || 
                   (process.env.NODE_ENV === 'production' 
@@ -25,15 +41,17 @@ if (!fs.existsSync(commentAttachmentsDir)) {
   fs.mkdirSync(commentAttachmentsDir, { recursive: true });
 }
 
-const commentStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, commentAttachmentsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
-    cb(null, uniqueName);
-  },
-});
+const commentStorage = isSupabaseStorageEnabled()
+  ? multer.memoryStorage() // Use memory storage for Supabase
+  : multer.diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, commentAttachmentsDir);
+      },
+      filename: (req, file, cb) => {
+        const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
+        cb(null, uniqueName);
+      },
+    });
 
 export const uploadCommentFiles = multer({
   storage: commentStorage,
@@ -179,7 +197,13 @@ export const createComment = async (req: AuthRequest, res: Response) => {
       
       for (const file of files) {
         const attachmentId = uuidv4();
-        const fileUrl = getCommentAttachmentUrl(file.filename);
+        
+        // Handle file upload (Supabase or filesystem)
+        const { filename, url } = await handleFileUpload(file, 'comments');
+        
+        // Store filename or full URL in database depending on storage type
+        const fileValue = url.startsWith('http') ? url : filename;
+        const fileUrl = url.startsWith('http') ? url : getCommentAttachmentUrl(filename);
 
         await query(
           `INSERT INTO comment_attachments (id, comment_id, filename, original_filename, file_type, file_size, file_url, created_at)
@@ -187,7 +211,7 @@ export const createComment = async (req: AuthRequest, res: Response) => {
           [
             attachmentId,
             commentId,
-            file.filename,
+            fileValue, // Store full URL if Supabase, otherwise filename
             file.originalname,
             file.mimetype,
             file.size,
@@ -199,7 +223,7 @@ export const createComment = async (req: AuthRequest, res: Response) => {
         attachments.push({
           id: attachmentId,
           commentId,
-          filename: file.filename,
+          filename: fileValue,
           originalFilename: file.originalname,
           fileType: file.mimetype,
           fileSize: file.size,

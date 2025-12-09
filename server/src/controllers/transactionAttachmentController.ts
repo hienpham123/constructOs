@@ -6,9 +6,25 @@ import type { AuthRequest } from '../middleware/auth.js';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { 
+  isSupabaseStorageEnabled, 
+  getSupabaseStorageUrl 
+} from '../utils/supabaseStorage.js';
+import { handleFileUpload } from '../middleware/upload.js';
 
 // Helper function to get transaction attachment URL
 function getTransactionAttachmentUrl(filename: string): string {
+  // If already a full URL (from Supabase), return as is
+  if (filename.startsWith('http://') || filename.startsWith('https://')) {
+    return filename;
+  }
+  
+  // If Supabase Storage is enabled, get URL from Supabase
+  if (isSupabaseStorageEnabled()) {
+    return getSupabaseStorageUrl('transactions', filename);
+  }
+  
+  // Fallback to local filesystem URL
   const baseUrl = process.env.API_BASE_URL || 
                   process.env.SERVER_URL || 
                   (process.env.NODE_ENV === 'production' 
@@ -24,15 +40,17 @@ if (!fs.existsSync(transactionAttachmentsDir)) {
   fs.mkdirSync(transactionAttachmentsDir, { recursive: true });
 }
 
-const transactionStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, transactionAttachmentsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
-    cb(null, uniqueName);
-  },
-});
+const transactionStorage = isSupabaseStorageEnabled()
+  ? multer.memoryStorage() // Use memory storage for Supabase
+  : multer.diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, transactionAttachmentsDir);
+      },
+      filename: (req, file, cb) => {
+        const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
+        cb(null, uniqueName);
+      },
+    });
 
 export const uploadTransactionFiles = multer({
   storage: transactionStorage,
@@ -117,7 +135,13 @@ export const createAttachments = async (req: AuthRequest, res: Response) => {
       
       for (const file of files) {
         const attachmentId = uuidv4();
-        const fileUrl = getTransactionAttachmentUrl(file.filename);
+        
+        // Handle file upload (Supabase or filesystem)
+        const { filename, url } = await handleFileUpload(file, 'transactions');
+        
+        // Store filename or full URL in database depending on storage type
+        const fileValue = url.startsWith('http') ? url : filename;
+        const fileUrl = url.startsWith('http') ? url : getTransactionAttachmentUrl(filename);
 
         await query(
           `INSERT INTO transaction_attachments (id, transaction_id, filename, original_filename, file_type, file_size, file_url, created_at)
@@ -125,7 +149,7 @@ export const createAttachments = async (req: AuthRequest, res: Response) => {
           [
             attachmentId,
             transactionId,
-            file.filename,
+            fileValue, // Store full URL if Supabase, otherwise filename
             file.originalname,
             file.mimetype,
             file.size,
@@ -137,7 +161,7 @@ export const createAttachments = async (req: AuthRequest, res: Response) => {
         attachments.push({
           id: attachmentId,
           transactionId,
-          filename: file.filename,
+          filename: fileValue,
           originalFilename: file.originalname,
           fileType: file.mimetype,
           fileSize: file.size,
