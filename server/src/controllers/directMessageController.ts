@@ -512,7 +512,10 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       originalFilename: att.original_filename,
       fileType: att.file_type,
       fileSize: att.file_size,
-      fileUrl: getMessageAttachmentUrl(att.filename),
+      // If filename is already a full URL (from Supabase), use it directly
+      fileUrl: att.filename.startsWith('http://') || att.filename.startsWith('https://') 
+        ? att.filename 
+        : (att.file_url || getMessageAttachmentUrl(att.filename)),
       createdAt: att.created_at,
     }));
 

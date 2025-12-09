@@ -27,13 +27,14 @@ const storage = isSupabaseStorageEnabled()
       },
     });
 
-// File filter - only images
+// File filter - only images (more flexible: accept if mimetype OR extname matches)
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   const allowedTypes = /jpeg|jpg|png|gif|webp/;
   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = allowedTypes.test(file.mimetype);
 
-  if (mimetype && extname) {
+  // Accept if either mimetype or extname matches (more flexible for compressed images)
+  if (mimetype || extname) {
     return cb(null, true);
   } else {
     cb(new Error('Chỉ cho phép upload file ảnh (JPEG, JPG, PNG, GIF, WEBP)'));
@@ -82,6 +83,7 @@ export async function handleFileUpload(
   
   // If Supabase Storage is enabled, upload to Supabase
   if (isSupabaseStorageEnabled() && file.buffer) {
+    console.log(`🔄 Attempting Supabase upload for ${bucketName}/${uniqueName}`);
     const url = await uploadBufferToSupabaseStorage(
       bucketName,
       file.buffer,
@@ -90,9 +92,15 @@ export async function handleFileUpload(
     );
     
     if (url) {
+      console.log(`✅ Supabase upload successful: ${url}`);
       return { filename: uniqueName, url };
     }
+    console.log(`⚠️  Supabase upload failed, falling back to filesystem`);
     // Fallback to filesystem if Supabase upload fails
+  } else if (isSupabaseStorageEnabled() && !file.buffer) {
+    console.log(`⚠️  Supabase enabled but file.buffer is missing - using filesystem fallback`);
+  } else {
+    console.log(`📁 Using filesystem storage (Supabase not enabled)`);
   }
   
   // Fallback to filesystem storage

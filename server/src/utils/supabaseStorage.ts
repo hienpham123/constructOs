@@ -99,10 +99,13 @@ export async function uploadBufferToSupabaseStorage(
 ): Promise<string | null> {
   const client = getSupabaseClient();
   if (!client) {
+    console.log(`⚠️  Supabase Storage not enabled - missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY`);
     return null;
   }
 
   try {
+    console.log(`📤 Uploading to Supabase Storage: ${bucketName}/${fileName} (${(fileBuffer.length / 1024).toFixed(2)} KB)`);
+    
     // Upload to Supabase Storage
     const { data, error } = await client.storage
       .from(bucketName)
@@ -112,7 +115,7 @@ export async function uploadBufferToSupabaseStorage(
       });
 
     if (error) {
-      console.error(`Error uploading to Supabase Storage (${bucketName}):`, error);
+      console.error(`❌ Error uploading to Supabase Storage (${bucketName}):`, error);
       return null;
     }
 
@@ -121,9 +124,10 @@ export async function uploadBufferToSupabaseStorage(
       .from(bucketName)
       .getPublicUrl(fileName);
 
+    console.log(`✅ Uploaded to Supabase: ${urlData.publicUrl}`);
     return urlData.publicUrl;
   } catch (error) {
-    console.error(`Error uploading buffer to Supabase Storage:`, error);
+    console.error(`❌ Error uploading buffer to Supabase Storage:`, error);
     return null;
   }
 }

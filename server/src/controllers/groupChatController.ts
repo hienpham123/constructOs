@@ -84,7 +84,8 @@ export const uploadGroupAvatar = multer({
     const allowedTypes = /jpeg|jpg|png|gif|webp/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype);
-    if (mimetype && extname) {
+    // Accept if either mimetype or extname matches (more flexible for compressed images)
+    if (mimetype || extname) {
       return cb(null, true);
     }
     cb(new Error('Chỉ chấp nhận file ảnh'));
@@ -1060,7 +1061,10 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       originalFilename: att.original_filename,
       fileType: att.file_type,
       fileSize: att.file_size,
-      fileUrl: getMessageAttachmentUrl(att.filename),
+      // If filename is already a full URL (from Supabase), use it directly
+      fileUrl: att.filename.startsWith('http://') || att.filename.startsWith('https://') 
+        ? att.filename 
+        : (att.file_url || getMessageAttachmentUrl(att.filename)),
       createdAt: att.created_at,
     }));
 
