@@ -10,7 +10,7 @@ import {
   isSupabaseStorageEnabled, 
   getSupabaseStorageUrl 
 } from '../utils/supabaseStorage.js';
-import { handleFileUpload } from '../middleware/upload.js';
+import { handleFileUpload, getAvatarUrl } from '../middleware/upload.js';
 
 // Helper function to get comment attachment URL
 function getCommentAttachmentUrl(filename: string): string {
@@ -106,16 +106,8 @@ export const getComments = async (req: Request, res: Response) => {
           createdAt: att.created_at,
         }));
 
-        // Get avatar URL
-        let avatarUrl = null;
-        if (comment.created_by_avatar) {
-          const baseUrl = process.env.API_BASE_URL || 
-                          process.env.SERVER_URL || 
-                          (process.env.NODE_ENV === 'production' 
-                            ? process.env.PRODUCTION_API_URL || 'https://your-api-domain.com'
-                            : 'http://localhost:2222');
-          avatarUrl = `${baseUrl}/uploads/avatars/${comment.created_by_avatar}`;
-        }
+        // Get avatar URL using helper function
+        const avatarUrl = getAvatarUrl(comment.created_by_avatar);
 
         return {
           id: comment.id,
@@ -237,16 +229,8 @@ export const createComment = async (req: AuthRequest, res: Response) => {
       createdAt: att.created_at,
     }));
 
-    // Get avatar URL
-    let avatarUrl = null;
-    if (created[0].created_by_avatar) {
-      const baseUrl = process.env.API_BASE_URL || 
-                          process.env.SERVER_URL || 
-                          (process.env.NODE_ENV === 'production' 
-                            ? process.env.PRODUCTION_API_URL || 'https://your-api-domain.com'
-                            : 'http://localhost:2222');
-      avatarUrl = `${baseUrl}/uploads/avatars/${created[0].created_by_avatar}`;
-    }
+    // Get avatar URL using helper function
+    const avatarUrl = getAvatarUrl(created[0].created_by_avatar);
 
     res.status(201).json({
       id: created[0].id,
@@ -320,16 +304,8 @@ export const updateComment = async (req: AuthRequest, res: Response) => {
       [id]
     );
 
-    // Get avatar URL
-    let avatarUrl = null;
-    if (updated[0].created_by_avatar) {
-      const baseUrl = process.env.API_BASE_URL || 
-                      process.env.SERVER_URL || 
-                      (process.env.NODE_ENV === 'production' 
-                        ? process.env.PRODUCTION_API_URL || 'https://your-api-domain.com'
-                        : 'http://localhost:2222');
-      avatarUrl = `${baseUrl}/uploads/avatars/${updated[0].created_by_avatar}`;
-    }
+    // Get avatar URL using helper function
+    const avatarUrl = getAvatarUrl(updated[0].created_by_avatar);
 
     res.json({
       id: updated[0].id,
