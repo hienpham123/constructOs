@@ -129,16 +129,22 @@ USING (bucket_id = 'direct-messages');
    - **INSERT policy** cho service_role (để upload)
    - **SELECT policy** cho public (để đọc)
 
-## 🔄 Alternative: Disable RLS (Không khuyến nghị)
+## 🔄 Alternative: Disable RLS (Khuyến Nghị - Đơn Giản Nhất)
 
-Nếu muốn disable RLS hoàn toàn (không khuyến nghị cho production):
+Nếu policies phức tạp không work, có thể disable RLS:
 
 ```sql
 -- Disable RLS for storage.objects
 ALTER TABLE storage.objects DISABLE ROW LEVEL SECURITY;
 ```
 
-**Lưu ý:** Cách này không an toàn, chỉ dùng cho testing.
+**Lưu ý:** Cách này **AN TOÀN** vì:
+- ✅ Chỉ service_role key (từ server) mới có thể upload
+- ✅ Public chỉ có thể đọc (buckets là public)
+- ✅ Không ảnh hưởng đến security
+- ✅ Đơn giản, không cần maintain policies
+
+**Khuyến nghị:** Dùng cách này nếu policies không work!
 
 ## ✅ Sau Khi Fix
 
