@@ -32,3 +32,48 @@ export function getMinutesAgoSelectQuery(
   return `SELECT ${minutesAgoExpr} as minutes_ago FROM ${tableName} WHERE ${whereClause}`;
 }
 
+/**
+ * Build SQL IN clause with string values
+ * Works with both MySQL and PostgreSQL
+ * Uses single quotes for string literals (compatible with both databases)
+ * @param values Array of string values
+ * @returns SQL IN clause string (e.g., "IN ('value1', 'value2')")
+ * @example
+ * buildInClause(['owner', 'admin']) // returns "IN ('owner', 'admin')"
+ */
+export function buildInClause(values: string[]): string {
+  if (values.length === 0) {
+    return 'IN ()';
+  }
+  // Escape single quotes in values and wrap in single quotes
+  const escapedValues = values.map(v => `'${v.replace(/'/g, "''")}'`);
+  return `IN (${escapedValues.join(', ')})`;
+}
+
+/**
+ * Build SQL IN clause with parameterized placeholders
+ * Works with both MySQL and PostgreSQL
+ * @param count Number of values
+ * @returns Object with SQL clause and parameter array
+ * @example
+ * const { clause, params } = buildParameterizedInClause(['owner', 'admin']);
+ * // clause: "IN (?, ?)" for MySQL or "IN ($1, $2)" for PostgreSQL
+ * // params: ['owner', 'admin']
+ */
+export function buildParameterizedInClause(values: string[]): {
+  clause: string;
+  params: string[];
+} {
+  if (values.length === 0) {
+    return { clause: 'IN ()', params: [] };
+  }
+  
+  // For MySQL, use ? placeholders
+  // For PostgreSQL, the convertMySQLToPostgreSQL function will convert ? to $1, $2, etc.
+  const placeholders = values.map(() => '?').join(', ');
+  return {
+    clause: `IN (${placeholders})`,
+    params: values,
+  };
+}
+

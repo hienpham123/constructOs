@@ -481,7 +481,7 @@ export const updateGroup = async (req: AuthRequest, res: Response) => {
 
     // Check if user is owner or admin
     const member = await query<any[]>(
-      'SELECT * FROM group_members WHERE group_id = ? AND user_id = ? AND role IN ("owner", "admin")',
+      'SELECT * FROM group_members WHERE group_id = ? AND user_id = ? AND role IN (\'owner\', \'admin\')',
       [id, userId]
     );
 
@@ -564,7 +564,7 @@ export const deleteGroup = async (req: AuthRequest, res: Response) => {
 
     // Check if user is owner
     const member = await query<any[]>(
-      'SELECT * FROM group_members WHERE group_id = ? AND user_id = ? AND role = "owner"',
+      'SELECT * FROM group_members WHERE group_id = ? AND user_id = ? AND role = \'owner\'',
       [id, userId]
     );
 
@@ -611,7 +611,7 @@ export const addMembers = async (req: AuthRequest, res: Response) => {
 
     // Check if user is owner or admin
     const member = await query<any[]>(
-      'SELECT * FROM group_members WHERE group_id = ? AND user_id = ? AND role IN ("owner", "admin")',
+      'SELECT * FROM group_members WHERE group_id = ? AND user_id = ? AND role IN (\'owner\', \'admin\')',
       [id, userId]
     );
 
@@ -716,7 +716,7 @@ export const transferOwnership = async (req: AuthRequest, res: Response) => {
 
     // Check if user is owner
     const member = await query<any[]>(
-      'SELECT * FROM group_members WHERE group_id = ? AND user_id = ? AND role = "owner"',
+      'SELECT * FROM group_members WHERE group_id = ? AND user_id = ? AND role = \'owner\'',
       [id, userId]
     );
 
@@ -736,11 +736,11 @@ export const transferOwnership = async (req: AuthRequest, res: Response) => {
 
     // Transfer ownership
     await query(
-      'UPDATE group_members SET role = "member" WHERE group_id = ? AND user_id = ?',
+      'UPDATE group_members SET role = \'member\' WHERE group_id = ? AND user_id = ?',
       [id, userId]
     );
     await query(
-      'UPDATE group_members SET role = "owner" WHERE group_id = ? AND user_id = ?',
+      'UPDATE group_members SET role = \'owner\' WHERE group_id = ? AND user_id = ?',
       [id, newOwnerId]
     );
 
