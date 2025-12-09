@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { Box, LinearProgress, useMediaQuery, useTheme } from '@mui/material';
 import { groupChatsAPI, type GroupChat } from '../services/api/groupChats';
@@ -218,9 +218,24 @@ export default function Chats() {
   const selectedUserId = userId ? userId : undefined;
 
   // On mobile, show sidebar only when no chat is selected
+  // Always render sidebar on mobile for smooth animation
   const showSidebar = !isMobile || (!selectedGroupId && !selectedConversationId && !selectedUserId);
   const showDetail = selectedGroupId || selectedConversationId || selectedUserId;
   const showMainContent = !selectedGroupId && !selectedConversationId && !selectedUserId;
+  
+  // Track previous state to detect changes for animation
+  const prevShowSidebarRef = useRef(showSidebar);
+  const prevShowDetailRef = useRef(showDetail);
+  
+  // On mobile, always render both views but control visibility with transform
+  const isDetailVisible = showDetail;
+  const isSidebarVisible = showSidebar;
+  
+  // Update refs after render
+  useEffect(() => {
+    prevShowSidebarRef.current = showSidebar;
+    prevShowDetailRef.current = showDetail;
+  }, [showSidebar, showDetail]);
 
   const loading = groupsLoading || conversationsLoading;
 
@@ -229,17 +244,52 @@ export default function Chats() {
   }
 
   return (
-    <Box sx={{ display: 'flex', height: '100vh', width: '100%', maxWidth: '100%', bgcolor: '#f0f2f5', overflow: 'hidden' }}>
-      {showSidebar && (
+    <Box sx={{ display: 'flex', height: '100vh', width: '100%', maxWidth: '100%', bgcolor: '#f0f2f5', overflow: 'hidden', position: 'relative' }}>
+      {/* Sidebar with slide animation - always rendered on mobile for smooth animation */}
+      {isMobile ? (
         <Box
           sx={{
-            display: { xs: showSidebar ? 'flex' : 'none', md: 'flex' },
-            width: { xs: '100%', md: '360px' },
+            display: 'flex',
+            width: '100%',
             flexShrink: 0,
             flexDirection: 'column',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            height: '100%',
+            zIndex: 1,
+            transform: isSidebarVisible ? 'translateX(0)' : 'translateX(-100%)',
+            transition: 'transform 0.3s ease-in-out',
+            willChange: 'transform',
+            pointerEvents: isSidebarVisible ? 'auto' : 'none',
+            bgcolor: 'white',
           }}
         >
-          {/* Unified chat list sidebar */}
+          <UnifiedChatListSidebar
+            groups={groups}
+            conversations={conversations}
+            searchTerm={searchTerm}
+            selectedGroupId={selectedGroupId}
+            selectedConversationId={selectedConversationId}
+            onCreateGroup={() => setCreateGroupDialogOpen(true)}
+            onStartChat={() => setSelectUserDialogOpen(true)}
+            onSearchChange={setSearchTerm}
+            onGroupClick={handleGroupClick}
+            onConversationClick={handleConversationClick}
+            onUpdateGroup={handleUpdateGroup}
+            onUpdateConversation={handleUpdateConversation}
+          />
+        </Box>
+      ) : (
+        <Box
+          sx={{
+            display: 'flex',
+            width: '360px',
+            flexShrink: 0,
+            flexDirection: 'column',
+            height: '100vh',
+          }}
+        >
           <UnifiedChatListSidebar
             groups={groups}
             conversations={conversations}
@@ -257,15 +307,25 @@ export default function Chats() {
         </Box>
       )}
 
-      {showDetail && (
+      {/* Detail view with slide animation - always rendered on mobile for smooth animation */}
+      {isMobile ? (
         <Box
           sx={{
-            display: { xs: showDetail ? 'flex' : 'none', md: 'flex' },
+            display: 'flex',
             flex: 1,
             minWidth: 0,
             height: '100vh',
             overflow: 'hidden',
             width: '100%',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            zIndex: 2,
+            transform: isDetailVisible ? 'translateX(0)' : 'translateX(100%)',
+            transition: 'transform 0.3s ease-in-out',
+            willChange: 'transform',
+            pointerEvents: isDetailVisible ? 'auto' : 'none',
+            bgcolor: '#f0f2f5',
           }}
         >
           {selectedGroupId ? (
@@ -274,8 +334,28 @@ export default function Chats() {
             <DirectChatDetail />
           ) : null}
         </Box>
+      ) : (
+        showDetail && (
+          <Box
+            sx={{
+              display: 'flex',
+              flex: 1,
+              minWidth: 0,
+              height: '100vh',
+              overflow: 'hidden',
+              width: '100%',
+            }}
+          >
+            {selectedGroupId ? (
+              <GroupChatDetail />
+            ) : (selectedConversationId || selectedUserId) ? (
+              <DirectChatDetail />
+            ) : null}
+          </Box>
+        )
       )}
 
+      {/* Main content (empty state) */}
       {showMainContent && (
         <Box
           sx={{

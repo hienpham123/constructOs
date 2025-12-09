@@ -48,6 +48,7 @@ export interface DirectMessage {
   attachments: DirectMessageAttachment[];
   createdAt: string;
   updatedAt: string;
+  status?: 'sending' | 'sent' | 'failed';
 }
 
 export interface DirectMessageAttachment {

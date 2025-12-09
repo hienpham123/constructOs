@@ -23,6 +23,11 @@ export default function DirectChatDetail() {
   const [conversation, setConversation] = useState<DirectConversationDetail | null>(null);
   const [messages, setMessages] = useState<DirectMessage[]>([]);
   const [content, setContent] = useState('');
+  
+  // Stable reference for content change handler to prevent re-renders
+  const handleContentChange = useCallback((value: string) => {
+    setContent(value);
+  }, []);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -393,7 +398,7 @@ export default function DirectChatDetail() {
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     setSelectedFiles((prev) => [...prev, ...files]);
     if (fileInputRef.current) {
@@ -402,11 +407,11 @@ export default function DirectChatDetail() {
     if (imageInputRef.current) {
       imageInputRef.current.value = '';
     }
-  };
+  }, []);
 
-  const removeFile = (index: number) => {
+  const removeFile = useCallback((index: number) => {
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
-  };
+  }, []);
 
   const handleSubmit = async () => {
     
@@ -418,13 +423,70 @@ export default function DirectChatDetail() {
       return;
     }
 
+    // Create temporary message with 'sending' status
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const now = new Date().toISOString();
+    const tempMessage: DirectMessage = {
+      id: tempId,
+      conversationId: conversation.id || '',
+      senderId: user.id,
+      receiverId: conversation.otherUser.id,
+      senderName: user.name || user.email || 'Bạn',
+      senderAvatar: user.avatar || null,
+      content: content || '',
+      attachments: selectedFiles.map((file, index) => ({
+        id: `temp-attach-${tempId}-${index}`,
+        messageId: tempId,
+        filename: file.name,
+        originalFilename: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+        fileUrl: URL.createObjectURL(file),
+        createdAt: now,
+      })),
+      createdAt: now,
+      updatedAt: now,
+      status: 'sending',
+    };
+
+    // Clear input first
+    const messageContent = content;
+    const messageFiles = [...selectedFiles];
+    setContent('');
+    setSelectedFiles([]);
+
+    // Get container reference before state update
+    const messagesContainer = document.querySelector('[data-messages-container]') as HTMLElement;
+
+    // Add temporary message to state immediately
+    setMessages((prev) => [...prev, tempMessage]);
+    
+    // Scroll immediately after state update - use single requestAnimationFrame
+    requestAnimationFrame(() => {
+      if (messagesContainer) {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      } else {
+        scrollToBottom(true);
+      }
+      
+      // Focus input after scroll
+      setTimeout(() => {
+        const textarea = textInputRef.current?.querySelector('textarea') as HTMLTextAreaElement;
+        if (textarea) {
+          textarea.focus();
+        } else if (textInputRef.current) {
+          textInputRef.current.focus();
+        }
+      }, 0);
+    });
+
     isSubmittingRef.current = true;
     try {
       const newMessage = await directMessagesAPI.sendMessage(
         conversation.otherUser.id,
         {
-          content: content || '',
-          files: selectedFiles.length > 0 ? selectedFiles : undefined,
+          content: messageContent || '',
+          files: messageFiles.length > 0 ? messageFiles : undefined,
         }
       );
 
@@ -440,45 +502,31 @@ export default function DirectChatDetail() {
         setConversation((prev) => prev ? { ...prev, id: newMessage.conversationId } : null);
       }
 
-      // Clear input first (before adding message to avoid flicker)
-      setContent('');
-      setSelectedFiles([]);
-
-      // Get container reference before state update
-      const messagesContainer = document.querySelector('[data-messages-container]') as HTMLElement;
-
-      // Add message to state
-      setMessages((prev) => [...prev, newMessage]);
+      // Replace temporary message with real message (status will be 'sent' by default)
+      setMessages((prev) => 
+        prev.map((msg) => 
+          msg.id === tempId 
+            ? { ...newMessage, status: 'sent' as const }
+            : msg
+        )
+      );
       
-      // Scroll immediately after state update - use flushSync approach
-      // React batches updates, so we need to wait for the next frame
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          if (messagesContainer) {
-            // Scroll instantly to bottom
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-          } else {
-            scrollToBottom(true);
-          }
-          
-          // Focus input immediately after scroll
-          const textarea = textInputRef.current?.querySelector('textarea') as HTMLTextAreaElement;
-          if (textarea) {
-            textarea.focus();
-          } else if (textInputRef.current) {
-            textInputRef.current.focus();
-          }
-        });
-      });
-      
-      // Reset submitting flag - DON'T load conversation or reload anything
-      // The message is already in state, no need to reload
+      // Reset submitting flag
       setTimeout(() => {
         isSubmittingRef.current = false;
       }, 100);
     } catch (error: any) {
       console.error('Error sending message:', error);
-      alert(error.response?.data?.error || 'Không thể gửi tin nhắn');
+      
+      // Update message status to 'failed'
+      setMessages((prev) => 
+        prev.map((msg) => 
+          msg.id === tempId 
+            ? { ...msg, status: 'failed' as const }
+            : msg
+        )
+      );
+      
       isSubmittingRef.current = false;
     }
   };
@@ -626,7 +674,7 @@ export default function DirectChatDetail() {
         </Box>
       )}
 
-      {conversation && (
+      {conversation && !editingMessageId && (
         <Box sx={{ flexShrink: 0 }}>
           <DirectMessageInput
             otherUserName={conversation.otherUser.name}
@@ -635,7 +683,7 @@ export default function DirectChatDetail() {
             textInputRef={textInputRef}
             imageInputRef={imageInputRef}
             fileInputRef={fileInputRef}
-            onContentChange={setContent}
+            onContentChange={handleContentChange}
             onFileSelect={handleFileSelect}
             onRemoveFile={removeFile}
             onSubmit={handleSubmit}

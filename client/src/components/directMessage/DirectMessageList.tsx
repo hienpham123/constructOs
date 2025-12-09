@@ -267,5 +267,44 @@ function DirectMessageList({
   );
 }
 
-export default memo(DirectMessageList);
+// Custom comparison function for memo to prevent unnecessary re-renders
+export default memo(DirectMessageList, (prevProps, nextProps) => {
+  // Compare primitive props
+  if (prevProps.currentUserId !== nextProps.currentUserId) return false;
+  if (prevProps.editingMessageId !== nextProps.editingMessageId) return false;
+  if (prevProps.hoveredMessageId !== nextProps.hoveredMessageId) return false;
+  if (prevProps.anchorEl !== nextProps.anchorEl) return false;
+  if (prevProps.hasMoreMessages !== nextProps.hasMoreMessages) return false;
+  if (prevProps.isLoadingMore !== nextProps.isLoadingMore) return false;
+  if (prevProps.isLoading !== nextProps.isLoading) return false;
+  if (prevProps.lastMessageRef !== nextProps.lastMessageRef) return false;
+  if (prevProps.editingMessageRef !== nextProps.editingMessageRef) return false;
+  if (prevProps.messageRefs !== nextProps.messageRefs) return false;
+  if (prevProps.isLoadingMoreRef !== nextProps.isLoadingMoreRef) return false;
+  if (prevProps.isSubmittingRef !== nextProps.isSubmittingRef) return false;
+
+  // Compare messages array - only if length or content changed
+  if (prevProps.messages.length !== nextProps.messages.length) return false;
+  if (prevProps.messages.some((msg, idx) => {
+    const nextMsg = nextProps.messages[idx];
+    if (!nextMsg) return true;
+    return msg.id !== nextMsg.id || 
+           msg.content !== nextMsg.content || 
+           msg.updatedAt !== nextMsg.updatedAt ||
+           msg.status !== nextMsg.status ||
+           msg.attachments.length !== nextMsg.attachments.length;
+  })) return false;
+
+  // Compare imageErrors Set - check size and content
+  if (prevProps.imageErrors.size !== nextProps.imageErrors.size) return false;
+  for (const id of prevProps.imageErrors) {
+    if (!nextProps.imageErrors.has(id)) return false;
+  }
+
+  // Handler functions should be stable (useCallback), so we can skip deep comparison
+  // If handlers change reference but are functionally the same, that's okay
+  // The real check is if the props they depend on (like messages) haven't changed
+
+  return true; // Props are equal, skip re-render
+});
 

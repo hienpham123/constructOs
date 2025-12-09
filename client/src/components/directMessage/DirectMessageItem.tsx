@@ -1,8 +1,10 @@
+import { memo } from 'react';
 import { Box, Avatar, Typography, Paper, IconButton, Popover, MenuList, MenuItem, ListItemText, Link } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEllipsisV, faDownload } from '@fortawesome/free-solid-svg-icons';
 import type { DirectMessage } from '../../services/api/directMessages';
 import { useAuthStore } from '../../stores/authStore';
+import { isMessageOlderThan30Minutes } from '../../utils/dateFormat';
 
 interface DirectMessageItemProps {
   message: DirectMessage;
@@ -25,7 +27,7 @@ interface DirectMessageItemProps {
   editingMessageRef: React.RefObject<HTMLDivElement> | null;
 }
 
-export default function DirectMessageItem({
+function DirectMessageItem({
   message,
   isEditing,
   isHovered,
@@ -48,6 +50,9 @@ export default function DirectMessageItem({
   const { user } = useAuthStore();
   const isOwn = message.senderId === user?.id;
   const messageRef = editingMessageRef || (isLastMessage ? lastMessageRef : null);
+  
+  // Check if message is older than 30 minutes (cannot edit/delete)
+  const isOlderThan30Minutes = isMessageOlderThan30Minutes(message.createdAt);
 
   return (
     <Box
@@ -114,7 +119,7 @@ export default function DirectMessageItem({
               flexDirection: 'row',
             }}
           >
-            {isOwn && (
+            {isOwn && !isOlderThan30Minutes && (
               <IconButton
                 size="small"
                 onClick={onMenuClick}
@@ -268,11 +273,17 @@ export default function DirectMessageItem({
                   variant="caption"
                   sx={{
                     fontSize: '0.6875rem',
-                    color: '#65676b',
+                    color: message.status === 'failed' ? '#d32f2f' : '#65676b',
                     lineHeight: 1.2,
                   }}
                 >
-                  Đã nhận
+                  {message.status === 'sending' 
+                    ? 'Đang gửi...' 
+                    : message.status === 'failed' 
+                    ? 'Không thể gửi tin nhắn'
+                    : new Date(message.updatedAt).getTime() !== new Date(message.createdAt).getTime()
+                    ? 'Đã chỉnh sửa'
+                    : 'Đã nhận'}
                 </Typography>
               )}
             </Box>
@@ -281,7 +292,7 @@ export default function DirectMessageItem({
       </Box>
 
       {/* Popover for message actions */}
-      {isOwn && !isEditing && (
+      {isOwn && !isEditing && !isOlderThan30Minutes && (
         <Popover
           open={Boolean(anchorEl) && isHovered}
           anchorEl={anchorEl}
@@ -320,7 +331,7 @@ export default function DirectMessageItem({
               },
             }}
           >
-            {message.attachments.length === 0 && (
+            {message.attachments.length === 0 && !isOlderThan30Minutes && (
               <MenuItem 
                 onClick={onEditClick}
                 sx={{
@@ -333,24 +344,28 @@ export default function DirectMessageItem({
                 <ListItemText>Chỉnh sửa</ListItemText>
               </MenuItem>
             )}
-            <MenuItem 
-              onClick={onDeleteClick}
-              sx={{
-                '& .MuiListItemText-primary': {
-                  color: '#d32f2f',
-                  fontSize: '14px',
-                },
-                '&:hover': {
-                  bgcolor: '#ffebee',
-                },
-              }}
-            >
-              <ListItemText>Xóa</ListItemText>
-            </MenuItem>
+            {!isOlderThan30Minutes && (
+              <MenuItem 
+                onClick={onDeleteClick}
+                sx={{
+                  '& .MuiListItemText-primary': {
+                    color: '#d32f2f',
+                    fontSize: '14px',
+                  },
+                  '&:hover': {
+                    bgcolor: '#ffebee',
+                  },
+                }}
+              >
+                <ListItemText>Xóa</ListItemText>
+              </MenuItem>
+            )}
           </MenuList>
         </Popover>
       )}
     </Box>
   );
 }
+
+export default memo(DirectMessageItem);
 

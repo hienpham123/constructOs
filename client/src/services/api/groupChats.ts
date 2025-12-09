@@ -50,6 +50,7 @@ export interface GroupMessage {
   attachments: GroupMessageAttachment[];
   createdAt: string;
   updatedAt: string;
+  status?: 'sending' | 'sent' | 'failed';
 }
 
 export interface GroupMessageAttachment {

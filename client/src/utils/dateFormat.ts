@@ -106,3 +106,19 @@ export const formatZaloTime = (dateString: string | null): string => {
   return `${day}/${month}/${year}`;
 };
 
+/**
+ * Check if message is older than 30 minutes (cannot edit/delete after 30 minutes)
+ * @param createdAt - Message creation date string
+ * @returns true if message is older than 30 minutes
+ */
+export const isMessageOlderThan30Minutes = (createdAt: string | Date | null | undefined): boolean => {
+  if (!createdAt) return true; // If no date, consider it old
+  
+  const messageDate = new Date(createdAt);
+  const now = new Date();
+  const diffMs = now.getTime() - messageDate.getTime();
+  const diffMinutes = diffMs / (1000 * 60);
+  
+  return diffMinutes > 30;
+};
+

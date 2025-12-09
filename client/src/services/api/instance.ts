@@ -46,7 +46,14 @@ api.interceptors.response.use(
                              error.config?.url?.includes('/daily-reports/') &&
                              error.config?.method === 'get';
     
-    if (!isDailyReport404) {
+    // Don't show error notification for message sending endpoints
+    // (errors are handled in the component by showing status in message)
+    const isMessageSendError = error.config?.method === 'post' && (
+      error.config?.url?.includes('/group-chats/') && error.config?.url?.includes('/messages') ||
+      error.config?.url?.includes('/direct-messages/users/') && error.config?.url?.includes('/messages')
+    );
+    
+    if (!isDailyReport404 && !isMessageSendError) {
       // Extract error message
       const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Đã xảy ra lỗi';
       

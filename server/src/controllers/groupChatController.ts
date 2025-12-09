@@ -1100,6 +1100,16 @@ export const updateMessage = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: 'Bạn chỉ có thể chỉnh sửa tin nhắn của chính mình' });
     }
 
+    // Check if message is older than 30 minutes
+    const timeCheck = await query<any[]>(
+      'SELECT TIMESTAMPDIFF(MINUTE, created_at, NOW()) as minutes_ago FROM group_messages WHERE id = ?',
+      [messageId]
+    );
+
+    if (timeCheck.length > 0 && timeCheck[0].minutes_ago > 30) {
+      return res.status(403).json({ error: 'Không thể chỉnh sửa tin nhắn sau 30 phút' });
+    }
+
     // Check if message has attachments (can't edit messages with attachments)
     const attachments = await query<any[]>(
       'SELECT * FROM group_message_attachments WHERE message_id = ?',
@@ -1194,6 +1204,18 @@ export const deleteMessage = async (req: AuthRequest, res: Response) => {
 
     if (!isSender && !isAdminOrOwner) {
       return res.status(403).json({ error: 'Bạn không có quyền xóa tin nhắn này' });
+    }
+
+    // Check if message is older than 30 minutes (only for sender, admin/owner can always delete)
+    if (isSender && !isAdminOrOwner) {
+      const timeCheck = await query<any[]>(
+        'SELECT TIMESTAMPDIFF(MINUTE, created_at, NOW()) as minutes_ago FROM group_messages WHERE id = ?',
+        [messageId]
+      );
+
+      if (timeCheck.length > 0 && timeCheck[0].minutes_ago > 30) {
+        return res.status(403).json({ error: 'Không thể xóa tin nhắn sau 30 phút' });
+      }
     }
 
     // Get attachments to delete files

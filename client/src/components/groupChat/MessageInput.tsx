@@ -38,7 +38,7 @@ function MessageInput({
 }: MessageInputProps) {
   const [emojiPickerAnchor, setEmojiPickerAnchor] = useState<HTMLElement | null>(null);
   
-  // Optimized content change handler - no debounce to maintain immediate feedback
+  // Optimized content change handler - direct event handler without extra callback
   const handleContentChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     onContentChange(e.target.value);
   }, [onContentChange]);
@@ -181,15 +181,6 @@ function MessageInput({
             onMouseDown={(e) => {
               e.stopPropagation();
             }}
-            onFocus={(e) => {
-              e.stopPropagation();
-              const input = e.target as HTMLInputElement;
-              if (input && content) {
-                if (input.value !== content) {
-                  input.value = content;
-                }
-              }
-            }}
             inputProps={{
               style: { color: '#050505' },
             }}
@@ -274,5 +265,22 @@ function MessageInput({
   );
 }
 
-export default memo(MessageInput);
+export default memo(MessageInput, (prevProps, nextProps) => {
+  // Return true if props are equal (skip re-render), false if different (re-render)
+  // For typing performance, we want to re-render when content changes, so return false
+  if (prevProps.content !== nextProps.content) return false;
+  if (prevProps.groupName !== nextProps.groupName) return false;
+  if (prevProps.selectedFiles.length !== nextProps.selectedFiles.length) return false;
+  
+  // Quick check: if lengths are same, check if any file changed
+  for (let i = 0; i < prevProps.selectedFiles.length; i++) {
+    const prevFile = prevProps.selectedFiles[i];
+    const nextFile = nextProps.selectedFiles[i];
+    if (!nextFile || prevFile.name !== nextFile.name || prevFile.size !== nextFile.size) {
+      return false;
+    }
+  }
+  
+  return true; // Props are equal, skip re-render
+});
 

@@ -42,7 +42,7 @@ function DirectMessageInput({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const inputWrapperRef = useRef<HTMLDivElement | null>(null);
   
-  // Optimized content change handler
+  // Optimized content change handler - direct event handler
   const handleContentChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     onContentChange(e.target.value);
   }, [onContentChange]);
@@ -120,26 +120,16 @@ function DirectMessageInput({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
-      // Focus input after submitting
-      setTimeout(() => focusInput(), 100);
     }
-  }, [handleSubmit, focusInput]);
+  }, [handleSubmit]);
   
-  // Focus input when content is cleared (after sending message)
+  // Expose focus function to parent (only once)
   useEffect(() => {
-    // If content was cleared (went from non-empty to empty), focus input
-    if (content === '' && selectedFiles.length === 0) {
-      focusInput();
-    }
-  }, [content, selectedFiles.length, focusInput]);
-  
-  // Expose focus function to parent
-  useEffect(() => {
-    if (onFocusInput) {
+    if (onFocusInput && textInputRef) {
       // Store focus function on the ref so parent can call it
       (textInputRef as any).focus = focusInput;
     }
-  }, [onFocusInput, focusInput, textInputRef]);
+  }, [onFocusInput, textInputRef]); // Removed focusInput from deps to avoid recreating
 
   return (
     <>
@@ -241,13 +231,10 @@ function DirectMessageInput({
               }
               // Also store textarea reference immediately
               if (node) {
-                // Use requestAnimationFrame to ensure DOM is ready
-                requestAnimationFrame(() => {
-                  const textarea = (node as HTMLElement).querySelector('textarea') as HTMLTextAreaElement;
-                  if (textarea) {
-                    textareaRef.current = textarea;
-                  }
-                });
+                const textarea = (node as HTMLElement).querySelector('textarea') as HTMLTextAreaElement;
+                if (textarea) {
+                  textareaRef.current = textarea;
+                }
               }
             }}
             fullWidth
@@ -262,15 +249,6 @@ function DirectMessageInput({
             }}
             onMouseDown={(e) => {
               e.stopPropagation();
-            }}
-            onFocus={(e) => {
-              e.stopPropagation();
-              const input = e.target as HTMLInputElement;
-              if (input && content) {
-                if (input.value !== content) {
-                  input.value = content;
-                }
-              }
             }}
             inputProps={{
               style: { color: '#050505' },
@@ -308,11 +286,7 @@ function DirectMessageInput({
             }}
           />
           <IconButton
-            onClick={() => {
-              handleSubmit();
-              // Focus input after submitting
-              setTimeout(() => focusInput(), 100);
-            }}
+            onClick={handleSubmit}
             disabled={!content && selectedFiles.length === 0}
             sx={{
               color: '#1877f2',
@@ -360,5 +334,22 @@ function DirectMessageInput({
   );
 }
 
-export default memo(DirectMessageInput);
+export default memo(DirectMessageInput, (prevProps, nextProps) => {
+  // Return true if props are equal (skip re-render), false if different (re-render)
+  // For typing performance, we want to re-render when content changes, so return false
+  if (prevProps.content !== nextProps.content) return false;
+  if (prevProps.otherUserName !== nextProps.otherUserName) return false;
+  if (prevProps.selectedFiles.length !== nextProps.selectedFiles.length) return false;
+  
+  // Quick check: if lengths are same, check if any file changed
+  for (let i = 0; i < prevProps.selectedFiles.length; i++) {
+    const prevFile = prevProps.selectedFiles[i];
+    const nextFile = nextProps.selectedFiles[i];
+    if (!nextFile || prevFile.name !== nextFile.name || prevFile.size !== nextFile.size) {
+      return false;
+    }
+  }
+  
+  return true; // Props are equal, skip re-render
+});
 
