@@ -232,15 +232,7 @@ export const createComment = async (req: AuthRequest, res: Response) => {
     );
 
     // Get user avatar
-    let avatarUrl = null;
-    if (user.length > 0 && user[0].avatar) {
-      const baseUrl = process.env.API_BASE_URL || 
-                      process.env.SERVER_URL || 
-                      (process.env.NODE_ENV === 'production' 
-                        ? process.env.PRODUCTION_API_URL || 'https://your-api-domain.com'
-                        : 'http://localhost:2222');
-      avatarUrl = `${baseUrl}/uploads/avatars/${user[0].avatar}`;
-    }
+    const avatarUrl = user.length > 0 ? getAvatarUrl(user[0].avatar) : null;
 
     const newComment: ProjectComment = {
       id: commentId,

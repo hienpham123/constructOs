@@ -11,7 +11,7 @@ import {
   isSupabaseStorageEnabled, 
   getSupabaseStorageUrl 
 } from '../utils/supabaseStorage.js';
-import { handleFileUpload } from '../middleware/upload.js';
+import { handleFileUpload, getAvatarUrl } from '../middleware/upload.js';
 
 // Helper function to get message attachment URL
 function getMessageAttachmentUrl(filename: string): string {
@@ -147,15 +147,7 @@ export const getConversations = async (req: AuthRequest, res: Response) => {
         }
 
         const otherUser = userResult[0];
-        let avatarUrl = null;
-        if (otherUser.avatar) {
-          const baseUrl = process.env.API_BASE_URL || 
-                          process.env.SERVER_URL || 
-                          (process.env.NODE_ENV === 'production' 
-                            ? process.env.PRODUCTION_API_URL || 'https://your-api-domain.com'
-                            : 'http://localhost:2222');
-          avatarUrl = `${baseUrl}/uploads/avatars/${otherUser.avatar}`;
-        }
+        const avatarUrl = getAvatarUrl(otherUser.avatar);
 
         // Get last message
         const lastMessageResult = await query<any[]>(
@@ -356,16 +348,8 @@ export const getMessages = async (req: AuthRequest, res: Response) => {
           createdAt: att.created_at,
         }));
 
-        // Get avatar URL
-        let avatarUrl = null;
-        if (msg.sender_avatar) {
-          const baseUrl = process.env.API_BASE_URL || 
-                          process.env.SERVER_URL || 
-                          (process.env.NODE_ENV === 'production' 
-                            ? process.env.PRODUCTION_API_URL || 'https://your-api-domain.com'
-                            : 'http://localhost:2222');
-          avatarUrl = `${baseUrl}/uploads/avatars/${msg.sender_avatar}`;
-        }
+        // Get avatar URL using helper function
+        const avatarUrl = getAvatarUrl(msg.sender_avatar);
 
         return {
           id: msg.id,
@@ -519,16 +503,8 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       createdAt: att.created_at,
     }));
 
-    // Get avatar URL
-    let avatarUrl = null;
-    if (created[0].sender_avatar) {
-      const baseUrl = process.env.API_BASE_URL || 
-                      process.env.SERVER_URL || 
-                      (process.env.NODE_ENV === 'production' 
-                        ? process.env.PRODUCTION_API_URL || 'https://your-api-domain.com'
-                        : 'http://localhost:2222');
-      avatarUrl = `${baseUrl}/uploads/avatars/${created[0].sender_avatar}`;
-    }
+    // Get avatar URL using helper function
+    const avatarUrl = getAvatarUrl(created[0].sender_avatar);
 
     const message = {
       id: created[0].id,
@@ -656,16 +632,8 @@ export const updateMessage = async (req: AuthRequest, res: Response) => {
       [messageId]
     );
 
-    // Get avatar URL
-    let avatarUrl = null;
-    if (updated[0].sender_avatar) {
-      const baseUrl = process.env.API_BASE_URL || 
-                      process.env.SERVER_URL || 
-                      (process.env.NODE_ENV === 'production' 
-                        ? process.env.PRODUCTION_API_URL || 'https://your-api-domain.com'
-                        : 'http://localhost:2222');
-      avatarUrl = `${baseUrl}/uploads/avatars/${updated[0].sender_avatar}`;
-    }
+    // Get avatar URL using helper function
+    const avatarUrl = getAvatarUrl(updated[0].sender_avatar);
 
     const updatedMessage = {
       id: updated[0].id,

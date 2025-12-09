@@ -1068,16 +1068,8 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       createdAt: att.created_at,
     }));
 
-    // Get avatar URL
-    let avatarUrl = null;
-    if (created[0].user_avatar) {
-      const baseUrl = process.env.API_BASE_URL || 
-                      process.env.SERVER_URL || 
-                      (process.env.NODE_ENV === 'production' 
-                        ? process.env.PRODUCTION_API_URL || 'https://your-api-domain.com'
-                        : 'http://localhost:2222');
-      avatarUrl = `${baseUrl}/uploads/avatars/${created[0].user_avatar}`;
-    }
+    // Get avatar URL using helper function
+    const avatarUrl = getAvatarUrl(created[0].user_avatar);
 
     const message = {
       id: created[0].id,
@@ -1173,16 +1165,8 @@ export const updateMessage = async (req: AuthRequest, res: Response) => {
       [messageId]
     );
 
-    // Get avatar URL
-    let avatarUrl = null;
-    if (updated[0].user_avatar) {
-      const baseUrl = process.env.API_BASE_URL || 
-                      process.env.SERVER_URL || 
-                      (process.env.NODE_ENV === 'production' 
-                        ? process.env.PRODUCTION_API_URL || 'https://your-api-domain.com'
-                        : 'http://localhost:2222');
-      avatarUrl = `${baseUrl}/uploads/avatars/${updated[0].user_avatar}`;
-    }
+    // Get avatar URL using helper function
+    const avatarUrl = getAvatarUrl(updated[0].user_avatar);
 
     const updatedMessage = {
       id: updated[0].id,
