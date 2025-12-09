@@ -5,7 +5,7 @@ import path from 'path';
 // Initialize Supabase client (singleton)
 let supabaseClient: SupabaseClient | null = null;
 
-function getSupabaseClient(): SupabaseClient | null {
+export function getSupabaseClient(): SupabaseClient | null {
   // Return null if Supabase is not configured
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return null;
