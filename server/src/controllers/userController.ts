@@ -4,7 +4,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { normalizeString, toMySQLDateTime, buildSearchClause, buildSortClause } from '../utils/dataHelpers.js';
 import bcrypt from 'bcryptjs';
 import { AuthRequest } from '../middleware/auth.js';
-import { getAvatarUrl } from '../middleware/upload.js';
+import { getAvatarUrl, handleFileUpload } from '../middleware/upload.js';
+import path from 'path';
 
 export const getUsers = async (req: Request, res: Response) => {
   try {
@@ -376,13 +377,19 @@ export const uploadAvatar = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Không có file được tải lên' });
     }
 
-    const filename = req.file.filename;
     const updatedAt = toMySQLDateTime();
+
+    // Handle file upload (Supabase or filesystem)
+    const { filename, url } = await handleFileUpload(req.file, 'avatars');
+    
+    // Store filename or full URL in database depending on storage type
+    // If URL is a full URL (Supabase), store the full URL, otherwise store filename
+    const avatarValue = url.startsWith('http') ? url : filename;
 
     // Update user avatar in database
     await query(
       'UPDATE users SET avatar = ?, updated_at = ? WHERE id = ?',
-      [filename, updatedAt, req.userId]
+      [avatarValue, updatedAt, req.userId]
     );
 
     // Get updated user

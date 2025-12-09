@@ -49,7 +49,7 @@ const avatarStorage = multer.diskStorage({
 export const uploadGroupAvatar = multer({
   storage: avatarStorage,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB max
+    fileSize: 2 * 1024 * 1024, // 2MB max (reduced from 5MB for better storage efficiency)
   },
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|gif|webp/;
@@ -81,7 +81,7 @@ const messageStorage = multer.diskStorage({
 export const uploadMessageFiles = multer({
   storage: messageStorage,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB max per file
+    fileSize: 5 * 1024 * 1024, // 5MB max per file (reduced from 10MB for better storage efficiency)
   },
 });
 

@@ -8,7 +8,8 @@
     "start": "node dist/index.js",
     "fix-port": "./fix-port.sh",
     "migrate:comments": "tsx src/scripts/runMigration.ts",
-    "verify:migration": "tsx src/scripts/verifyMigration.ts"
+    "verify:migration": "tsx src/scripts/verifyMigration.ts",
+    "check:storage": "tsx src/scripts/checkStorageUsage.ts"
   },
   "dependencies": {
     "@types/bcryptjs": "^3.0.0",
@@ -31,7 +32,8 @@
     "mysql2": "^3.15.3",
     "pg": "^8.16.3",
     "socket.io": "^4.8.1",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "@supabase/supabase-js": "^2.39.0"
   },
   "devDependencies": {
     "tsx": "^3.14.0",

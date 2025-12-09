@@ -104,9 +104,33 @@ export default function CommentSection({ projectId, category }: CommentSectionPr
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    setSelectedFiles((prev) => [...prev, ...files]);
+    if (files.length === 0) return;
+
+    try {
+      // Compress image files before adding
+      const { compressImage, isImageFile } = await import('../utils/imageCompression');
+      const processedFiles = await Promise.all(
+        files.map(async (file) => {
+          if (isImageFile(file)) {
+            return await compressImage(file, {
+              maxSizeMB: 1,
+              maxWidthOrHeight: 1920,
+              initialQuality: 0.8,
+            });
+          }
+          return file;
+        })
+      );
+      
+      setSelectedFiles((prev) => [...prev, ...processedFiles]);
+    } catch (error) {
+      console.error('Error processing files:', error);
+      // Fallback: use original files
+      setSelectedFiles((prev) => [...prev, ...files]);
+    }
+
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }

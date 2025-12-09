@@ -18,6 +18,7 @@ import { faSave, faCamera } from '@fortawesome/free-solid-svg-icons';
 import { useAuthStore } from '../stores/authStore';
 import { usersAPI } from '../services/api';
 import { formatDate, formatDateTime } from '../utils/dateFormat';
+import { compressImage } from '../utils/imageCompression';
 
 export default function Profile() {
   const { user, updateUser, refreshUser } = useAuthStore();
@@ -147,9 +148,9 @@ export default function Profile() {
       return;
     }
 
-    // Validate file size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Kích thước file không được vượt quá 5MB');
+    // Validate file size (2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      setError('Kích thước file không được vượt quá 2MB');
       return;
     }
 
@@ -157,7 +158,14 @@ export default function Profile() {
     setError('');
 
     try {
-      const response = await usersAPI.uploadAvatar(file);
+      // Compress image before uploading
+      const compressedFile = await compressImage(file, {
+        maxSizeMB: 0.5, // Compress to max 0.5MB for avatars
+        maxWidthOrHeight: 800, // Max 800px for avatars
+        initialQuality: 0.85,
+      });
+
+      const response = await usersAPI.uploadAvatar(compressedFile);
       
       // Update user data
       setUserData(response.user);

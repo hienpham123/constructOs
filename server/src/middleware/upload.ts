@@ -2,6 +2,11 @@ import multer from 'multer';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
+import { 
+  isSupabaseStorageEnabled, 
+  uploadBufferToSupabaseStorage,
+  getSupabaseStorageUrl 
+} from '../utils/supabaseStorage.js';
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(process.cwd(), 'uploads', 'avatars');
@@ -9,16 +14,18 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Configure storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
-    cb(null, uniqueName);
-  },
-});
+// Configure storage - use memory storage if Supabase is enabled, otherwise disk storage
+const storage = isSupabaseStorageEnabled() 
+  ? multer.memoryStorage() // Use memory storage for Supabase
+  : multer.diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, uploadsDir);
+      },
+      filename: (req, file, cb) => {
+        const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
+        cb(null, uniqueName);
+      },
+    });
 
 // File filter - only images
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
@@ -37,7 +44,7 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
 export const uploadAvatar = multer({
   storage,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB max
+    fileSize: 2 * 1024 * 1024, // 2MB max (reduced from 5MB for better storage efficiency)
   },
   fileFilter,
 });
@@ -46,8 +53,17 @@ export const uploadAvatar = multer({
 export const getAvatarUrl = (filename: string | null | undefined): string | null => {
   if (!filename) return null;
   
-  // In production, use environment variable for API base URL
-  // This allows different URLs for development and production
+  // If already a full URL (from Supabase), return as is
+  if (filename.startsWith('http://') || filename.startsWith('https://')) {
+    return filename;
+  }
+  
+  // If Supabase Storage is enabled, get URL from Supabase
+  if (isSupabaseStorageEnabled()) {
+    return getSupabaseStorageUrl('avatars', filename);
+  }
+  
+  // Fallback to local filesystem URL
   const baseUrl = process.env.API_BASE_URL || 
                   process.env.SERVER_URL || 
                   (process.env.NODE_ENV === 'production' 
@@ -56,6 +72,57 @@ export const getAvatarUrl = (filename: string | null | undefined): string | null
   
   return `${baseUrl}/uploads/avatars/${filename}`;
 };
+
+// Helper function to handle file upload (works with both Supabase and filesystem)
+export async function handleFileUpload(
+  file: Express.Multer.File,
+  bucketName: string
+): Promise<{ filename: string; url: string }> {
+  const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
+  
+  // If Supabase Storage is enabled, upload to Supabase
+  if (isSupabaseStorageEnabled() && file.buffer) {
+    const url = await uploadBufferToSupabaseStorage(
+      bucketName,
+      file.buffer,
+      uniqueName,
+      file.mimetype
+    );
+    
+    if (url) {
+      return { filename: uniqueName, url };
+    }
+    // Fallback to filesystem if Supabase upload fails
+  }
+  
+  // Fallback to filesystem storage
+  const uploadDir = path.join(process.cwd(), 'uploads', bucketName);
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+  
+  const filePath = path.join(uploadDir, uniqueName);
+  // Use buffer if available (memory storage), otherwise read from disk
+  if (file.buffer) {
+    fs.writeFileSync(filePath, file.buffer);
+  } else if (file.path) {
+    fs.writeFileSync(filePath, fs.readFileSync(file.path));
+  } else {
+    throw new Error('File buffer or path is required');
+  }
+  
+  // Get URL based on storage type
+  const baseUrl = process.env.API_BASE_URL || 
+                  process.env.SERVER_URL || 
+                  (process.env.NODE_ENV === 'production' 
+                    ? process.env.PRODUCTION_API_URL || 'https://your-api-domain.com'
+                    : 'http://localhost:2222');
+  
+  return {
+    filename: uniqueName,
+    url: `${baseUrl}/uploads/${bucketName}/${uniqueName}`
+  };
+}
 
 // ============================================
 // Transaction Attachments Upload
@@ -67,16 +134,18 @@ if (!fs.existsSync(transactionAttachmentsDir)) {
   fs.mkdirSync(transactionAttachmentsDir, { recursive: true });
 }
 
-// Configure storage for transaction attachments
-const transactionStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, transactionAttachmentsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
-    cb(null, uniqueName);
-  },
-});
+// Configure storage for transaction attachments - use memory storage if Supabase is enabled
+const transactionStorage = isSupabaseStorageEnabled()
+  ? multer.memoryStorage() // Use memory storage for Supabase
+  : multer.diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, transactionAttachmentsDir);
+      },
+      filename: (req, file, cb) => {
+        const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
+        cb(null, uniqueName);
+      },
+    });
 
 // File filter for transaction attachments - allow images, PDF, Excel, Word, CSV
 const transactionFileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
@@ -101,7 +170,7 @@ const transactionFileFilter = (req: any, file: Express.Multer.File, cb: multer.F
 export const uploadTransactionAttachments = multer({
   storage: transactionStorage,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB max per file
+    fileSize: 5 * 1024 * 1024, // 5MB max per file (reduced from 10MB for better storage efficiency)
   },
   fileFilter: transactionFileFilter,
 });
@@ -110,12 +179,17 @@ export const uploadTransactionAttachments = multer({
 export const getTransactionAttachmentUrl = (filename: string | null | undefined): string | null => {
   if (!filename) return null;
   
-  // If already a full URL, return as is
+  // If already a full URL (from Supabase), return as is
   if (filename.startsWith('http://') || filename.startsWith('https://')) {
     return filename;
   }
   
-  // In production, use environment variable for API base URL
+  // If Supabase Storage is enabled, get URL from Supabase
+  if (isSupabaseStorageEnabled()) {
+    return getSupabaseStorageUrl('transactions', filename);
+  }
+  
+  // Fallback to local filesystem URL
   const baseUrl = process.env.API_BASE_URL || 
                   process.env.SERVER_URL || 
                   (process.env.NODE_ENV === 'production' 

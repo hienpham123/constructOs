@@ -613,20 +613,51 @@ export default function TransactionAddEdit() {
                         <VisuallyHiddenInput
                           type="file"
                           multiple
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const files = Array.from(e.target.files || []);
                             if (files.length > 0) {
-                              pendingFilesRef.current.push(...files);
-                              const blobUrls: string[] = [];
-                              files.forEach((file) => {
-                                const blobUrl = URL.createObjectURL(file);
-                                fileInfoMapRef.current.set(blobUrl, {
-                                  name: file.name,
-                                  type: file.type,
+                              try {
+                                // Compress image files before adding
+                                const { compressImage, isImageFile } = await import('../utils/imageCompression');
+                                const processedFiles = await Promise.all(
+                                  files.map(async (file) => {
+                                    if (isImageFile(file)) {
+                                      return await compressImage(file, {
+                                        maxSizeMB: 2,
+                                        maxWidthOrHeight: 1920,
+                                        initialQuality: 0.8,
+                                      });
+                                    }
+                                    return file;
+                                  })
+                                );
+                                
+                                pendingFilesRef.current.push(...processedFiles);
+                                const blobUrls: string[] = [];
+                                processedFiles.forEach((file) => {
+                                  const blobUrl = URL.createObjectURL(file);
+                                  fileInfoMapRef.current.set(blobUrl, {
+                                    name: file.name,
+                                    type: file.type,
+                                  });
+                                  blobUrls.push(blobUrl);
                                 });
-                                blobUrls.push(blobUrl);
-                              });
-                              field.onChange([...(field.value || []), ...blobUrls]);
+                                field.onChange([...(field.value || []), ...blobUrls]);
+                              } catch (error) {
+                                console.error('Error processing files:', error);
+                                // Fallback: use original files
+                                pendingFilesRef.current.push(...files);
+                                const blobUrls: string[] = [];
+                                files.forEach((file) => {
+                                  const blobUrl = URL.createObjectURL(file);
+                                  fileInfoMapRef.current.set(blobUrl, {
+                                    name: file.name,
+                                    type: file.type,
+                                  });
+                                  blobUrls.push(blobUrl);
+                                });
+                                field.onChange([...(field.value || []), ...blobUrls]);
+                              }
                             }
                             e.target.value = '';
                           }}

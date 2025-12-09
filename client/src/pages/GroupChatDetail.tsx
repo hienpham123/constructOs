@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Box, Typography, LinearProgress, useMediaQuery, useTheme } from '@mui/material';
 import { useAuthStore } from '../stores/authStore';
 import { getFileIcon, isImageFile, formatFileSize } from '../utils/fileHelpers';
+import { compressImage, isImageFile as isImage } from '../utils/imageCompression';
 import EditGroupDialog from '../components/groupChat/EditGroupDialog';
 import GroupChatHeader from '../components/groupChat/GroupChatHeader';
 import GroupMenuPopover from '../components/groupChat/GroupMenuPopover';
@@ -409,9 +410,32 @@ export default function GroupChatDetail() {
     }
   };
 
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    setSelectedFiles((prev) => [...prev, ...files]);
+    if (files.length === 0) return;
+
+    try {
+      // Compress image files before adding to selected files
+      const processedFiles = await Promise.all(
+        files.map(async (file) => {
+          if (isImage(file)) {
+            return await compressImage(file, {
+              maxSizeMB: 1,
+              maxWidthOrHeight: 1920,
+              initialQuality: 0.8,
+            });
+          }
+          return file;
+        })
+      );
+
+      setSelectedFiles((prev) => [...prev, ...processedFiles]);
+    } catch (error) {
+      console.error('Error processing files:', error);
+      // Fallback: add original files if compression fails
+      setSelectedFiles((prev) => [...prev, ...files]);
+    }
+
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
