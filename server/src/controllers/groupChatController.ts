@@ -11,7 +11,7 @@ import {
   isSupabaseStorageEnabled, 
   getSupabaseStorageUrl 
 } from '../utils/supabaseStorage.js';
-import { handleFileUpload } from '../middleware/upload.js';
+import { handleFileUpload, getAvatarUrl } from '../middleware/upload.js';
 
 // Helper function to get group avatar URL
 function getGroupAvatarUrl(filename: string): string {
