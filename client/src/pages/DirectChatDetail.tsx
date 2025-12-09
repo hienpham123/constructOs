@@ -22,25 +22,6 @@ export default function DirectChatDetail() {
   const { user } = useAuthStore();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
-  // Prevent body scroll on mobile
-  useEffect(() => {
-    if (isMobile) {
-      // Prevent body scroll
-      document.body.style.overflow = 'hidden';
-      document.body.style.height = '100vh';
-      document.body.style.position = 'fixed';
-      document.body.style.width = '100%';
-      
-      return () => {
-        // Restore body scroll when component unmounts
-        document.body.style.overflow = '';
-        document.body.style.height = '';
-        document.body.style.position = '';
-        document.body.style.width = '';
-      };
-    }
-  }, [isMobile]);
   const [conversation, setConversation] = useState<DirectConversationDetail | null>(null);
   const [messages, setMessages] = useState<DirectMessage[]>([]);
   const [content, setContent] = useState('');
@@ -625,17 +606,11 @@ export default function DirectChatDetail() {
       sx={{ 
         display: 'flex', 
         flexDirection: 'column', 
-        height: { xs: '100vh', md: '100%' }, // Fixed height on mobile to prevent page scroll
-        maxHeight: { xs: '100vh', md: 'none' }, // Prevent exceeding viewport on mobile
+        height: '100%',
         width: '100%',
         maxWidth: '100%',
         bgcolor: '#f0f2f5',
         overflow: 'hidden',
-        position: { xs: 'fixed', md: 'relative' }, // Fixed on mobile to prevent body scroll
-        top: { xs: 0, md: 'auto' },
-        left: { xs: 0, md: 'auto' },
-        right: { xs: 0, md: 'auto' },
-        bottom: { xs: 0, md: 'auto' },
       }}
     >
       {isLoading && !conversation ? (
