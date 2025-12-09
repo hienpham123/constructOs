@@ -7,9 +7,25 @@ import type { AuthRequest } from '../middleware/auth.js';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { 
+  isSupabaseStorageEnabled, 
+  getSupabaseStorageUrl 
+} from '../utils/supabaseStorage.js';
+import { handleFileUpload } from '../middleware/upload.js';
 
 // Helper function to get group avatar URL
 function getGroupAvatarUrl(filename: string): string {
+  // If already a full URL (from Supabase), return as is
+  if (filename.startsWith('http://') || filename.startsWith('https://')) {
+    return filename;
+  }
+  
+  // If Supabase Storage is enabled, get URL from Supabase
+  if (isSupabaseStorageEnabled()) {
+    return getSupabaseStorageUrl('group-avatars', filename);
+  }
+  
+  // Fallback to local filesystem URL
   const baseUrl = process.env.API_BASE_URL || 
                   process.env.SERVER_URL || 
                   (process.env.NODE_ENV === 'production' 
@@ -21,6 +37,17 @@ function getGroupAvatarUrl(filename: string): string {
 
 // Helper function to get message attachment URL
 function getMessageAttachmentUrl(filename: string): string {
+  // If already a full URL (from Supabase), return as is
+  if (filename.startsWith('http://') || filename.startsWith('https://')) {
+    return filename;
+  }
+  
+  // If Supabase Storage is enabled, get URL from Supabase
+  if (isSupabaseStorageEnabled()) {
+    return getSupabaseStorageUrl('group-messages', filename);
+  }
+  
+  // Fallback to local filesystem URL
   const baseUrl = process.env.API_BASE_URL || 
                   process.env.SERVER_URL || 
                   (process.env.NODE_ENV === 'production' 
@@ -36,15 +63,17 @@ if (!fs.existsSync(groupAvatarsDir)) {
   fs.mkdirSync(groupAvatarsDir, { recursive: true });
 }
 
-const avatarStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, groupAvatarsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
-    cb(null, uniqueName);
-  },
-});
+const avatarStorage = isSupabaseStorageEnabled()
+  ? multer.memoryStorage() // Use memory storage for Supabase
+  : multer.diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, groupAvatarsDir);
+      },
+      filename: (req, file, cb) => {
+        const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
+        cb(null, uniqueName);
+      },
+    });
 
 export const uploadGroupAvatar = multer({
   storage: avatarStorage,
@@ -68,15 +97,17 @@ if (!fs.existsSync(messageAttachmentsDir)) {
   fs.mkdirSync(messageAttachmentsDir, { recursive: true });
 }
 
-const messageStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, messageAttachmentsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
-    cb(null, uniqueName);
-  },
-});
+const messageStorage = isSupabaseStorageEnabled()
+  ? multer.memoryStorage() // Use memory storage for Supabase
+  : multer.diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, messageAttachmentsDir);
+      },
+      filename: (req, file, cb) => {
+        const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
+        cb(null, uniqueName);
+      },
+    });
 
 export const uploadMessageFiles = multer({
   storage: messageStorage,
@@ -365,7 +396,8 @@ export const createGroup = async (req: AuthRequest, res: Response) => {
     // Handle avatar upload
     let avatarFilename = null;
     if (req.file) {
-      avatarFilename = req.file.filename;
+      const { filename, url } = await handleFileUpload(req.file, 'group-avatars');
+      avatarFilename = url.startsWith('http') ? url : filename;
     }
 
     // Create group
@@ -472,20 +504,12 @@ export const updateGroup = async (req: AuthRequest, res: Response) => {
 
     // Handle avatar upload
     if (req.file) {
-      // Get old avatar to delete
-      const group = await query<any[]>(
-        'SELECT avatar FROM group_chats WHERE id = ?',
-        [id]
-      );
-      if (group[0]?.avatar) {
-        const oldAvatarPath = path.join(groupAvatarsDir, group[0].avatar);
-        if (fs.existsSync(oldAvatarPath)) {
-          fs.unlinkSync(oldAvatarPath);
-        }
-      }
+      // Handle file upload (Supabase or filesystem)
+      const { filename, url } = await handleFileUpload(req.file, 'group-avatars');
+      const avatarValue = url.startsWith('http') ? url : filename;
 
       updates.push('avatar = ?');
-      values.push(req.file.filename);
+      values.push(avatarValue);
     }
 
     if (updates.length === 0) {
@@ -985,7 +1009,13 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
     if (files && files.length > 0) {
       for (const file of files) {
         const attachmentId = uuidv4();
-        const fileUrl = getMessageAttachmentUrl(file.filename);
+        
+        // Handle file upload (Supabase or filesystem)
+        const { filename, url } = await handleFileUpload(file, 'group-messages');
+        
+        // Store filename or full URL in database depending on storage type
+        const fileValue = url.startsWith('http') ? url : filename;
+        const fileUrl = url.startsWith('http') ? url : getMessageAttachmentUrl(filename);
 
         await query(
           `INSERT INTO group_message_attachments (
@@ -994,7 +1024,7 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
           [
             attachmentId,
             messageId,
-            file.filename,
+            fileValue, // Store full URL if Supabase, otherwise filename
             file.originalname,
             file.mimetype,
             file.size,

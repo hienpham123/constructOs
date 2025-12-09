@@ -7,9 +7,25 @@ import type { AuthRequest } from '../middleware/auth.js';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { 
+  isSupabaseStorageEnabled, 
+  getSupabaseStorageUrl 
+} from '../utils/supabaseStorage.js';
+import { handleFileUpload } from '../middleware/upload.js';
 
 // Helper function to get message attachment URL
 function getMessageAttachmentUrl(filename: string): string {
+  // If already a full URL (from Supabase), return as is
+  if (filename.startsWith('http://') || filename.startsWith('https://')) {
+    return filename;
+  }
+  
+  // If Supabase Storage is enabled, get URL from Supabase
+  if (isSupabaseStorageEnabled()) {
+    return getSupabaseStorageUrl('direct-messages', filename);
+  }
+  
+  // Fallback to local filesystem URL
   const baseUrl = process.env.API_BASE_URL || 
                   process.env.SERVER_URL || 
                   (process.env.NODE_ENV === 'production' 
@@ -65,21 +81,23 @@ async function getConversationId(user1Id: string, user2Id: string): Promise<stri
   return result.length > 0 ? result[0].id : null;
 }
 
-// Configure multer for message attachments
+// Configure multer for message attachments - use memory storage if Supabase is enabled
 const messageAttachmentsDir = path.join(process.cwd(), 'uploads', 'direct-messages');
 if (!fs.existsSync(messageAttachmentsDir)) {
   fs.mkdirSync(messageAttachmentsDir, { recursive: true });
 }
 
-const messageStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, messageAttachmentsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
-    cb(null, uniqueName);
-  },
-});
+const messageStorage = isSupabaseStorageEnabled()
+  ? multer.memoryStorage() // Use memory storage for Supabase
+  : multer.diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, messageAttachmentsDir);
+      },
+      filename: (req, file, cb) => {
+        const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
+        cb(null, uniqueName);
+      },
+    });
 
 export const uploadMessageFiles = multer({
   storage: messageStorage,
@@ -443,7 +461,13 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
     if (files && files.length > 0) {
       for (const file of files) {
         const attachmentId = uuidv4();
-        const fileUrl = getMessageAttachmentUrl(file.filename);
+        
+        // Handle file upload (Supabase or filesystem)
+        const { filename, url } = await handleFileUpload(file, 'direct-messages');
+        
+        // Store filename or full URL in database depending on storage type
+        const fileValue = url.startsWith('http') ? url : filename;
+        const fileUrl = url.startsWith('http') ? url : getMessageAttachmentUrl(filename);
 
         await query(
           `INSERT INTO direct_message_attachments (
@@ -452,7 +476,7 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
           [
             attachmentId,
             messageId,
-            file.filename,
+            fileValue, // Store full URL if Supabase, otherwise filename
             file.originalname,
             file.mimetype,
             file.size,
