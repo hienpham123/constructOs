@@ -8,6 +8,7 @@ let supabaseClient: SupabaseClient | null = null;
 export function getSupabaseClient(): SupabaseClient | null {
   // Return null if Supabase is not configured
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.log('❌ Supabase not configured - missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
     return null;
   }
 
@@ -18,6 +19,11 @@ export function getSupabaseClient(): SupabaseClient | null {
 
   // Initialize new client
   try {
+    // Log để verify (chỉ log một phần key để security)
+    const keyPreview = process.env.SUPABASE_SERVICE_ROLE_KEY.substring(0, 20) + '...';
+    console.log(`✅ Initializing Supabase client with URL: ${process.env.SUPABASE_URL}`);
+    console.log(`✅ Using Service Role Key: ${keyPreview} (length: ${process.env.SUPABASE_SERVICE_ROLE_KEY.length})`);
+    
     supabaseClient = createClient(
       process.env.SUPABASE_URL,
       process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -28,9 +34,10 @@ export function getSupabaseClient(): SupabaseClient | null {
         },
       }
     );
+    console.log('✅ Supabase client initialized successfully');
     return supabaseClient;
   } catch (error) {
-    console.error('Error initializing Supabase client:', error);
+    console.error('❌ Error initializing Supabase client:', error);
     return null;
   }
 }
