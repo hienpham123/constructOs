@@ -1,8 +1,9 @@
 import { Box, Chip, IconButton, ListItem, ListItemText, Stack, Typography, Divider, useMediaQuery, useTheme } from '@mui/material';
-import { ExpandMore, ExpandLess, ChevronRight, ArrowRight, Add } from '@mui/icons-material';
+import { useEffect, useRef } from 'react';
+import { ExpandMore, ExpandLess, ChevronRight, ArrowRight, Add, Delete, Edit } from '@mui/icons-material';
 import { ProjectTask } from '../../types';
 import { formatDate } from '../../utils/dateFormat';
-import TaskStatusSelect, { statusLabels, statusColors } from './TaskStatusSelect';
+import TaskStatusSelect, { statusLabels, statusStyleMap } from './TaskStatusSelect';
 
 interface TaskItemProps {
   task: ProjectTask;
@@ -10,10 +11,19 @@ interface TaskItemProps {
   isExpanded: boolean;
   expandedTasks: Set<string>;
   onToggleExpand: (taskId: string) => void;
-  onStatusChange: (status: ProjectTask['status']) => void;
-  onAddChild: () => void;
+  onStatusChange: (status: ProjectTask['status']) => void; // Callback này đã được bind với task.id từ TaskList
+  onAddChild: () => void; // Callback này đã được bind với task từ TaskList
+  onDelete: () => void;
+  onEdit?: () => void; // Callback để edit task
   currentUserId: string;
   isProjectManager: boolean;
+  isHighlighted?: boolean; // Highlight task này
+  highlightTaskId?: string; // Task ID cần highlight (để truyền xuống children)
+  // Thêm prop để truyền callback gốc từ TaskList (có taskId)
+  onStatusChangeWithTaskId?: (taskId: string, status: ProjectTask['status']) => void;
+  onAddChildWithTask?: (task: ProjectTask) => void; // Callback gốc từ TaskList để task con có thể dùng
+  onDeleteWithTaskId?: (taskId: string) => void; // Callback gốc từ TaskList để task con có thể dùng
+  onEditWithTask?: (task: ProjectTask) => void; // Callback gốc từ TaskList để task con có thể dùng
 }
 
 export default function TaskItem({
@@ -24,16 +34,35 @@ export default function TaskItem({
   onToggleExpand,
   onStatusChange,
   onAddChild,
+  onDelete,
+  onEdit,
   currentUserId,
   isProjectManager,
+  isHighlighted = false,
+  highlightTaskId,
+  onStatusChangeWithTaskId, // Callback gốc từ TaskList
+  onAddChildWithTask, // Callback gốc từ TaskList
+  onDeleteWithTaskId, // Callback gốc từ TaskList
+  onEditWithTask, // Callback gốc từ TaskList
 }: TaskItemProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const hasChildren = task.children && task.children.length > 0;
   // Check permission: assigned user or project manager can change status
-  const canChangeStatus = isProjectManager || task.assignedTo === currentUserId;
+  // NHƯNG: Task cha có task con thì không thể thay đổi status thủ công (tính tự động)
+  const canChangeStatus = (isProjectManager || task.assignedTo === currentUserId) && !hasChildren;
   // Only project manager can add child tasks
   const canAddChild = isProjectManager;
+  const taskRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to highlighted task
+  useEffect(() => {
+    if (isHighlighted && taskRef.current) {
+      setTimeout(() => {
+        taskRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 300); // Delay để đợi expand animation
+    }
+  }, [isHighlighted]);
 
   const priorityLabels: Record<ProjectTask['priority'], string> = {
     low: 'Ưu tiên thấp',
@@ -48,16 +77,15 @@ export default function TaskItem({
       alignItems={{ xs: 'stretch', sm: 'center' }}
       sx={{ width: { xs: '100%', sm: 'auto' } }}
     >
-      <Chip 
-        size="small" 
-        label={statusLabels[task.status]} 
-        color={statusColors[task.status]}
-        sx={{ alignSelf: { xs: 'flex-start', sm: 'center' } }}
-      />
       {canChangeStatus ? (
         <TaskStatusSelect value={task.status} onChange={onStatusChange} />
       ) : (
-        <TaskStatusSelect value={task.status} onChange={() => {}} disabled />
+        <TaskStatusSelect 
+          value={task.status} 
+          onChange={() => {}} 
+          disabled 
+          title={hasChildren ? 'Status được tính tự động dựa trên task con' : 'Không có quyền thay đổi status'}
+        />
       )}
       {canAddChild && (
         <IconButton
@@ -69,21 +97,51 @@ export default function TaskItem({
           <Add fontSize="small" />
         </IconButton>
       )}
+      {isProjectManager && onEdit && (
+        <IconButton
+          size="small"
+          onClick={onEdit}
+          title="Chỉnh sửa công việc"
+          sx={{ alignSelf: { xs: 'flex-start', sm: 'center' } }}
+        >
+          <Edit fontSize="small" />
+        </IconButton>
+      )}
+      {isProjectManager && (
+        <IconButton
+          size="small"
+          onClick={onDelete}
+          title="Xóa công việc (sẽ xóa cả task con)"
+          sx={{ alignSelf: { xs: 'flex-start', sm: 'center' }, color: 'error.main' }}
+        >
+          <Delete fontSize="small" />
+        </IconButton>
+      )}
     </Stack>
   );
 
   return (
     <Box 
+      ref={taskRef}
       sx={{ 
         ml: { xs: depth, sm: depth * 2 }, 
         borderLeft: depth > 0 ? '1px dashed #e0e0e0' : 'none', 
-        pl: { xs: depth > 0 ? 1 : 0, sm: depth > 0 ? 2 : 0 } 
+        pl: { xs: depth > 0 ? 1 : 0, sm: depth > 0 ? 2 : 0 },
+        backgroundColor: isHighlighted ? '#e3f2fd' : 'transparent',
+        borderRadius: isHighlighted ? '4px' : 0,
+        p: isHighlighted ? 1 : 0,
+        transition: 'background-color 0.3s ease',
       }}
     >
       {isMobile ? (
         <Box>
           <ListItem
-            sx={{ flexDirection: 'column', alignItems: 'stretch', px: { xs: 1, sm: 2 } }}
+            sx={{ 
+              flexDirection: 'column', 
+              alignItems: 'stretch', 
+              px: { xs: 1, sm: 2 },
+              backgroundColor: isHighlighted ? 'transparent' : undefined,
+            }}
           >
             <Stack direction="row" alignItems="center" spacing={0.5} sx={{ width: '100%', mb: 1 }}>
               {hasChildren && (
@@ -133,6 +191,9 @@ export default function TaskItem({
       ) : (
         <ListItem
           secondaryAction={actionButtons}
+          sx={{
+            backgroundColor: isHighlighted ? 'transparent' : undefined,
+          }}
         >
           <Stack direction="row" alignItems="center" spacing={0.5} sx={{ flex: 1 }}>
             {hasChildren && (
@@ -184,10 +245,43 @@ export default function TaskItem({
               isExpanded={expandedTasks.has(child.id)}
               expandedTasks={expandedTasks}
               onToggleExpand={onToggleExpand}
-              onStatusChange={onStatusChange}
-              onAddChild={onAddChild}
+              onStatusChange={(status) => {
+                // Sử dụng callback gốc từ TaskList với child.id
+                    if (onStatusChangeWithTaskId) {
+                      onStatusChangeWithTaskId(child.id, status);
+                    } else {
+                      onStatusChange(status);
+                    }
+              }}
+              onAddChild={() => {
+                if (onAddChildWithTask) {
+                  onAddChildWithTask(child);
+                } else {
+                  onAddChild();
+                }
+              }}
+              onDelete={() => {
+                if (onDeleteWithTaskId) {
+                  onDeleteWithTaskId(child.id);
+                } else {
+                  onDelete();
+                }
+              }}
+              onEdit={() => {
+                if (onEditWithTask) {
+                  onEditWithTask(child);
+                } else if (onEdit) {
+                  onEdit();
+                }
+              }}
               currentUserId={currentUserId}
               isProjectManager={isProjectManager}
+              isHighlighted={child.id === highlightTaskId}
+              highlightTaskId={highlightTaskId}
+              onStatusChangeWithTaskId={onStatusChangeWithTaskId} // Truyền xuống cho task con
+              onAddChildWithTask={onAddChildWithTask} // Truyền xuống cho task con
+              onDeleteWithTaskId={onDeleteWithTaskId} // Truyền xuống cho task con
+              onEditWithTask={onEditWithTask} // Truyền xuống cho task con
             />
           ))}
         </Box>

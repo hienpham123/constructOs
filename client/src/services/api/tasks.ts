@@ -13,6 +13,9 @@ export const tasksAPI = {
 
   updateStatus: (taskId: string, status: ProjectTask['status'], note?: string) =>
     api.post(`/tasks/${taskId}/status`, { status, note }).then((res) => res.data as ProjectTask),
+
+  delete: (taskId: string) =>
+    api.delete(`/tasks/${taskId}`),
 };
 
 

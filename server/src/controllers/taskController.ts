@@ -10,14 +10,9 @@ type TaskPriority = 'low' | 'normal' | 'high';
 const allowedStatuses: TaskStatus[] = ['pending', 'in_progress', 'submitted', 'completed', 'blocked', 'cancelled'];
 const allowedPriorities: TaskPriority[] = ['low', 'normal', 'high'];
 
-const transitionRules: Record<TaskStatus, TaskStatus[]> = {
-  pending: ['in_progress', 'blocked', 'cancelled'],
-  in_progress: ['submitted', 'blocked', 'cancelled'],
-  submitted: ['completed', 'blocked', 'cancelled'],
-  blocked: ['in_progress', 'cancelled'],
-  completed: [],
-  cancelled: [],
-};
+// Bỏ transition rules - cho phép chuyển sang bất kỳ status nào
+// Chỉ giới hạn: completed và cancelled không thể chuyển sang status khác
+const blockedStatuses: TaskStatus[] = ['completed', 'cancelled'];
 
 interface TaskRow {
   id: string;
@@ -239,6 +234,13 @@ export const createTask = async (req: Request, res: Response) => {
 
 export const updateTask = async (req: Request, res: Response) => {
   try {
+    const authReq = req as AuthRequest;
+    const userId = authReq.userId;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Không có quyền truy cập' });
+    }
+
     const { taskId } = req.params;
     const { title, description, priority, dueDate, assignedTo } = req.body;
 
@@ -247,25 +249,42 @@ export const updateTask = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Không tìm thấy công việc' });
     }
 
+    // Check permission: only project manager can edit tasks
+    const isManager = await isProjectManager(userId, existing.project_id);
+    if (!isManager) {
+      return res.status(403).json({ error: 'Chỉ quản lý dự án mới có thể chỉnh sửa công việc' });
+    }
+
     const nextPriority = priority || existing.priority;
     if (!allowedPriorities.includes(nextPriority)) {
       return res.status(400).json({ error: 'Độ ưu tiên không hợp lệ' });
     }
 
-    await query(
-      `UPDATE project_tasks SET
-        title = ?, description = ?, priority = ?, due_date = ?, assigned_to = ?, updated_at = ?
-      WHERE id = ?`,
-      [
-        title || existing.title,
-        description ?? existing.description,
-        nextPriority,
-        dueDate ? toMySQLDate(dueDate) : existing.due_date || null,
-        assignedTo || existing.assigned_to,
-        toMySQLDateTime(),
-        taskId,
-      ]
-    );
+    const now = toMySQLDateTime();
+
+    await transaction(async (client) => {
+      await client.query(
+        `UPDATE project_tasks SET
+          title = ?, description = ?, priority = ?, due_date = ?, assigned_to = ?, updated_at = ?
+        WHERE id = ?`,
+        [
+          title || existing.title,
+          description ?? existing.description,
+          nextPriority,
+          dueDate ? toMySQLDate(dueDate) : existing.due_date || null,
+          assignedTo || existing.assigned_to,
+          now,
+          taskId,
+        ]
+      );
+
+      // Log activity
+      await client.query(
+        `INSERT INTO task_activity (id, task_id, action, note, actor_id, created_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [uuidv4(), taskId, 'updated', 'Cập nhật thông tin công việc', userId, now]
+      );
+    });
 
     const updated = await getTaskRow(taskId);
     res.json(updated ? mapTask(updated) : null);
@@ -327,8 +346,9 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Chỉ người được giao hoặc quản lý dự án mới có thể thay đổi trạng thái' });
     }
 
-    if (!transitionRules[task.status].includes(status)) {
-      return res.status(400).json({ error: 'Không thể chuyển trạng thái theo thứ tự này' });
+    // Chỉ chặn chuyển từ completed hoặc cancelled sang status khác
+    if (blockedStatuses.includes(task.status) && task.status !== status) {
+      return res.status(400).json({ error: 'Không thể thay đổi trạng thái từ "Hoàn thành" hoặc "Hủy"' });
     }
 
     if (status === 'completed') {
@@ -349,6 +369,16 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
       );
     });
 
+    // Tự động cập nhật status của task cha nếu task này là task con
+    if (task.parent_task_id) {
+      try {
+        const { updateParentTaskStatus } = await import('../utils/taskStatus.js');
+        await updateParentTaskStatus(task.parent_task_id);
+      } catch (parentStatusError) {
+        // Ignore error
+      }
+    }
+
     const updated = await getTaskRow(taskId);
     res.json(updated ? mapTask(updated) : null);
   } catch (error: any) {
@@ -357,4 +387,204 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Xóa task và tất cả task con (cascade delete)
+ * Logic đơn giản: Xóa task được chọn và tất cả task con của nó (recursive)
+ */
+export const deleteTask = async (req: Request, res: Response) => {
+  try {
+    const authReq = req as AuthRequest;
+    const userId = authReq.userId;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Không có quyền truy cập' });
+    }
 
+    const { taskId } = req.params;
+
+    // Lấy thông tin task cần xóa
+    const task = await getTaskRow(taskId);
+    if (!task) {
+      return res.status(404).json({ error: 'Không tìm thấy công việc' });
+    }
+
+    // Check permission: only project manager can delete tasks
+    const isManager = await isProjectManager(userId, task.project_id);
+    if (!isManager) {
+      return res.status(403).json({ error: 'Chỉ quản lý dự án mới có thể xóa công việc' });
+    }
+
+    // Hàm đệ quy đơn giản để lấy tất cả task con
+    const getAllChildTaskIds = async (parentTaskId: string): Promise<string[]> => {
+      // Lấy tất cả task con trực tiếp (CHỈ task con, không lấy task cha)
+      const children = await query<any[]>(
+        'SELECT id, parent_task_id FROM project_tasks WHERE parent_task_id = ?',
+        [parentTaskId]
+      );
+      
+      if (!Array.isArray(children) || children.length === 0) {
+        return [];
+      }
+      
+      let allChildIds: string[] = [];
+      
+      for (const child of children) {
+        const childId = child.id;
+        if (!childId) continue;
+        
+        // VALIDATION: Đảm bảo childId thực sự là task con của parentTaskId
+        if (child.parent_task_id !== parentTaskId) {
+          continue;
+        }
+        
+        allChildIds.push(childId);
+        
+        // Đệ quy lấy task con của task con
+        const grandChildren = await getAllChildTaskIds(childId);
+        allChildIds = allChildIds.concat(grandChildren);
+      }
+      
+      return allChildIds;
+    };
+
+    // Lấy tất cả task con của taskId (CHỈ task con, không lấy task cha)
+    const allChildTaskIds = await getAllChildTaskIds(taskId);
+    
+    // Danh sách tất cả task sẽ xóa: task chính + tất cả task con
+    const allTaskIdsToDelete = [taskId, ...allChildTaskIds];
+    
+    // VALIDATION: Đảm bảo không xóa task cha
+    if (task.parent_task_id && allTaskIdsToDelete.includes(task.parent_task_id)) {
+      return res.status(400).json({ error: 'Không thể xóa task cha khi xóa task con' });
+    }
+    
+    // VALIDATION: Kiểm tra lại tất cả task sẽ xóa để đảm bảo chúng thực sự là task con của taskId
+    const tasksToDeleteInfo = await Promise.all(
+      allTaskIdsToDelete.map(async (id) => {
+        const taskInfo = await query<any[]>(
+          'SELECT id, parent_task_id FROM project_tasks WHERE id = ?',
+          [id]
+        );
+        return taskInfo[0] || null;
+      })
+    );
+    
+    // Kiểm tra xem có task nào không phải là taskId hoặc task con của nó
+    for (const taskInfo of tasksToDeleteInfo) {
+      if (!taskInfo) continue;
+      
+      // Task chính (taskId) thì OK
+      if (taskInfo.id === taskId) continue;
+      
+      // Kiểm tra xem task này có phải là task con (hoặc cháu, chắt...) của taskId không
+      let isDescendant = false;
+      let currentId = taskInfo.id;
+      let depth = 0;
+      const maxDepth = 100; // Giới hạn độ sâu
+      
+      while (depth < maxDepth) {
+        const currentTask = await query<any[]>(
+          'SELECT parent_task_id FROM project_tasks WHERE id = ?',
+          [currentId]
+        );
+        
+        if (currentTask.length === 0) break;
+        
+        const parentId = currentTask[0].parent_task_id;
+        if (!parentId) break;
+        
+        if (parentId === taskId) {
+          isDescendant = true;
+          break;
+        }
+        
+        currentId = parentId;
+        depth++;
+      }
+      
+      if (!isDescendant) {
+        return res.status(400).json({ error: `Task ${taskInfo.id} không phải là task con của task được chọn` });
+      }
+    }
+
+    // Xóa trong transaction
+    await transaction(async (client) => {
+      // Xóa task activity trước
+      for (const idToDelete of allTaskIdsToDelete) {
+        await client.query('DELETE FROM task_activity WHERE task_id = ?', [idToDelete]);
+      }
+
+      // Xóa tất cả task (xóa từ task con trước, sau đó mới xóa task cha)
+      // Sắp xếp: task con trước (có parent_task_id trong danh sách), task cha sau
+      const taskInfos = await Promise.all(
+        allTaskIdsToDelete.map(async (id) => {
+          const result = await client.query(
+            'SELECT parent_task_id FROM project_tasks WHERE id = ?',
+            [id]
+          ) as any[];
+          return { id, parent_task_id: result[0]?.parent_task_id || null };
+        })
+      );
+      
+      // Sắp xếp: task con trước, task cha sau
+      const sortedTaskIds = allTaskIdsToDelete.sort((a, b) => {
+        const aInfo = taskInfos.find(t => t.id === a);
+        const bInfo = taskInfos.find(t => t.id === b);
+        
+        // Nếu a là task con của b, xóa a trước
+        if (aInfo?.parent_task_id === b) return -1;
+        // Nếu b là task con của a, xóa b trước
+        if (bInfo?.parent_task_id === a) return 1;
+        return 0;
+      });
+      
+      // Xóa từng task
+      for (const idToDelete of sortedTaskIds) {
+        // VALIDATION: Đảm bảo không xóa task cha
+        if (idToDelete === task.parent_task_id) {
+          throw new Error(`Không thể xóa task cha ${idToDelete} khi xóa task con ${taskId}`);
+        }
+        
+        // Kiểm tra lại parent_task_id trước khi xóa
+        const taskToDelete = await client.query(
+          'SELECT id, parent_task_id FROM project_tasks WHERE id = ?',
+          [idToDelete]
+        ) as any[];
+        
+        if (taskToDelete.length === 0) {
+          continue;
+        }
+        
+        // VALIDATION: Nếu task này là task cha của taskId, không được xóa
+        if (taskToDelete[0].id === task.parent_task_id) {
+          throw new Error(`Không thể xóa task cha ${idToDelete} khi xóa task con ${taskId}`);
+        }
+        
+        await client.query('DELETE FROM project_tasks WHERE id = ?', [idToDelete]);
+      }
+    });
+
+    // Tự động cập nhật tiến độ dự án
+    try {
+      const { updateProjectProgress } = await import('../utils/projectProgress.js');
+      await updateProjectProgress(task.project_id);
+    } catch (progressError) {
+      // Ignore error
+    }
+
+    // Tự động cập nhật status của task cha nếu task này là task con
+    if (task.parent_task_id) {
+      try {
+        const { updateParentTaskStatus } = await import('../utils/taskStatus.js');
+        await updateParentTaskStatus(task.parent_task_id);
+      } catch (parentStatusError) {
+        // Ignore error
+      }
+    }
+
+    res.status(204).send();
+  } catch (error: any) {
+    console.error('Error deleting task:', error);
+    res.status(500).json({ error: error.message || 'Không thể xóa công việc' });
+  }
+};

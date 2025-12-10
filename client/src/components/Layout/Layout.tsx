@@ -25,6 +25,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { useAuthStore } from '../../stores/authStore';
 import Sidebar from './Sidebar';
+import NotificationBell from '../notifications/NotificationBell';
 
 const drawerWidth = 280;
 const collapsedWidth = 64;
@@ -178,18 +179,7 @@ export default function Layout() {
             {getPageTitle()}
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <IconButton
-              size="small"
-              sx={{
-                color: 'text.secondary',
-                position: 'relative',
-                '&:hover': {
-                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                },
-              }}
-            >
-              <FontAwesomeIcon icon={faBell} />
-            </IconButton>
+            <NotificationBell />
             <Box
               onClick={handleMenuOpen}
               sx={{

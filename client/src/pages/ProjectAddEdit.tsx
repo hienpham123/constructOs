@@ -46,7 +46,7 @@ const projectSchema = z.object({
   }),
   budget: z.number().min(0, 'Ngân sách phải >= 0'),
   status: z.enum(['quoting', 'contract_signed_in_progress', 'completed', 'on_hold', 'design_consulting', 'in_progress', 'design_appraisal', 'preparing_acceptance', 'failed']),
-  progress: z.number().min(0).max(100, 'Tiến độ phải từ 0-100'),
+  // progress: Tự động tính dựa trên tasks, không cho phép nhập thủ công
   managers: z.array(z.any()).optional(),
 });
 
@@ -82,7 +82,6 @@ export default function ProjectAddEdit() {
       endDate: null,
       budget: 0,
       status: 'quoting',
-      progress: 0,
       managers: [],
     },
   });
@@ -455,32 +454,6 @@ export default function ProjectAddEdit() {
                         <MenuItem value="failed">Thất bại</MenuItem>
                       </Select>
                     </FormControl>
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Controller
-                  name="progress"
-                  control={control}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      label="Tiến độ (%) *"
-                      fullWidth
-                      type="number"
-                      inputProps={{ min: 0, max: 100 }}
-                      error={!!errors.progress}
-                      helperText={errors.progress?.message || 'Nhập từ 0-100'}
-                      value={field.value || ''}
-                      onChange={(e) => {
-                        const value = parseInt(e.target.value, 10);
-                        if (isNaN(value)) {
-                          field.onChange(0);
-                        } else {
-                          field.onChange(Math.min(100, Math.max(0, value)));
-                        }
-                      }}
-                    />
                   )}
                 />
               </Grid>

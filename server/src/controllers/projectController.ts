@@ -122,9 +122,26 @@ export const getProjects = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Tính và cập nhật tiến độ dự án tự động khi lấy project
+ */
+async function refreshProjectProgress(projectId: string): Promise<void> {
+  try {
+    const { updateProjectProgress } = await import('../utils/projectProgress.js');
+    await updateProjectProgress(projectId);
+  } catch (error) {
+    console.warn('⚠️ Lỗi cập nhật tiến độ dự án:', error);
+    // Không throw để không ảnh hưởng đến response
+  }
+}
+
 export const getProjectById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    
+    // Tự động tính và cập nhật tiến độ dự án
+    await refreshProjectProgress(id);
+    
     const results = await query<any[]>(
       'SELECT * FROM projects WHERE id = ?',
       [id]
@@ -211,7 +228,7 @@ export const createProject = async (req: Request, res: Response) => {
         toMySQLDate(projectData.startDate),
         toMySQLDate(projectData.endDate),
         projectData.status || 'quoting',
-        projectData.progress || 0,
+        0, // Tiến độ ban đầu = 0, sẽ được tính tự động khi có tasks
         projectData.budget || 0,
         projectData.actualCost || 0,
         primaryManagerId,
@@ -277,6 +294,16 @@ export const updateProject = async (req: Request, res: Response) => {
     // Convert managerIds array to JSON string
     const managerIdsJson = JSON.stringify(managerIds);
     
+    // Tính tiến độ tự động dựa trên tasks (không cho phép nhập thủ công)
+    await refreshProjectProgress(id);
+    
+    // Lấy tiến độ đã được tính tự động
+    const projectWithProgress = await query<any[]>(
+      'SELECT progress FROM projects WHERE id = ?',
+      [id]
+    );
+    const autoProgress = projectWithProgress[0]?.progress || 0;
+    
     await query(
       `UPDATE projects SET
         name = ?, description = ?, investor = ?, contact_person = ?, location = ?,
@@ -292,7 +319,7 @@ export const updateProject = async (req: Request, res: Response) => {
         toMySQLDate(projectData.startDate),
         toMySQLDate(projectData.endDate),
         projectData.status,
-        projectData.progress,
+        autoProgress, // Sử dụng tiến độ tự động, không dùng từ request
         projectData.budget,
         projectData.actualCost,
         primaryManagerId,

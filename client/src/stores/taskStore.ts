@@ -11,6 +11,7 @@ interface TaskState {
   addTask: (projectId: string, payload: { title: string; description?: string; priority?: ProjectTask['priority']; dueDate?: string; assignedTo: string; parentTaskId?: string | null }) => Promise<void>;
   updateTask: (taskId: string, payload: Partial<ProjectTask>) => Promise<void>;
   updateStatus: (taskId: string, status: ProjectTask['status'], note?: string) => Promise<void>;
+  deleteTask: (taskId: string, projectId: string) => Promise<void>;
 }
 
 export const useTaskStore = create<TaskState>((set, get) => ({
@@ -69,7 +70,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   updateStatus: async (taskId, status, note) => {
     set({ isLoading: true, error: null });
     try {
-      await tasksAPI.updateStatus(taskId, status, note);
+      console.log(`📤 Frontend: Gửi request update status task ${taskId} → ${status}`);
+      const response = await tasksAPI.updateStatus(taskId, status, note);
+      console.log(`📥 Frontend: Nhận response từ server:`, response);
       // Refresh tasks from server to ensure consistency
       const currentTasks = get().tasks;
       if (currentTasks.length > 0) {
@@ -83,6 +86,21 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       console.error('Error updating status:', error);
       set({ error: error.message || 'Không thể cập nhật trạng thái', isLoading: false });
       showError(error.message || 'Không thể cập nhật trạng thái');
+      throw error;
+    }
+  },
+
+  deleteTask: async (taskId, projectId) => {
+    set({ isLoading: true, error: null });
+    try {
+      await tasksAPI.delete(taskId);
+      await get().fetchTasks(projectId);
+      set({ isLoading: false });
+      showSuccess('Xóa công việc thành công');
+    } catch (error: any) {
+      console.error('Error deleting task:', error);
+      set({ error: error.message || 'Không thể xóa công việc', isLoading: false });
+      showError(error.message || 'Không thể xóa công việc');
       throw error;
     }
   },

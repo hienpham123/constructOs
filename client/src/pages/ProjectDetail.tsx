@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -27,10 +27,19 @@ import ProjectTasks from '../components/ProjectTasks';
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const taskIdFromUrl = searchParams.get('taskId');
   const { projects, fetchProjects, selectedProject, setSelectedProject } = useProjectStore();
   const [tabValue, setTabValue] = useState(0);
   const [isLoadingProject, setIsLoadingProject] = useState(false);
   const { canViewDocumentType, isLoading: permissionsLoading } = usePermissions();
+
+  // Nếu có taskId trong URL, chuyển sang tab Công việc (index 3)
+  useEffect(() => {
+    if (taskIdFromUrl) {
+      setTabValue(3);
+    }
+  }, [taskIdFromUrl]);
 
   useEffect(() => {
     if (projects.length === 0) {
@@ -243,7 +252,7 @@ export default function ProjectDetail() {
 
         {tabValue === 3 && (
           <Box sx={{ mt: 2 }}>
-            <ProjectTasks projectId={selectedProject.id} />
+            <ProjectTasks projectId={selectedProject.id} highlightTaskId={taskIdFromUrl || undefined} />
           </Box>
         )}
       </Paper>

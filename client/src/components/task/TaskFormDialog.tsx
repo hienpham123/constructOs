@@ -26,6 +26,7 @@ interface TaskFormDialogProps {
     assignedTo: string;
   }) => Promise<void>;
   parentTask?: ProjectTask | null;
+  taskToEdit?: ProjectTask | null; // Task cần edit
   isLoading?: boolean;
 }
 
@@ -34,6 +35,7 @@ export default function TaskFormDialog({
   onClose,
   onSubmit,
   parentTask,
+  taskToEdit,
   isLoading = false,
 }: TaskFormDialogProps) {
   const [title, setTitle] = useState('');
@@ -43,7 +45,17 @@ export default function TaskFormDialog({
   const [assignedTo, setAssignedTo] = useState<PeoplePickerOption | null>(null);
 
   useEffect(() => {
-    if (!open) {
+    if (open && taskToEdit) {
+      // Edit mode: load task data
+      setTitle(taskToEdit.title);
+      setDescription(taskToEdit.description || '');
+      setPriority(taskToEdit.priority);
+      setDueDate(taskToEdit.dueDate ? dayjs(taskToEdit.dueDate) : null);
+      setAssignedTo({
+        id: taskToEdit.assignedTo,
+        name: taskToEdit.assignedToName || taskToEdit.assignedTo,
+      } as PeoplePickerOption);
+    } else if (!open) {
       // Reset form when dialog closes
       setTitle('');
       setDescription('');
@@ -51,7 +63,7 @@ export default function TaskFormDialog({
       setDueDate(null);
       setAssignedTo(null);
     }
-  }, [open]);
+  }, [open, taskToEdit]);
 
   const handleSubmit = async () => {
     if (!title.trim() || !assignedTo) {
@@ -71,7 +83,7 @@ export default function TaskFormDialog({
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="vi">
       <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
         <DialogTitle>
-          {parentTask ? `Tạo công việc con của "${parentTask.title}"` : 'Tạo công việc mới'}
+          {taskToEdit ? 'Chỉnh sửa công việc' : parentTask ? `Tạo công việc con của "${parentTask.title}"` : 'Tạo công việc mới'}
         </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>

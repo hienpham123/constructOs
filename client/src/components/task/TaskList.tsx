@@ -8,9 +8,12 @@ interface TaskListProps {
   onToggleExpand: (taskId: string) => void;
   onStatusChange: (taskId: string, status: ProjectTask['status']) => void;
   onAddChild: (task: ProjectTask) => void;
+  onDelete: (taskId: string) => void;
+  onEdit?: (task: ProjectTask) => void;
   isLoading?: boolean;
   currentUserId: string;
   isProjectManager: boolean;
+  highlightTaskId?: string; // Task ID để highlight
 }
 
 export default function TaskList({
@@ -19,12 +22,16 @@ export default function TaskList({
   onToggleExpand,
   onStatusChange,
   onAddChild,
+  onDelete,
+  onEdit,
   isLoading = false,
   currentUserId,
   isProjectManager,
+  highlightTaskId,
 }: TaskListProps) {
-  const renderTask = (task: ProjectTask, depth = 0): JSX.Element => {
+  const renderTask = (task: ProjectTask, depth = 0, highlightId?: string): JSX.Element => {
     const isExpanded = expandedTasks.has(task.id);
+    const isHighlighted = task.id === highlightId;
 
     return (
       <TaskItem
@@ -36,8 +43,16 @@ export default function TaskList({
         onToggleExpand={onToggleExpand}
         onStatusChange={(status) => onStatusChange(task.id, status)}
         onAddChild={() => onAddChild(task)}
+        onDelete={() => onDelete(task.id)}
+        onEdit={onEdit ? () => onEdit(task) : undefined}
         currentUserId={currentUserId}
         isProjectManager={isProjectManager}
+        isHighlighted={isHighlighted}
+        highlightTaskId={highlightId}
+        onStatusChangeWithTaskId={onStatusChange} // Truyền callback gốc để task con có thể dùng
+        onAddChildWithTask={onAddChild} // Truyền callback gốc để task con có thể dùng
+        onDeleteWithTaskId={onDelete} // Truyền callback gốc để task con có thể dùng
+        onEditWithTask={onEdit} // Truyền callback gốc để task con có thể dùng
       />
     );
   };
@@ -58,7 +73,7 @@ export default function TaskList({
 
   return (
     <List disablePadding>
-      {tasks.map((task) => renderTask(task))}
+      {tasks.map((task) => renderTask(task, 0, highlightTaskId))}
     </List>
   );
 }
